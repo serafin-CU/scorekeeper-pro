@@ -47,8 +47,22 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import AdminDataSources from './pages/AdminDataSources';
+import AdminMatchSourceLinks from './pages/AdminMatchSourceLinks';
+import AdminIngestionMonitor from './pages/AdminIngestionMonitor';
+import AdminMatchValidation from './pages/AdminMatchValidation';
+import AdminManualOverride from './pages/AdminManualOverride';
 
-export const pagesConfig = {
-	Pages: {}
+
+export const PAGES = {
+    "AdminDataSources": AdminDataSources,
+    "AdminMatchSourceLinks": AdminMatchSourceLinks,
+    "AdminIngestionMonitor": AdminIngestionMonitor,
+    "AdminMatchValidation": AdminMatchValidation,
+    "AdminManualOverride": AdminManualOverride,
 }
 
+export const pagesConfig = {
+    mainPage: "AdminDataSources",
+    Pages: PAGES,
+};

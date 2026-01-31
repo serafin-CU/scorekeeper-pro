@@ -147,9 +147,10 @@ Deno.serve(async (req) => {
                 scoringJobsEnqueued++;
             }
 
-            // Log admin action
+            // Log system action
             await base44.asServiceRole.entities.AdminAuditLog.create({
-                admin_user_id: 'system',
+                admin_user_id: null,
+                actor_type: 'SYSTEM',
                 action: 'AUTO_FINALIZE_MATCH',
                 entity_type: 'MatchResultFinal',
                 entity_id: matchResult.id,
