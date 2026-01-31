@@ -41,10 +41,10 @@ export default function AdminMatchSourceLinks() {
 
     const updateLinkMutation = useMutation({
         mutationFn: async ({ id, url, source_id }) => {
-            // Validate URL
+            // Validate URL (allows empty for placeholders)
             const validation = await base44.functions.invoke('adminValidationService', {
                 action: 'validate_match_source_link',
-                url,
+                url: url && url.trim() !== '' ? url : null,
                 source_id
             });
 
@@ -52,7 +52,7 @@ export default function AdminMatchSourceLinks() {
                 throw new Error(validation.data.errors.join(', '));
             }
 
-            return base44.entities.MatchSourceLink.update(id, { url });
+            return base44.entities.MatchSourceLink.update(id, { url: url && url.trim() !== '' ? url : null });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['matchSourceLinks'] });
@@ -130,10 +130,18 @@ export default function AdminMatchSourceLinks() {
                                                             <Input 
                                                                 value={editUrl}
                                                                 onChange={(e) => setEditUrl(e.target.value)}
-                                                                placeholder="https://..."
+                                                                placeholder="https://... (leave empty for placeholder)"
                                                             />
                                                         ) : (
-                                                            <span className="text-sm">{link.url || <em className="text-gray-400">Not set</em>}</span>
+                                                            <span className="text-sm">
+                                                                {link.url ? (
+                                                                    link.url
+                                                                ) : (
+                                                                    <span className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-xs">
+                                                                        Needs URL
+                                                                    </span>
+                                                                )}
+                                                            </span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell>

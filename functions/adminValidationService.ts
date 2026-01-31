@@ -117,14 +117,12 @@ async function validateDataSource(base44, user, body) {
 
 /**
  * Validate MatchSourceLink URL against whitelist
+ * Allows null/empty URLs for placeholder links
  */
 async function validateMatchSourceLink(base44, user, body) {
     const { url, source_id } = body;
     const errors = [];
 
-    if (!url) {
-        return Response.json({ valid: false, errors: ['url is required'] });
-    }
     if (!source_id) {
         return Response.json({ valid: false, errors: ['source_id is required'] });
     }
@@ -138,7 +136,17 @@ async function validateMatchSourceLink(base44, user, body) {
 
     const source = sources[0];
 
-    // Validate URL against whitelist
+    // Allow null/empty URLs for placeholder links
+    if (!url || url.trim() === '') {
+        return Response.json({ 
+            valid: true, 
+            errors: [],
+            source_name: source.name,
+            is_placeholder: true
+        });
+    }
+
+    // Validate non-empty URLs against whitelist
     if (!url.startsWith(source.base_url)) {
         errors.push(`URL must start with DataSource base_url: ${source.base_url}`);
     } else {
@@ -156,6 +164,7 @@ async function validateMatchSourceLink(base44, user, body) {
     return Response.json({ 
         valid: errors.length === 0, 
         errors,
-        source_name: source.name
+        source_name: source.name,
+        is_placeholder: false
     });
 }

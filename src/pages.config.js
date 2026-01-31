@@ -48,22 +48,22 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AdminDataSources from './pages/AdminDataSources';
-import AdminMatchSourceLinks from './pages/AdminMatchSourceLinks';
-import AdminIngestionMonitor from './pages/AdminIngestionMonitor';
-import AdminMatchValidation from './pages/AdminMatchValidation';
-import AdminManualOverride from './pages/AdminManualOverride';
-import AdminSystemTestHarness from './pages/AdminSystemTestHarness';
 import AdminDevSeed from './pages/AdminDevSeed';
+import AdminIngestionMonitor from './pages/AdminIngestionMonitor';
+import AdminManualOverride from './pages/AdminManualOverride';
+import AdminMatchSourceLinks from './pages/AdminMatchSourceLinks';
+import AdminMatchValidation from './pages/AdminMatchValidation';
+import AdminSystemTestHarness from './pages/AdminSystemTestHarness';
 
 
 export const PAGES = {
     "AdminDataSources": AdminDataSources,
-    "AdminMatchSourceLinks": AdminMatchSourceLinks,
-    "AdminIngestionMonitor": AdminIngestionMonitor,
-    "AdminMatchValidation": AdminMatchValidation,
-    "AdminManualOverride": AdminManualOverride,
-    "AdminSystemTestHarness": AdminSystemTestHarness,
     "AdminDevSeed": AdminDevSeed,
+    "AdminIngestionMonitor": AdminIngestionMonitor,
+    "AdminManualOverride": AdminManualOverride,
+    "AdminMatchSourceLinks": AdminMatchSourceLinks,
+    "AdminMatchValidation": AdminMatchValidation,
+    "AdminSystemTestHarness": AdminSystemTestHarness,
 }
 
 export const pagesConfig = {
