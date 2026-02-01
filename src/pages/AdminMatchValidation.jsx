@@ -98,11 +98,25 @@ export default function AdminMatchValidation() {
 
     const handleSave = () => {
         if (!formData.reasons_json.trim()) {
-            setAlert({ type: 'error', message: 'Reasons JSON is required' });
+            setAlert({ type: 'error', message: 'Reasons is required' });
             return;
         }
 
-        saveMutation.mutate(formData);
+        // Convert plain text to JSON array if needed
+        let reasonsJson = formData.reasons_json.trim();
+        
+        // Check if it's already valid JSON
+        try {
+            JSON.parse(reasonsJson);
+        } catch (e) {
+            // If not valid JSON, treat as plain text and convert to JSON array
+            reasonsJson = JSON.stringify([reasonsJson]);
+        }
+
+        saveMutation.mutate({
+            ...formData,
+            reasons_json: reasonsJson
+        });
     };
 
     if (validationsLoading) return <div className="p-8">Loading...</div>;
@@ -189,13 +203,14 @@ export default function AdminMatchValidation() {
                         </div>
 
                         <div>
-                            <Label>Reasons JSON (required)</Label>
+                            <Label>Reasons (required)</Label>
                             <Textarea 
                                 value={formData.reasons_json}
                                 onChange={(e) => setFormData({...formData, reasons_json: e.target.value})}
-                                placeholder='["Manual admin override", "Testing finalizer"]'
+                                placeholder='Manual admin override for testing (plain text OK, or JSON array like ["reason1", "reason2"])'
                                 rows={3}
                             />
+                            <p className="text-xs text-gray-500 mt-1">Plain text or JSON array accepted</p>
                         </div>
 
                         <Button onClick={handleSave} disabled={saveMutation.isPending}>
