@@ -54,6 +54,8 @@ import AdminManualOverride from './pages/AdminManualOverride';
 import AdminMatchSourceLinks from './pages/AdminMatchSourceLinks';
 import AdminMatchValidation from './pages/AdminMatchValidation';
 import AdminSystemTestHarness from './pages/AdminSystemTestHarness';
+import AdminFantasyStatsViewer from './pages/AdminFantasyStatsViewer';
+import AdminFantasyLedgerViewer from './pages/AdminFantasyLedgerViewer';
 
 
 export const PAGES = {
@@ -64,6 +66,8 @@ export const PAGES = {
     "AdminMatchSourceLinks": AdminMatchSourceLinks,
     "AdminMatchValidation": AdminMatchValidation,
     "AdminSystemTestHarness": AdminSystemTestHarness,
+    "AdminFantasyStatsViewer": AdminFantasyStatsViewer,
+    "AdminFantasyLedgerViewer": AdminFantasyLedgerViewer,
 }
 
 export const pagesConfig = {

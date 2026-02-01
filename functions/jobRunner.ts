@@ -143,8 +143,13 @@ async function handleFantasyScoring(base44, job) {
         throw new Error('FantasyMatchPlayerStats not available, re-enqueued FANTASY_STATS job');
     }
 
-    // TODO: Implement fantasy scoring logic
-    return { status: 'FANTASY_SCORING_NOT_IMPLEMENTED', match_id, stats_count: stats.length };
+    // Call fantasy scoring service
+    const result = await base44.asServiceRole.functions.invoke('fantasyScoringService', {
+        action: 'score_fantasy_match',
+        match_id
+    });
+
+    return result.data;
 }
 
 async function handleProdeScoring(base44, job) {
