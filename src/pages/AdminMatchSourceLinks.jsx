@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Edit, Save, X } from 'lucide-react';
 
 export default function AdminMatchSourceLinks() {
     const [editingLink, setEditingLink] = useState(null);
     const [editUrl, setEditUrl] = useState('');
+    const [editRole, setEditRole] = useState('FALLBACK');
     const queryClient = useQueryClient();
 
     const { data: matches = [], isLoading: matchesLoading } = useQuery({
@@ -29,10 +31,13 @@ export default function AdminMatchSourceLinks() {
         queryFn: () => base44.entities.MatchSourceLink.list()
     });
 
-    const { data: sources = [] } = useQuery({
+    const { data: allSources = [] } = useQuery({
         queryKey: ['dataSources'],
         queryFn: () => base44.entities.DataSource.list()
     });
+
+    // Filter to show only enabled sources
+    const sources = allSources.filter(s => s.enabled);
 
     const { data: teams = [] } = useQuery({
         queryKey: ['teams'],
@@ -40,7 +45,7 @@ export default function AdminMatchSourceLinks() {
     });
 
     const updateLinkMutation = useMutation({
-        mutationFn: async ({ id, url, source_id }) => {
+        mutationFn: async ({ id, url, source_id, role, match_id }) => {
             // Validate URL (allows empty for placeholders)
             const validation = await base44.functions.invoke('adminValidationService', {
                 action: 'validate_match_source_link',
@@ -52,24 +57,32 @@ export default function AdminMatchSourceLinks() {
                 throw new Error(validation.data.errors.join(', '));
             }
 
-            return base44.entities.MatchSourceLink.update(id, { url: url && url.trim() !== '' ? url : null });
+            // Validate role constraints: exactly 1 PRIMARY per match
+            if (role === 'PRIMARY') {
+                const matchLinks = links.filter(l => l.match_id === match_id && l.id !== id);
+                const otherPrimary = matchLinks.find(l => l.role === 'PRIMARY');
+                if (otherPrimary) {
+                    throw new Error('This match already has a PRIMARY source. Change it to FALLBACK first.');
+                }
+            }
+
+            return base44.entities.MatchSourceLink.update(id, { 
+                url: url && url.trim() !== '' ? url : null,
+                role
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['matchSourceLinks'] });
             setEditingLink(null);
             setEditUrl('');
+            setEditRole('FALLBACK');
         },
         onError: (error) => {
-            alert('Validation failed: ' + error.message);
+            alert('Update failed: ' + error.message);
         }
     });
 
-    const setPrimaryMutation = useMutation({
-        mutationFn: ({ id }) => base44.entities.MatchSourceLink.update(id, { is_primary: true }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['matchSourceLinks'] });
-        }
-    });
+
 
     const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]));
     const sourcesMap = Object.fromEntries(sources.map(s => [s.id, s]));
@@ -79,10 +92,17 @@ export default function AdminMatchSourceLinks() {
     const startEdit = (link) => {
         setEditingLink(link.id);
         setEditUrl(link.url || '');
+        setEditRole(link.role || 'FALLBACK');
     };
 
     const saveEdit = (link) => {
-        updateLinkMutation.mutate({ id: link.id, url: editUrl, source_id: link.source_id });
+        updateLinkMutation.mutate({ 
+            id: link.id, 
+            url: editUrl, 
+            source_id: link.source_id,
+            role: editRole,
+            match_id: link.match_id
+        });
     };
 
     if (matchesLoading) return <div className="p-8">Loading...</div>;
@@ -112,8 +132,8 @@ export default function AdminMatchSourceLinks() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Source</TableHead>
+                                            <TableHead>Role</TableHead>
                                             <TableHead>URL</TableHead>
-                                            <TableHead>Primary</TableHead>
                                             <TableHead>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -125,6 +145,27 @@ export default function AdminMatchSourceLinks() {
                                             return (
                                                 <TableRow key={link.id}>
                                                     <TableCell className="font-medium">{source?.name || 'Unknown'}</TableCell>
+                                                    <TableCell>
+                                                        {isEditing ? (
+                                                            <Select value={editRole} onValueChange={setEditRole}>
+                                                                <SelectTrigger className="w-32">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="PRIMARY">PRIMARY</SelectItem>
+                                                                    <SelectItem value="FALLBACK">FALLBACK</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        ) : (
+                                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                                                link.role === 'PRIMARY' 
+                                                                    ? 'bg-blue-100 text-blue-800' 
+                                                                    : 'bg-gray-100 text-gray-600'
+                                                            }`}>
+                                                                {link.role || 'FALLBACK'}
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
                                                     <TableCell>
                                                         {isEditing ? (
                                                             <Input 
@@ -142,19 +183,6 @@ export default function AdminMatchSourceLinks() {
                                                                     </span>
                                                                 )}
                                                             </span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {link.is_primary ? (
-                                                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Primary</span>
-                                                        ) : (
-                                                            <Button 
-                                                                size="sm" 
-                                                                variant="outline"
-                                                                onClick={() => setPrimaryMutation.mutate({ id: link.id })}
-                                                            >
-                                                                Set Primary
-                                                            </Button>
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
