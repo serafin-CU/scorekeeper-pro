@@ -304,23 +304,117 @@ async function hashString(str) {
 }
 
 /**
- * Parse match data (mock implementation - would need real parsing logic)
+ * Parse match data from different sources
  */
 function parseMatchData(content, sourceName, matchId) {
-    // Mock parser - in production this would parse HTML/JSON from FIFA or Wikipedia
-    // For now, return a normalized structure
-    return {
-        source: sourceName.toUpperCase().includes('FIFA') ? 'FIFA' : 'WIKIPEDIA',
+    const upperSource = sourceName.toUpperCase();
+    
+    if (upperSource.includes('PROMIEDOS')) {
+        return parsePromiedos(content, matchId);
+    } else if (upperSource.includes('WIKIPEDIA')) {
+        return parseWikipedia(content, matchId);
+    } else if (upperSource.includes('FIFA')) {
+        return parseFIFA(content, matchId);
+    }
+    
+    throw new Error('Unknown source: ' + sourceName);
+}
+
+/**
+ * Parse Promiedos HTML content
+ */
+function parsePromiedos(html, matchId) {
+    const result = {
+        source: 'PROMIEDOS',
         match_id: matchId,
-        status: 'SCHEDULED', // Would parse from content
+        status: 'SCHEDULED',
         score: { home: null, away: null },
-        lineups: {
-            home: { starters: [], bench: [] },
-            away: { starters: [], bench: [] }
-        },
+        lineups: null,
         events: [],
-        mvp_player: null,
-        _note: 'Mock parser - needs real implementation'
+        mvp_player: null
+    };
+
+    try {
+        // Extract status from common patterns
+        if (html.includes('Finalizado') || html.includes('Final')) {
+            result.status = 'FINAL';
+        } else if (html.includes('En Vivo') || html.includes('En Juego')) {
+            result.status = 'LIVE';
+        }
+
+        // Extract score using regex patterns
+        // Pattern: <score>2</score> - <score>1</score>
+        const scorePattern = /<span[^>]*class="[^"]*resultado[^"]*"[^>]*>(\d+)\s*-\s*(\d+)<\/span>/i;
+        const scoreMatch = html.match(scorePattern);
+        
+        if (!scoreMatch) {
+            // Alternative pattern: direct number extraction
+            const altPattern = /(\d+)\s*-\s*(\d+)/;
+            const altMatch = html.match(altPattern);
+            if (altMatch && result.status !== 'SCHEDULED') {
+                result.score.home = parseInt(altMatch[1]);
+                result.score.away = parseInt(altMatch[2]);
+            }
+        } else {
+            result.score.home = parseInt(scoreMatch[1]);
+            result.score.away = parseInt(scoreMatch[2]);
+        }
+
+        // Extract events (goals, cards, subs)
+        const eventPattern = /<div[^>]*class="[^"]*evento[^"]*"[^>]*>.*?(\d+)'.*?(GOL|TARJETA AMARILLA|TARJETA ROJA|CAMBIO|YC|RC|SUB).*?<\/div>/gi;
+        let eventMatch;
+        
+        while ((eventMatch = eventPattern.exec(html)) !== null) {
+            const minute = parseInt(eventMatch[1]);
+            let type = eventMatch[2].toUpperCase();
+            
+            // Normalize event types
+            if (type.includes('AMARILLA') || type === 'YC') type = 'YC';
+            else if (type.includes('ROJA') || type === 'RC') type = 'RC';
+            else if (type.includes('GOL')) type = 'GOAL';
+            else if (type.includes('CAMBIO') || type === 'SUB') type = 'SUB';
+            
+            result.events.push({
+                type,
+                minute,
+                team: null // Could be enhanced
+            });
+        }
+
+    } catch (e) {
+        console.error('Promiedos parse error:', e);
+    }
+
+    return result;
+}
+
+/**
+ * Parse Wikipedia content (existing mock logic)
+ */
+function parseWikipedia(content, matchId) {
+    return {
+        source: 'WIKIPEDIA',
+        match_id: matchId,
+        status: 'SCHEDULED',
+        score: { home: null, away: null },
+        lineups: null,
+        events: [],
+        mvp_player: null
+    };
+}
+
+/**
+ * Parse FIFA content (existing mock logic)
+ */
+function parseFIFA(content, matchId) {
+    return {
+        source: 'FIFA',
+        match_id: matchId,
+        status: 'SCHEDULED',
+        score: { home: null, away: null },
+        lineups: null,
+        events: [],
+        mvp_player: null
     };
 }
 
@@ -351,49 +445,54 @@ async function crossCheckAndValidate(base44, matchId) {
 
     if (parsedData.length === 0) return false;
 
-    // Separate FIFA and Wikipedia data
-    const fifaData = parsedData.find(d => d.source === 'FIFA');
+    // Separate sources: PRIMARY (Promiedos) and FALLBACK (Wikipedia, FIFA)
+    const promiedosData = parsedData.find(d => d.source === 'PROMIEDOS');
     const wikiData = parsedData.find(d => d.source === 'WIKIPEDIA');
+    const fifaData = parsedData.find(d => d.source === 'FIFA');
+
+    // PRIMARY source takes precedence, FALLBACK sources used if PRIMARY unavailable
+    const primaryData = promiedosData || fifaData;
+    const fallbackData = wikiData;
 
     // Calculate confidence scores
-    let statusCandidate = fifaData?.status || wikiData?.status || 'SCHEDULED';
-    let scoreHomeCandidate = fifaData?.score?.home ?? wikiData?.score?.home ?? null;
-    let scoreAwayCandidate = fifaData?.score?.away ?? wikiData?.score?.away ?? null;
+    let statusCandidate = primaryData?.status || fallbackData?.status || 'SCHEDULED';
+    let scoreHomeCandidate = primaryData?.score?.home ?? fallbackData?.score?.home ?? null;
+    let scoreAwayCandidate = primaryData?.score?.away ?? fallbackData?.score?.away ?? null;
     let confidenceScore = 0;
     const reasons = [];
 
     // Score confidence logic
-    if (fifaData && wikiData) {
-        if (fifaData.score.home === wikiData.score.home && 
-            fifaData.score.away === wikiData.score.away &&
-            fifaData.score.home !== null) {
+    if (primaryData && fallbackData) {
+        if (primaryData.score.home === fallbackData.score.home && 
+            primaryData.score.away === fallbackData.score.away &&
+            primaryData.score.home !== null) {
             confidenceScore = 100;
-            reasons.push('FIFA and Wikipedia scores match');
-        } else if (fifaData.score.home !== null) {
-            confidenceScore = 70;
-            reasons.push('FIFA score available, Wikipedia mismatch');
-        } else if (wikiData.score.home !== null) {
+            reasons.push(`${primaryData.source} and ${fallbackData.source} scores match`);
+        } else if (primaryData.score.home !== null) {
+            confidenceScore = 85;
+            reasons.push(`${primaryData.source} score available (PRIMARY)`);
+        } else if (fallbackData.score.home !== null) {
             confidenceScore = 60;
-            reasons.push('Only Wikipedia score available');
+            reasons.push(`Only ${fallbackData.source} score available (FALLBACK)`);
         }
-    } else if (fifaData && fifaData.score.home !== null) {
-        confidenceScore = 70;
-        reasons.push('Only FIFA score available');
-    } else if (wikiData && wikiData.score.home !== null) {
+    } else if (primaryData && primaryData.score.home !== null) {
+        confidenceScore = 85;
+        reasons.push(`${primaryData.source} score available (PRIMARY)`);
+    } else if (fallbackData && fallbackData.score.home !== null) {
         confidenceScore = 60;
-        reasons.push('Only Wikipedia score available');
+        reasons.push(`Only ${fallbackData.source} score available (FALLBACK)`);
     }
 
     // Status confidence
-    if (fifaData?.status === 'FINAL' && wikiData?.status === 'FINAL') {
+    if (primaryData?.status === 'FINAL' && fallbackData?.status === 'FINAL') {
         confidenceScore = Math.max(confidenceScore, 100);
-        reasons.push('Both sources report FINAL status');
-    } else if (fifaData?.status === 'FINAL') {
-        confidenceScore = Math.max(confidenceScore, 70);
-        reasons.push('FIFA reports FINAL status');
-    } else if (wikiData?.status === 'FINAL') {
+        reasons.push('Both PRIMARY and FALLBACK report FINAL status');
+    } else if (primaryData?.status === 'FINAL') {
+        confidenceScore = Math.max(confidenceScore, 85);
+        reasons.push(`${primaryData.source} reports FINAL status (PRIMARY)`);
+    } else if (fallbackData?.status === 'FINAL') {
         confidenceScore = Math.max(confidenceScore, 60);
-        reasons.push('Wikipedia reports FINAL status');
+        reasons.push(`${fallbackData.source} reports FINAL status (FALLBACK)`);
     }
 
     // Check if validation already exists
