@@ -239,7 +239,16 @@ export default function AdminMatchValidation() {
                                 const validation = validationsMap[match.id];
                                 const homeTeam = teamsMap[match.home_team_id];
                                 const awayTeam = teamsMap[match.away_team_id];
-                                const reasons = validation ? JSON.parse(validation.reasons_json || '[]') : [];
+                                
+                                let reasons = [];
+                                if (validation?.reasons_json) {
+                                    try {
+                                        const parsed = JSON.parse(validation.reasons_json);
+                                        reasons = Array.isArray(parsed) ? parsed : [parsed];
+                                    } catch (e) {
+                                        reasons = [validation.reasons_json];
+                                    }
+                                }
 
                                 return (
                                     <TableRow 
