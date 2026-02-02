@@ -47,6 +47,21 @@ export default function AdminFantasyStatsViewer() {
     const finalizedMatches = matches.filter(m => m.status === 'FINAL').sort((a, b) => 
         new Date(b.kickoff_at) - new Date(a.kickoff_at)
     );
+    
+    // Auto-select first match with 22+ stats if no match selected
+    useEffect(() => {
+        if (!selectedMatchId && finalizedMatches.length > 0) {
+            (async () => {
+                for (const match of finalizedMatches) {
+                    const stats = await base44.entities.FantasyMatchPlayerStats.filter({ match_id: match.id });
+                    if (stats.length >= 22) {
+                        setSelectedMatchId(match.id);
+                        break;
+                    }
+                }
+            })();
+        }
+    }, [finalizedMatches, selectedMatchId]);
 
     return (
         <div className="p-8 max-w-7xl mx-auto">

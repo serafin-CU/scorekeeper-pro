@@ -1087,16 +1087,37 @@ export default function AdminSystemTestHarness() {
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-3 text-sm">
-                                    <div><strong>Match ID:</strong> {devSetupResult.match_id}</div>
-                                    <div><strong>Match Phase:</strong> {devSetupResult.match_phase}</div>
-                                    <div><strong>Squad ID:</strong> {devSetupResult.squad_id}</div>
-                                    <div><strong>User:</strong> {devSetupResult.user_email}</div>
-                                    <div><strong>Players Added:</strong> {devSetupResult.players_added}</div>
-                                    <div><strong>Ledger Entries:</strong> {devSetupResult.ledger_entries_created}</div>
-                                    <div><strong>Award Entries:</strong> {devSetupResult.award_entries}</div>
-                                    <div><strong>Total Points:</strong> {devSetupResult.total_points}</div>
+                                <div className="space-y-2">
+                                    <div>
+                                        <strong className="text-gray-700">Match:</strong>
+                                        <div className="text-xs text-gray-600 mt-1">{devSetupResult.match_label}</div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div><strong>Match ID:</strong> <code className="text-xs">{devSetupResult.match_id?.slice(-12)}</code></div>
+                                        <div><strong>Stats Count:</strong> {devSetupResult.stats_count}</div>
+                                        <div><strong>Squad ID:</strong> <code className="text-xs">{devSetupResult.squad_id?.slice(-12)}</code></div>
+                                        <div><strong>User:</strong> {devSetupResult.user_email}</div>
+                                        <div><strong>Players Added:</strong> {devSetupResult.players_added}</div>
+                                        <div><strong>Total Points:</strong> {devSetupResult.total_points}</div>
+                                    </div>
                                 </div>
+                                
+                                <div className="flex gap-2 pt-3 border-t">
+                                    <Link to={`${createPageUrl('AdminFantasyStatsViewer')}?match_id=${devSetupResult.match_id}`}>
+                                        <Button size="sm" variant="outline">
+                                            <ExternalLink className="w-4 h-4 mr-2" />
+                                            Open Stats Viewer
+                                        </Button>
+                                    </Link>
+                                    <Link to={`${createPageUrl('AdminFantasyLedgerViewer')}?match=${devSetupResult.match_id}`}>
+                                        <Button size="sm" variant="outline">
+                                            <ExternalLink className="w-4 h-4 mr-2" />
+                                            Open Ledger Viewer
+                                        </Button>
+                                    </Link>
+                                </div>
+                                
                                 <div className="pt-2 text-green-600 font-semibold">{devSetupResult.message}</div>
                                 
                                 {devSetupResult.match_result_final_created && (

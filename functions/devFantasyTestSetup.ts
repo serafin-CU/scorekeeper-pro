@@ -62,30 +62,59 @@ Deno.serve(async (req) => {
             }
         }
 
-        // Step 2: Find or create finalized match with stats
+        // Step 2: Find or create finalized match with 22+ stats
         const allMatches = await base44.asServiceRole.entities.Match.filter({ status: 'FINAL' });
         const sortedMatches = allMatches.sort((a, b) => new Date(b.kickoff_at) - new Date(a.kickoff_at));
 
-        let targetMatch = sortedMatches[0];
+        let targetMatch = null;
         let matchStats = [];
 
-        if (!targetMatch) {
-            return Response.json({ 
-                ok: false,
-                code: 'NO_FINALIZED_MATCH',
-                message: 'No finalized matches found',
-                hint: 'Create at least one match with status=FINAL. Use Admin Match Validation page or run automated tests.',
-                details: { total_matches: allMatches.length }
-            }, { status: 200 });
+        // Find a match with 22+ stats (full lineup)
+        for (const match of sortedMatches) {
+            const stats = await base44.asServiceRole.entities.FantasyMatchPlayerStats.filter({ 
+                match_id: match.id 
+            });
+            if (stats.length >= 22) {
+                targetMatch = match;
+                matchStats = stats;
+                break;
+            }
+        }
+
+        // If no suitable match found, create a new dev test match
+        if (!targetMatch || matchStats.length < 22) {
+            const devRunId = `dev_${Date.now()}`;
+            
+            // Create test teams
+            const homeTeam = await base44.asServiceRole.entities.Team.create({
+                name: `DEV Home ${devRunId}`,
+                fifa_code: 'DHM',
+                is_qualified: true
+            });
+            
+            const awayTeam = await base44.asServiceRole.entities.Team.create({
+                name: `DEV Away ${devRunId}`,
+                fifa_code: 'DAW',
+                is_qualified: true
+            });
+            
+            // Create match
+            const pastDate = new Date();
+            pastDate.setHours(pastDate.getHours() - 2);
+            
+            targetMatch = await base44.asServiceRole.entities.Match.create({
+                phase: 'GROUP_MD1',
+                kickoff_at: pastDate.toISOString(),
+                home_team_id: homeTeam.id,
+                away_team_id: awayTeam.id,
+                status: 'FINAL'
+            });
+            
+            matchStats = [];
         }
 
         const matchId = targetMatch.id;
         const phase = targetMatch.phase;
-
-        // Load or seed stats
-        matchStats = await base44.asServiceRole.entities.FantasyMatchPlayerStats.filter({ 
-            match_id: matchId 
-        });
 
         // Step 2b: Seed full lineup if requested and no stats exist
         if (seedFullLineup && matchStats.length === 0) {
@@ -448,11 +477,22 @@ Deno.serve(async (req) => {
             created_date: e.created_date
         }));
 
+        // Build match label for UI
+        const homeTeamData = await base44.asServiceRole.entities.Team.get(targetMatch.home_team_id);
+        const awayTeamData = await base44.asServiceRole.entities.Team.get(targetMatch.away_team_id);
+        const homeName = homeTeamData.fifa_code || homeTeamData.name;
+        const awayName = awayTeamData.fifa_code || awayTeamData.name;
+        const date = new Date(targetMatch.kickoff_at).toLocaleString('en-US', { 
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+        });
+        const matchLabel = `${date}  ${homeName} vs ${awayName} (${phase}) · ${matchId.slice(-8)}`;
+
         return Response.json({
             ok: true,
             test_mode: isTestMode,
             test_run_id: isTestMode ? testRunId : undefined,
             match_id: matchId,
+            match_label: matchLabel,
             match_phase: phase,
             match_result_final_created: matchResultFinalCreated,
             squad_id: squad.id,
