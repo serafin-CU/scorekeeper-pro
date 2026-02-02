@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, AlertCircle, Copy, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 export default function AdminSystemTestHarness() {
     const [running, setRunning] = useState(false);
@@ -780,7 +782,9 @@ export default function AdminSystemTestHarness() {
 
             setMatchDiagnostics({
                 match_id: matchId,
+                match_label: getMatchLabel(match),
                 status: match?.status,
+                phase: match?.phase,
                 finalized: matchResults.length > 0,
                 stats_count: stats.length,
                 scored_users: matchLedger.length,
@@ -894,34 +898,72 @@ export default function AdminSystemTestHarness() {
                     </div>
 
                     {matchDiagnostics && (
-                        <div className="p-4 bg-gray-50 rounded border space-y-2 text-sm">
-                            <div className="font-semibold">Match Diagnostics</div>
+                        <div className="p-4 bg-gray-50 rounded border space-y-3 text-sm">
+                            <div className="font-semibold text-base">Match Diagnostics</div>
                             {matchDiagnostics.error ? (
                                 <div className="text-red-600">{matchDiagnostics.error}</div>
                             ) : (
                                 <>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div><strong>Status:</strong> {matchDiagnostics.status}</div>
-                                        <div><strong>Finalized (MatchResultFinal):</strong> {matchDiagnostics.finalized ? '✓' : '✗'}</div>
-                                        <div><strong>Stats Count:</strong> {matchDiagnostics.stats_count}</div>
-                                        <div><strong>Users Scored:</strong> {matchDiagnostics.scored_users}</div>
-                                    </div>
-                                    {matchDiagnostics.last_scored_at && (
-                                        <div className="text-xs text-gray-600">
-                                            Last scored: {new Date(matchDiagnostics.last_scored_at).toLocaleString()}
+                                    <div className="space-y-2">
+                                        <div>
+                                            <strong className="text-gray-700">Match:</strong>
+                                            <div className="text-xs text-gray-600 mt-1">{matchDiagnostics.match_label}</div>
                                         </div>
-                                    )}
-                                    {matchDiagnostics.stats_count === 0 && (
-                                        <Button 
-                                            size="sm" 
-                                            onClick={buildStatsForMatch}
-                                            disabled={buildingStats}
-                                            className="mt-2"
-                                        >
-                                            {buildingStats ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                            Build Stats for Match
-                                        </Button>
-                                    )}
+                                        
+                                        <div className="flex items-center gap-2">
+                                            <strong className="text-gray-700">Match ID:</strong>
+                                            <code className="text-xs bg-gray-100 px-2 py-0.5 rounded">{matchDiagnostics.match_id?.slice(-12)}</code>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-6 w-6 p-0"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(matchDiagnostics.match_id);
+                                                    alert('Match ID copied!');
+                                                }}
+                                            >
+                                                <Copy className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                                        <div><strong>Status:</strong> {matchDiagnostics.status}</div>
+                                        <div><strong>Phase:</strong> {matchDiagnostics.phase}</div>
+                                        <div><strong>Stats Count:</strong> {matchDiagnostics.stats_count}</div>
+                                        <div><strong>Finalized?:</strong> {matchDiagnostics.finalized ? '✓ Yes' : '✗ No'}</div>
+                                        <div><strong>Users Scored:</strong> {matchDiagnostics.scored_users}</div>
+                                        <div>
+                                            <strong>Last Scored:</strong> 
+                                            {matchDiagnostics.last_scored_at ? (
+                                                <span className="text-xs block text-gray-600">
+                                                    {new Date(matchDiagnostics.last_scored_at).toLocaleString()}
+                                                </span>
+                                            ) : (
+                                                ' Never'
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex gap-2 pt-2 border-t">
+                                        {matchDiagnostics.stats_count === 0 && (
+                                            <Button 
+                                                size="sm" 
+                                                onClick={buildStatsForMatch}
+                                                disabled={buildingStats}
+                                                variant="outline"
+                                            >
+                                                {buildingStats ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                                                Build Stats for Match
+                                            </Button>
+                                        )}
+                                        <Link to={`${createPageUrl('AdminFantasyLedgerViewer')}?match=${matchDiagnostics.match_id}`}>
+                                            <Button size="sm" variant="outline">
+                                                <ExternalLink className="w-4 h-4 mr-2" />
+                                                Open Ledger
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </>
                             )}
                         </div>

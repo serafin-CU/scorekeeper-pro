@@ -9,8 +9,12 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 
 export default function AdminFantasyLedgerViewer() {
-    const [selectedMatchId, setSelectedMatchId] = useState(null);
+    const [selectedMatchId, setSelectedMatchId] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('match') || null;
+    });
     const [showAllModes, setShowAllModes] = useState(true);
+    const [showVoids, setShowVoids] = useState(true);
     const queryClient = useQueryClient();
 
     const { data: matches = [] } = useQuery({
@@ -54,20 +58,39 @@ export default function AdminFantasyLedgerViewer() {
         return `${date}  ${homeName} vs ${awayName} (${match.phase}) · ${shortId}`;
     };
 
-    const filteredLedger = selectedMatchId 
-        ? allLedger.filter(e => {
-            // Check source_id first
-            if (e.source_id && e.source_id.includes(selectedMatchId)) return true;
-            
-            // Then check breakdown
-            try {
-                const breakdown = JSON.parse(e.breakdown_json);
-                return breakdown.match_id === selectedMatchId;
-            } catch {
-                return false;
-            }
-        })
-        : allLedger;
+    const filteredLedger = (() => {
+        let filtered = allLedger;
+        
+        // Filter by match
+        if (selectedMatchId) {
+            filtered = filtered.filter(e => {
+                if (e.source_id && e.source_id.includes(selectedMatchId)) return true;
+                try {
+                    const breakdown = JSON.parse(e.breakdown_json);
+                    return breakdown.match_id === selectedMatchId;
+                } catch {
+                    return false;
+                }
+            });
+        }
+        
+        // Filter voids
+        if (!showVoids) {
+            filtered = filtered.filter(e => {
+                try {
+                    const breakdown = JSON.parse(e.breakdown_json);
+                    return breakdown.type !== 'VOID';
+                } catch {
+                    return true;
+                }
+            });
+        }
+        
+        return filtered;
+    })();
+    
+    // Compute net points for selected match
+    const netPoints = selectedMatchId ? filteredLedger.reduce((sum, e) => sum + e.points, 0) : null;
 
     const finalizedMatches = matches.filter(m => m.status === 'FINAL').sort((a, b) => 
         new Date(b.kickoff_at) - new Date(a.kickoff_at)
@@ -108,18 +131,46 @@ export default function AdminFantasyLedgerViewer() {
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <input 
-                            type="checkbox" 
-                            id="showAllModes" 
-                            checked={showAllModes}
-                            onChange={(e) => setShowAllModes(e.target.checked)}
-                            className="w-4 h-4"
-                        />
-                        <label htmlFor="showAllModes" className="text-sm font-medium">
-                            Show all FANTASY modes (FANTASY, FANTASY_VOID, etc.)
-                        </label>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <input 
+                                type="checkbox" 
+                                id="showAllModes" 
+                                checked={showAllModes}
+                                onChange={(e) => setShowAllModes(e.target.checked)}
+                                className="w-4 h-4"
+                            />
+                            <label htmlFor="showAllModes" className="text-sm font-medium">
+                                Show all FANTASY modes (FANTASY, FANTASY_VOID, etc.)
+                            </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input 
+                                type="checkbox" 
+                                id="showVoids" 
+                                checked={showVoids}
+                                onChange={(e) => setShowVoids(e.target.checked)}
+                                className="w-4 h-4"
+                            />
+                            <label htmlFor="showVoids" className="text-sm font-medium">
+                                Show voids
+                            </label>
+                        </div>
                     </div>
+                    
+                    {selectedMatchId && netPoints !== null && (
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                            <div className="text-sm font-medium text-blue-900">
+                                Net Points for Selected Match
+                            </div>
+                            <div className={`text-2xl font-bold ${netPoints >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {netPoints > 0 ? '+' : ''}{netPoints}
+                            </div>
+                            <div className="text-xs text-blue-700 mt-1">
+                                {showVoids ? 'Including void entries' : 'Excluding void entries'}
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
