@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AdminFantasyStatsViewer() {
-    const [selectedMatchId, setSelectedMatchId] = useState(null);
+    const [selectedMatchId, setSelectedMatchId] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('match_id') || null;
+    });
 
     const { data: matches = [] } = useQuery({
         queryKey: ['matches'],
