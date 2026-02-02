@@ -16,11 +16,35 @@ export default function AdminSystemTestHarness() {
     const [selectedMatchId, setSelectedMatchId] = useState(null);
     const [scoringRunning, setScoringRunning] = useState(false);
     const [scoringResult, setScoringResult] = useState(null);
+    const [matchDiagnostics, setMatchDiagnostics] = useState(null);
+    const [buildingStats, setBuildingStats] = useState(false);
 
     const { data: matches = [] } = useQuery({
         queryKey: ['matches'],
         queryFn: () => base44.entities.Match.list()
     });
+
+    const { data: teams = [] } = useQuery({
+        queryKey: ['teams'],
+        queryFn: () => base44.entities.Team.list()
+    });
+
+    const teamsMap = teams.reduce((acc, team) => {
+        acc[team.id] = team;
+        return acc;
+    }, {});
+
+    const getMatchLabel = (match) => {
+        const homeTeam = teamsMap[match.home_team_id];
+        const awayTeam = teamsMap[match.away_team_id];
+        const homeName = homeTeam?.fifa_code || homeTeam?.name || 'TBD';
+        const awayName = awayTeam?.fifa_code || awayTeam?.name || 'TBD';
+        const date = new Date(match.kickoff_at).toLocaleString('en-US', { 
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+        });
+        const shortId = match.id.slice(-8);
+        return `${date}  ${homeName} vs ${awayName} (${match.phase}) · ${shortId}`;
+    };
 
     const finalizedMatches = matches.filter(m => m.status === 'FINAL').sort((a, b) => 
         new Date(b.kickoff_at) - new Date(a.kickoff_at)
@@ -721,10 +745,69 @@ export default function AdminSystemTestHarness() {
             });
             setScoringResult(response.data);
         } catch (error) {
-            setScoringResult({ error: error.message });
+            setScoringResult({ 
+                status: 'ERROR',
+                code: 'REQUEST_FAILED',
+                message: error.message,
+                details: error
+            });
         }
 
         setScoringRunning(false);
+    };
+
+    const loadMatchDiagnostics = async (matchId) => {
+        if (!matchId) {
+            setMatchDiagnostics(null);
+            return;
+        }
+
+        try {
+            const match = matches.find(m => m.id === matchId);
+            const matchResults = await base44.entities.MatchResultFinal.filter({ match_id: matchId });
+            const stats = await base44.entities.FantasyMatchPlayerStats.filter({ match_id: matchId });
+            
+            const allLedger = await base44.entities.PointsLedger.list();
+            const matchLedger = allLedger.filter(e => {
+                if (e.mode !== 'FANTASY') return false;
+                try {
+                    const breakdown = JSON.parse(e.breakdown_json);
+                    return breakdown.match_id === matchId && breakdown.type === 'AWARD';
+                } catch {
+                    return false;
+                }
+            });
+
+            setMatchDiagnostics({
+                match_id: matchId,
+                status: match?.status,
+                finalized: matchResults.length > 0,
+                stats_count: stats.length,
+                scored_users: matchLedger.length,
+                last_scored_at: matchLedger.length > 0 ? matchLedger[0].created_date : null
+            });
+        } catch (error) {
+            setMatchDiagnostics({ error: error.message });
+        }
+    };
+
+    const buildStatsForMatch = async () => {
+        if (!selectedMatchId) return;
+
+        setBuildingStats(true);
+        try {
+            const response = await base44.functions.invoke('fantasyStatsService', {
+                action: 'build_fantasy_stats',
+                match_id: selectedMatchId,
+                options: {}
+            });
+            
+            alert(`Stats built: ${JSON.stringify(response.data)}`);
+            await loadMatchDiagnostics(selectedMatchId);
+        } catch (error) {
+            alert(`Error building stats: ${error.message}`);
+        }
+        setBuildingStats(false);
     };
 
     const resetTestData = async () => {
@@ -793,19 +876,56 @@ export default function AdminSystemTestHarness() {
                 <CardContent className="space-y-4">
                     <div>
                         <label className="text-sm font-medium mb-2 block">Select Match</label>
-                        <Select value={selectedMatchId || ''} onValueChange={setSelectedMatchId}>
+                        <Select value={selectedMatchId || ''} onValueChange={(val) => {
+                            setSelectedMatchId(val);
+                            loadMatchDiagnostics(val);
+                        }}>
                             <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select a finalized match" />
                             </SelectTrigger>
                             <SelectContent>
                                 {finalizedMatches.map(match => (
                                     <SelectItem key={match.id} value={match.id}>
-                                        {match.phase} - {new Date(match.kickoff_at).toLocaleDateString()}
+                                        {getMatchLabel(match)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {matchDiagnostics && (
+                        <div className="p-4 bg-gray-50 rounded border space-y-2 text-sm">
+                            <div className="font-semibold">Match Diagnostics</div>
+                            {matchDiagnostics.error ? (
+                                <div className="text-red-600">{matchDiagnostics.error}</div>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div><strong>Status:</strong> {matchDiagnostics.status}</div>
+                                        <div><strong>Finalized:</strong> {matchDiagnostics.finalized ? '✓' : '✗'}</div>
+                                        <div><strong>Stats Count:</strong> {matchDiagnostics.stats_count}</div>
+                                        <div><strong>Users Scored:</strong> {matchDiagnostics.scored_users}</div>
+                                    </div>
+                                    {matchDiagnostics.last_scored_at && (
+                                        <div className="text-xs text-gray-600">
+                                            Last scored: {new Date(matchDiagnostics.last_scored_at).toLocaleString()}
+                                        </div>
+                                    )}
+                                    {matchDiagnostics.stats_count === 0 && (
+                                        <Button 
+                                            size="sm" 
+                                            onClick={buildStatsForMatch}
+                                            disabled={buildingStats}
+                                            className="mt-2"
+                                        >
+                                            {buildingStats ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                                            Build Stats for Match
+                                        </Button>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
 
                     <div className="flex gap-2">
                         <Button 
@@ -827,12 +947,26 @@ export default function AdminSystemTestHarness() {
 
                     {scoringResult && (
                         <div className="mt-4 p-4 bg-gray-50 rounded border">
-                            {scoringResult.error ? (
-                                <div className="text-red-600 font-semibold">Error: {scoringResult.error}</div>
+                            {scoringResult.status === 'ERROR' ? (
+                                <div className="space-y-2">
+                                    <div className="text-red-600 font-semibold">
+                                        Error: {scoringResult.code || 'UNKNOWN'}
+                                    </div>
+                                    <div className="text-sm">{scoringResult.message}</div>
+                                    {scoringResult.details && (
+                                        <details className="text-xs">
+                                            <summary className="cursor-pointer">Details</summary>
+                                            <pre className="bg-white p-2 rounded mt-1 overflow-auto">
+                                                {JSON.stringify(scoringResult.details, null, 2)}
+                                            </pre>
+                                        </details>
+                                    )}
+                                </div>
                             ) : (
                                 <div className="space-y-2 text-sm">
                                     <div><strong>Status:</strong> {scoringResult.status}</div>
                                     {scoringResult.message && <div><strong>Message:</strong> {scoringResult.message}</div>}
+                                    {scoringResult.reason && <div className="text-gray-600">{scoringResult.reason}</div>}
                                     {scoringResult.users_scored_count !== undefined && (
                                         <>
                                             <div><strong>Users Scored:</strong> {scoringResult.users_scored_count}</div>
@@ -840,6 +974,9 @@ export default function AdminSystemTestHarness() {
                                             <div><strong>Voids:</strong> {scoringResult.ledger_voids}</div>
                                             <div><strong>Total Points:</strong> {scoringResult.total_points_awarded}</div>
                                         </>
+                                    )}
+                                    {scoringResult.stats_count !== undefined && (
+                                        <div><strong>Stats Count:</strong> {scoringResult.stats_count}</div>
                                     )}
                                 </div>
                             )}

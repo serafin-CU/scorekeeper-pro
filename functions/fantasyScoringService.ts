@@ -11,7 +11,11 @@ Deno.serve(async (req) => {
         const user = await base44.auth.me();
 
         if (!user) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+            return Response.json({ 
+                status: 'ERROR',
+                code: 'UNAUTHORIZED',
+                message: 'Authentication required'
+            }, { status: 401 });
         }
 
         const { action, match_id, force } = await req.json();
@@ -21,11 +25,23 @@ Deno.serve(async (req) => {
             return Response.json(result);
         }
 
-        return Response.json({ error: 'Invalid action' }, { status: 400 });
+        return Response.json({ 
+            status: 'ERROR',
+            code: 'INVALID_ACTION',
+            message: 'Invalid action specified'
+        }, { status: 400 });
 
     } catch (error) {
         console.error('Fantasy scoring service error:', error);
-        return Response.json({ error: error.message }, { status: 500 });
+        return Response.json({ 
+            status: 'ERROR',
+            code: 'INTERNAL_ERROR',
+            message: error.message,
+            details: {
+                name: error.name,
+                stack: error.stack
+            }
+        }, { status: 500 });
     }
 });
 
@@ -33,19 +49,36 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
     // Load match and result
     const match = await base44.asServiceRole.entities.Match.get(match_id);
     if (!match) {
-        throw new Error('Match not found');
+        return {
+            status: 'ERROR',
+            code: 'MATCH_NOT_FOUND',
+            message: 'Match not found',
+            match_id
+        };
     }
 
     const matchResults = await base44.asServiceRole.entities.MatchResultFinal.filter({ match_id });
     if (matchResults.length === 0) {
-        throw new Error('MatchResultFinal not found - match not finalized');
+        return {
+            status: 'ERROR',
+            code: 'MATCH_NOT_FINALIZED',
+            message: 'MatchResultFinal not found - match not finalized',
+            match_id,
+            finalized: false
+        };
     }
     const matchResult = matchResults[0];
 
     // Load fantasy stats
     const allStats = await base44.asServiceRole.entities.FantasyMatchPlayerStats.filter({ match_id });
     if (allStats.length === 0) {
-        return { status: 'NO_STATS', match_id };
+        return { 
+            status: 'NO_STATS', 
+            reason: 'No FantasyMatchPlayerStats found for this match',
+            match_id,
+            finalized: true,
+            stats_count: 0
+        };
     }
 
     const statsMap = Object.fromEntries(allStats.map(s => [s.player_id, s]));
