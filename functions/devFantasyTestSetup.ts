@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
             playersAdded = existingSquadPlayers.length;
         }
 
-        // Step 5: Check if scoring job already exists
+        // Step 5: Execute fantasy scoring (always run to check ledger)
         const dedupeKey = `FANTASY:MATCH:${matchId}:v1`;
         const existingJobs = await base44.asServiceRole.entities.ScoringJob.filter({
             dedupe_key: dedupeKey
@@ -168,40 +168,56 @@ Deno.serve(async (req) => {
                 status: 'PENDING'
             });
             jobCreated = true;
-
-            // Execute scoring directly
-            scoringResult = await base44.asServiceRole.functions.invoke('fantasyScoringService', {
-                action: 'score_fantasy_match',
-                match_id: matchId
-            });
-        } else {
-            scoringResult = { 
-                data: { 
-                    status: 'ALREADY_SCORED', 
-                    job_status: existingJobs[0].status 
-                } 
-            };
         }
 
-        // Step 6: Check ledger entries
-        const ledgerEntries = await base44.asServiceRole.entities.PointsLedger.filter({
-            user_id: testUser.id,
-            mode: 'FANTASY'
+        // Always execute scoring to ensure ledger is populated
+        scoringResult = await base44.asServiceRole.functions.invoke('fantasyScoringService', {
+            action: 'score_fantasy_match',
+            match_id: matchId
         });
 
-        const matchLedgerEntries = ledgerEntries.filter(e => {
+        // Step 6: Query ALL ledger entries for this match (all modes starting with FANTASY)
+        const allLedgerEntries = await base44.asServiceRole.entities.PointsLedger.list();
+        
+        const matchLedgerEntries = allLedgerEntries.filter(e => {
+            // Include any mode starting with FANTASY
+            if (!e.mode?.startsWith('FANTASY')) return false;
+            
+            // Check if source_id matches or breakdown contains this match_id
+            if (e.source_id && e.source_id.includes(matchId)) return true;
+            
             try {
                 const breakdown = JSON.parse(e.breakdown_json);
-                return breakdown.match_id === matchId && breakdown.type === 'AWARD';
+                return breakdown.match_id === matchId;
             } catch {
                 return false;
             }
         });
 
-        const totalPoints = matchLedgerEntries.reduce((sum, e) => sum + e.points, 0);
+        const awardEntries = matchLedgerEntries.filter(e => {
+            try {
+                const breakdown = JSON.parse(e.breakdown_json);
+                return breakdown.type === 'AWARD';
+            } catch {
+                return true; // Include if no breakdown
+            }
+        });
+
+        const totalPoints = awardEntries.reduce((sum, e) => sum + e.points, 0);
+        
+        // Get sample ledger rows (first 5)
+        const sampleLedgerRows = matchLedgerEntries.slice(0, 5).map(e => ({
+            id: e.id,
+            user_id: e.user_id,
+            mode: e.mode,
+            source_type: e.source_type,
+            source_id: e.source_id,
+            points: e.points,
+            created_date: e.created_date
+        }));
 
         return Response.json({
-            success: true,
+            ok: true,
             test_mode: isTestMode,
             test_run_id: isTestMode ? testRunId : undefined,
             match_id: matchId,
@@ -212,8 +228,10 @@ Deno.serve(async (req) => {
             players_added: playersAdded,
             scoring_job_created: jobCreated,
             scoring_result: scoringResult?.data || {},
-            fantasy_ledger_entries_created: matchLedgerEntries.length,
+            ledger_entries_created: matchLedgerEntries.length,
+            award_entries: awardEntries.length,
             total_points: totalPoints,
+            sample_ledger_rows: sampleLedgerRows,
             message: jobCreated 
                 ? 'New squad created and scored successfully' 
                 : 'Squad already exists and was previously scored (idempotent)'

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 
 export default function AdminFantasyLedgerViewer() {
     const [selectedMatchId, setSelectedMatchId] = useState(null);
+    const [showAllModes, setShowAllModes] = useState(true);
 
     const { data: matches = [] } = useQuery({
         queryKey: ['matches'],
@@ -17,8 +18,9 @@ export default function AdminFantasyLedgerViewer() {
     const { data: allLedger = [] } = useQuery({
         queryKey: ['fantasyLedger'],
         queryFn: async () => {
-            const entries = await base44.entities.PointsLedger.filter({ mode: 'FANTASY' });
-            return entries;
+            const allEntries = await base44.entities.PointsLedger.list();
+            // Show any mode starting with FANTASY
+            return allEntries.filter(e => e.mode?.startsWith('FANTASY'));
         }
     });
 
@@ -32,6 +34,10 @@ export default function AdminFantasyLedgerViewer() {
 
     const filteredLedger = selectedMatchId 
         ? allLedger.filter(e => {
+            // Check source_id first
+            if (e.source_id && e.source_id.includes(selectedMatchId)) return true;
+            
+            // Then check breakdown
             try {
                 const breakdown = JSON.parse(e.breakdown_json);
                 return breakdown.match_id === selectedMatchId;
@@ -51,22 +57,37 @@ export default function AdminFantasyLedgerViewer() {
 
             <Card className="mb-6">
                 <CardHeader>
-                    <CardTitle>Filter by Match (Optional)</CardTitle>
+                    <CardTitle>Filters</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <Select value={selectedMatchId || 'all'} onValueChange={(val) => setSelectedMatchId(val === 'all' ? null : val)}>
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="All matches" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Matches</SelectItem>
-                            {finalizedMatches.map(match => (
-                                <SelectItem key={match.id} value={match.id}>
-                                    {match.phase} - {new Date(match.kickoff_at).toLocaleDateString()}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                <CardContent className="space-y-4">
+                    <div>
+                        <label className="text-sm font-medium mb-2 block">Match Filter</label>
+                        <Select value={selectedMatchId || 'all'} onValueChange={(val) => setSelectedMatchId(val === 'all' ? null : val)}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="All matches" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Matches</SelectItem>
+                                {finalizedMatches.map(match => (
+                                    <SelectItem key={match.id} value={match.id}>
+                                        {match.phase} - {new Date(match.kickoff_at).toLocaleDateString()}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input 
+                            type="checkbox" 
+                            id="showAllModes" 
+                            checked={showAllModes}
+                            onChange={(e) => setShowAllModes(e.target.checked)}
+                            className="w-4 h-4"
+                        />
+                        <label htmlFor="showAllModes" className="text-sm font-medium">
+                            Show all FANTASY modes (FANTASY, FANTASY_VOID, etc.)
+                        </label>
+                    </div>
                 </CardContent>
             </Card>
 

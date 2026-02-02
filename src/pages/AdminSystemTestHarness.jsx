@@ -748,19 +748,56 @@ export default function AdminSystemTestHarness() {
                                 Error: {devSetupResult.error}
                             </div>
                         ) : (
-                            <div className="space-y-2 text-sm">
-                                <div><strong>Match ID:</strong> {devSetupResult.match_id}</div>
-                                <div><strong>Match Phase:</strong> {devSetupResult.match_phase}</div>
-                                <div><strong>Squad ID:</strong> {devSetupResult.squad_id}</div>
-                                <div><strong>User:</strong> {devSetupResult.user_email}</div>
-                                <div><strong>Players Added:</strong> {devSetupResult.players_added}</div>
-                                <div><strong>Ledger Entries Created:</strong> {devSetupResult.fantasy_ledger_entries_created}</div>
-                                <div><strong>Total Points:</strong> {devSetupResult.total_points}</div>
-                                <div className="pt-2 text-green-600">{devSetupResult.message}</div>
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div><strong>Match ID:</strong> {devSetupResult.match_id}</div>
+                                    <div><strong>Match Phase:</strong> {devSetupResult.match_phase}</div>
+                                    <div><strong>Squad ID:</strong> {devSetupResult.squad_id}</div>
+                                    <div><strong>User:</strong> {devSetupResult.user_email}</div>
+                                    <div><strong>Players Added:</strong> {devSetupResult.players_added}</div>
+                                    <div><strong>Ledger Entries:</strong> {devSetupResult.ledger_entries_created}</div>
+                                    <div><strong>Award Entries:</strong> {devSetupResult.award_entries}</div>
+                                    <div><strong>Total Points:</strong> {devSetupResult.total_points}</div>
+                                </div>
+                                <div className="pt-2 text-green-600 font-semibold">{devSetupResult.message}</div>
+                                
+                                {devSetupResult.sample_ledger_rows?.length > 0 && (
+                                    <div className="mt-3">
+                                        <div className="font-semibold text-sm mb-2">Sample Ledger Rows:</div>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Mode</TableHead>
+                                                    <TableHead>Source Type</TableHead>
+                                                    <TableHead>Source ID</TableHead>
+                                                    <TableHead>Points</TableHead>
+                                                    <TableHead>Created</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {devSetupResult.sample_ledger_rows.map((row, idx) => (
+                                                    <TableRow key={idx}>
+                                                        <TableCell className="font-mono text-xs">{row.mode}</TableCell>
+                                                        <TableCell className="text-xs">{row.source_type}</TableCell>
+                                                        <TableCell className="text-xs truncate max-w-[100px]">{row.source_id}</TableCell>
+                                                        <TableCell className={`font-semibold ${row.points >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                            {row.points > 0 ? '+' : ''}{row.points}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs">{new Date(row.created_date).toLocaleTimeString()}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
+                                
                                 {devSetupResult.scoring_result && (
-                                    <pre className="bg-gray-100 p-2 rounded text-xs mt-2 overflow-auto">
-                                        {JSON.stringify(devSetupResult.scoring_result, null, 2)}
-                                    </pre>
+                                    <details className="mt-3">
+                                        <summary className="text-sm font-medium cursor-pointer">Scoring Result JSON</summary>
+                                        <pre className="bg-gray-100 p-2 rounded text-xs mt-2 overflow-auto">
+                                            {JSON.stringify(devSetupResult.scoring_result, null, 2)}
+                                        </pre>
+                                    </details>
                                 )}
                             </div>
                         )}
