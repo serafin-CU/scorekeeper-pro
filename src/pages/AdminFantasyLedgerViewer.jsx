@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 export default function AdminFantasyLedgerViewer() {
     const [selectedMatchId, setSelectedMatchId] = useState(null);
     const [showAllModes, setShowAllModes] = useState(true);
+    const queryClient = useQueryClient();
 
     const { data: matches = [] } = useQuery({
         queryKey: ['matches'],
@@ -108,20 +111,20 @@ export default function AdminFantasyLedgerViewer() {
                 <CardContent>
                     {filteredLedger.length === 0 ? (
                         <div className="text-center text-gray-500 py-8">
-                            No fantasy ledger entries found
+                            No ledger entries found. Run "Dev Fantasy Setup" or use "Fantasy Scoring Controls" to create entries.
                         </div>
                     ) : (
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>User</TableHead>
-                                    <TableHead>Type</TableHead>
+                                    <TableHead>Mode</TableHead>
+                                    <TableHead>Source Type</TableHead>
+                                    <TableHead>Source ID</TableHead>
                                     <TableHead>Points</TableHead>
-                                    <TableHead>Match</TableHead>
-                                    <TableHead>Phase</TableHead>
-                                    <TableHead>Version</TableHead>
+                                    <TableHead>Type</TableHead>
                                     <TableHead>Details</TableHead>
-                                    <TableHead>Date</TableHead>
+                                    <TableHead>Created</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -133,12 +136,19 @@ export default function AdminFantasyLedgerViewer() {
                                     } catch {}
 
                                     const isVoid = breakdown.type === 'VOID';
-                                    const match = matchesMap[breakdown.match_id];
 
                                     return (
-                                        <TableRow key={entry.id} className={isVoid ? 'bg-red-50' : 'bg-green-50'}>
-                                            <TableCell className="font-medium">
-                                                {user?.full_name || user?.email || 'Unknown'}
+                                        <TableRow key={entry.id} className={isVoid ? 'bg-red-50' : ''}>
+                                            <TableCell className="font-medium text-xs">
+                                                {user?.email || entry.user_id}
+                                            </TableCell>
+                                            <TableCell className="font-mono text-xs">{entry.mode}</TableCell>
+                                            <TableCell className="text-xs">{entry.source_type}</TableCell>
+                                            <TableCell className="text-xs font-mono truncate max-w-[120px]" title={entry.source_id}>
+                                                {entry.source_id}
+                                            </TableCell>
+                                            <TableCell className={`font-semibold ${entry.points >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                {entry.points > 0 ? '+' : ''}{entry.points}
                                             </TableCell>
                                             <TableCell>
                                                 {isVoid ? (
@@ -147,25 +157,13 @@ export default function AdminFantasyLedgerViewer() {
                                                     <Badge className="bg-green-600">AWARD</Badge>
                                                 )}
                                             </TableCell>
-                                            <TableCell className={`font-semibold ${entry.points >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                {entry.points > 0 ? '+' : ''}{entry.points}
-                                            </TableCell>
                                             <TableCell className="text-xs">
-                                                {match ? `${match.phase}` : breakdown.match_id?.slice(0, 8)}
-                                            </TableCell>
-                                            <TableCell>{breakdown.phase}</TableCell>
-                                            <TableCell>
-                                                <span className="px-2 py-1 bg-gray-100 rounded text-xs">
-                                                    {breakdown.scoring_version || '-'}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-xs max-w-xs truncate">
                                                 {isVoid 
                                                     ? `Voided ${breakdown.voided_points} pts` 
-                                                    : `${breakdown.per_player?.length || 0} players, ${breakdown.totals?.squad_points || 0} pts`
+                                                    : `${breakdown.per_player?.length || 0} players`
                                                 }
                                             </TableCell>
-                                            <TableCell className="text-xs">
+                                            <TableCell className="text-xs text-gray-500">
                                                 {new Date(entry.created_date).toLocaleString()}
                                             </TableCell>
                                         </TableRow>
