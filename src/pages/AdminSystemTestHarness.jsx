@@ -769,6 +769,23 @@ export default function AdminSystemTestHarness() {
             const matchResults = await base44.entities.MatchResultFinal.filter({ match_id: matchId });
             const stats = await base44.entities.FantasyMatchPlayerStats.filter({ match_id: matchId });
             
+            // Get finalized squads for this phase
+            const allSquads = await base44.entities.FantasySquad.filter({ 
+                phase: match.phase,
+                status: 'FINAL'
+            });
+            
+            // Get starters for first squad (for display)
+            let startersCount = 0;
+            let benchCount = 0;
+            if (allSquads.length > 0) {
+                const squadPlayers = await base44.entities.FantasySquadPlayer.filter({ 
+                    squad_id: allSquads[0].id 
+                });
+                startersCount = squadPlayers.filter(sp => sp.slot_type === 'STARTER').length;
+                benchCount = squadPlayers.filter(sp => sp.slot_type === 'BENCH').length;
+            }
+            
             const allLedger = await base44.entities.PointsLedger.list();
             const matchLedger = allLedger.filter(e => {
                 if (e.mode !== 'FANTASY') return false;
@@ -787,6 +804,9 @@ export default function AdminSystemTestHarness() {
                 phase: match?.phase,
                 finalized: matchResults.length > 0,
                 stats_count: stats.length,
+                squads_count: allSquads.length,
+                starters_count: startersCount,
+                bench_count: benchCount,
                 scored_users: matchLedger.length,
                 last_scored_at: matchLedger.length > 0 ? matchLedger[0].created_date : null
             });
@@ -932,8 +952,11 @@ export default function AdminSystemTestHarness() {
                                         <div><strong>Phase:</strong> {matchDiagnostics.phase}</div>
                                         <div><strong>Stats Count:</strong> {matchDiagnostics.stats_count}</div>
                                         <div><strong>Finalized?:</strong> {matchDiagnostics.finalized ? '✓ Yes' : '✗ No'}</div>
+                                        <div><strong>Squads Count:</strong> {matchDiagnostics.squads_count}</div>
+                                        <div><strong>Starters Count (Selected Squad):</strong> {matchDiagnostics.starters_count}</div>
+                                        <div><strong>Bench Count (Selected Squad):</strong> {matchDiagnostics.bench_count}</div>
                                         <div><strong>Users Scored:</strong> {matchDiagnostics.scored_users}</div>
-                                        <div>
+                                        <div className="col-span-2">
                                             <strong>Last Scored:</strong> 
                                             {matchDiagnostics.last_scored_at ? (
                                                 <span className="text-xs block text-gray-600">
@@ -1020,6 +1043,32 @@ export default function AdminSystemTestHarness() {
                                             <div><strong>Voids:</strong> {scoringResult.ledger_voids}</div>
                                             <div><strong>Total Points:</strong> {scoringResult.total_points_awarded}</div>
                                         </>
+                                    )}
+                                    {scoringResult.diagnostics && (
+                                        <details className="mt-3">
+                                            <summary className="cursor-pointer font-semibold text-gray-700">Scoring Diagnostics</summary>
+                                            <div className="mt-2 p-3 bg-white rounded border space-y-2">
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div><strong>Stats Count:</strong> {scoringResult.diagnostics.stats_count}</div>
+                                                    <div><strong>Squads Count:</strong> {scoringResult.diagnostics.squads_count}</div>
+                                                    <div><strong>Starters Count:</strong> {scoringResult.diagnostics.starters_count}</div>
+                                                    <div><strong>Goals Sum:</strong> {scoringResult.diagnostics.goals_sum}</div>
+                                                    <div><strong>Goal Scorers in Starters:</strong> {scoringResult.diagnostics.goal_scorers_in_starters_count}</div>
+                                                    <div><strong>Computed Total Points:</strong> {scoringResult.diagnostics.computed_total_points}</div>
+                                                </div>
+                                                {scoringResult.diagnostics.excluded_goal_scorer_player_ids?.length > 0 && (
+                                                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                                        <strong className="text-yellow-800">⚠️ Excluded Goal Scorers:</strong>
+                                                        <div className="mt-1 text-yellow-700">
+                                                            {scoringResult.diagnostics.excluded_goal_scorer_player_ids.length} player(s) scored goals but are not in any squad's starters
+                                                        </div>
+                                                        <code className="text-xs">
+                                                            {scoringResult.diagnostics.excluded_goal_scorer_player_ids.join(', ')}
+                                                        </code>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </details>
                                     )}
                                 </div>
                             )}

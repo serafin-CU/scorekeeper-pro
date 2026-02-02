@@ -98,12 +98,16 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
     };
     
     // Diagnostics
+    const goalScorerPlayerIds = allStats.filter(s => s.goals > 0).map(s => s.player_id);
+    
     const diagnostics = {
         match_id,
-        stats_rows_count: allStats.length,
+        stats_count: allStats.length,
+        squads_count: allSquads.length,
         goals_sum: allStats.reduce((sum, s) => sum + (s.goals || 0), 0),
         yc_sum: allStats.reduce((sum, s) => sum + (s.yellow_cards || 0), 0),
         rc_sum: allStats.reduce((sum, s) => sum + (s.red_cards || 0), 0),
+        goal_scorer_player_ids: goalScorerPlayerIds,
         per_player_breakdown: []
     };
 
@@ -186,6 +190,7 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
 
     // Score each squad
     const squadDiagnostics = [];
+    const allStarterPlayerIds = [];
     
     for (const squad of allSquads) {
         let squadTotalPoints = 0;
@@ -196,6 +201,9 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
             squad_id: squad.id,
             slot_type: 'STARTER'
         });
+        
+        const starterPlayerIds = squadPlayers.map(sp => sp.player_id);
+        allStarterPlayerIds.push(...starterPlayerIds);
         
         // Defensive guard
         if (!squadPlayers || squadPlayers.length === 0) {
@@ -298,10 +306,20 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
             squad_id: squad.id,
             user_id: squad.user_id,
             starters_count: squadPlayers.length,
+            starter_player_ids: starterPlayerIds,
             squad_points: squadTotalPoints
         });
     }
     
+    // Final diagnostics
+    const uniqueStarterPlayerIds = [...new Set(allStarterPlayerIds)];
+    const goalScorersInStarters = diagnostics.goal_scorer_player_ids.filter(id => uniqueStarterPlayerIds.includes(id));
+    const excludedGoalScorers = diagnostics.goal_scorer_player_ids.filter(id => !uniqueStarterPlayerIds.includes(id));
+    
+    diagnostics.starters_count = uniqueStarterPlayerIds.length;
+    diagnostics.starter_player_ids = uniqueStarterPlayerIds;
+    diagnostics.goal_scorers_in_starters_count = goalScorersInStarters.length;
+    diagnostics.excluded_goal_scorer_player_ids = excludedGoalScorers;
     diagnostics.computed_total_points = ledgerAwards.reduce((sum, e) => sum + e.points, 0);
     
     // Validate: if any squad has 0 starters, return clearer error
