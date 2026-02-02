@@ -84,37 +84,86 @@ Deno.serve(async (req) => {
 
         // Step 2b: Seed full lineup if requested and no stats exist
         if (seedFullLineup && matchStats.length === 0) {
-            const allPlayers = await base44.asServiceRole.entities.Player.list();
-            const homeTeamPlayers = allPlayers.filter(p => p.team_id === targetMatch.home_team_id).slice(0, 11);
-            const awayTeamPlayers = allPlayers.filter(p => p.team_id === targetMatch.away_team_id).slice(0, 11);
+            // Get or create 22 players (11 per team)
+            const homeTeamData = await base44.asServiceRole.entities.Team.get(targetMatch.home_team_id);
+            const awayTeamData = await base44.asServiceRole.entities.Team.get(targetMatch.away_team_id);
+            
+            const homeTeamCode = homeTeamData.fifa_code || 'HOM';
+            const awayTeamCode = awayTeamData.fifa_code || 'AWY';
 
-            const createPlayerStats = async (players, teamId, goals = 0, yellows = 0, reds = 0) => {
-                for (let i = 0; i < players.length; i++) {
-                    const player = players[i];
-                    const isSubIn = i >= 8; // Last 3 are subs
+            // Define 11 positions per team
+            const positions = ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'FWD'];
+            
+            const ensurePlayersForTeam = async (teamId, teamCode) => {
+                const existingPlayers = await base44.asServiceRole.entities.Player.filter({ team_id: teamId });
+                const players = [];
 
-                    await base44.asServiceRole.entities.FantasyMatchPlayerStats.create({
-                        match_id: matchId,
-                        player_id: player.id,
-                        team_id: teamId,
-                        started: !isSubIn,
-                        substituted_in: isSubIn,
-                        substituted_out: false,
-                        minute_in: isSubIn ? 60 : null,
-                        minute_out: null,
-                        minutes_played: isSubIn ? 30 : 90,
-                        goals: (i === 8 && goals > 0) ? goals : 0, // FWD gets goals
-                        yellow_cards: (i === 3 && yellows > 0) ? 1 : 0, // One DEF gets yellow
-                        red_cards: (i === 5 && reds > 0) ? 1 : 0, // One MID gets red
-                        source: 'MANUAL'
-                    });
+                for (let i = 0; i < 11; i++) {
+                    const position = positions[i];
+                    const playerName = `Test ${teamCode} ${position}${i + 1}`;
+                    
+                    // Check if player already exists
+                    let player = existingPlayers.find(p => p.full_name === playerName);
+                    
+                    if (!player) {
+                        // Create new player
+                        player = await base44.asServiceRole.entities.Player.create({
+                            full_name: playerName,
+                            team_id: teamId,
+                            position: position,
+                            price: position === 'GK' ? 5 : (position === 'DEF' ? 6 : (position === 'MID' ? 8 : 10))
+                        });
+                    }
+                    
+                    players.push(player);
                 }
+                
+                return players;
             };
 
-            // Seed home team (2 goals, 1 yellow)
-            await createPlayerStats(homeTeamPlayers, targetMatch.home_team_id, 2, 1, 0);
-            // Seed away team (1 goal)
-            await createPlayerStats(awayTeamPlayers, targetMatch.away_team_id, 1, 0, 0);
+            // Ensure players exist for both teams
+            const homeTeamPlayers = await ensurePlayersForTeam(targetMatch.home_team_id, homeTeamCode);
+            const awayTeamPlayers = await ensurePlayersForTeam(targetMatch.away_team_id, awayTeamCode);
+
+            // Create stats for home team (2 goals by FWD, 1 yellow by MID)
+            for (let i = 0; i < homeTeamPlayers.length; i++) {
+                const player = homeTeamPlayers[i];
+                await base44.asServiceRole.entities.FantasyMatchPlayerStats.create({
+                    match_id: matchId,
+                    player_id: player.id,
+                    team_id: targetMatch.home_team_id,
+                    started: true,
+                    substituted_in: false,
+                    substituted_out: false,
+                    minute_in: null,
+                    minute_out: null,
+                    minutes_played: 90,
+                    goals: (i === 8) ? 2 : 0, // FWD1 scores 2 goals
+                    yellow_cards: (i === 5) ? 1 : 0, // MID1 gets yellow card
+                    red_cards: 0,
+                    source: 'PROMIEDOS'
+                });
+            }
+
+            // Create stats for away team (1 goal by FWD)
+            for (let i = 0; i < awayTeamPlayers.length; i++) {
+                const player = awayTeamPlayers[i];
+                await base44.asServiceRole.entities.FantasyMatchPlayerStats.create({
+                    match_id: matchId,
+                    player_id: player.id,
+                    team_id: targetMatch.away_team_id,
+                    started: true,
+                    substituted_in: false,
+                    substituted_out: false,
+                    minute_in: null,
+                    minute_out: null,
+                    minutes_played: 90,
+                    goals: (i === 8) ? 1 : 0, // FWD1 scores 1 goal
+                    yellow_cards: 0,
+                    red_cards: 0,
+                    source: 'PROMIEDOS'
+                });
+            }
 
             // Reload stats
             matchStats = await base44.asServiceRole.entities.FantasyMatchPlayerStats.filter({ 
