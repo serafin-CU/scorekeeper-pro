@@ -292,6 +292,24 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
     
     diagnostics.computed_total_points = ledgerAwards.reduce((sum, e) => sum + e.points, 0);
     
+    // Validate: if any squad has 0 starters, return clearer error
+    const zeroStartersSquad = squadDiagnostics.find(s => s.starters_count === 0);
+    if (zeroStartersSquad) {
+        return {
+            ok: false,
+            code: 'NO_STARTERS_IN_SQUAD',
+            message: 'Squad has no starter players',
+            hint: 'Ensure squad has at least 11 FantasySquadPlayer records with slot_type=STARTER. Run Dev Fantasy Setup to auto-create test squad.',
+            details: {
+                match_id,
+                squad_id: zeroStartersSquad.squad_id,
+                user_id: zeroStartersSquad.user_id,
+                starters_count: 0,
+                diagnostics
+            }
+        };
+    }
+    
     // Validate: if any stats have goals > 0 but total points is 0, throw error
     if (diagnostics.goals_sum > 0 && diagnostics.computed_total_points === 0) {
         return {
