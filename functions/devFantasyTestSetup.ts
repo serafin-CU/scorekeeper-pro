@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
             matchResultFinalCreated = true;
         }
 
-        // Step 3: Check if squad already exists
+        // Step 3: Check if squad already exists - ALWAYS normalize it
         const existingSquads = await base44.asServiceRole.entities.FantasySquad.filter({
             user_id: testUser.id,
             phase
@@ -252,18 +252,24 @@ Deno.serve(async (req) => {
         let squad;
         if (existingSquads.length > 0 && existingSquads[0].status === 'FINAL') {
             squad = existingSquads[0];
+            
+            // Normalize: delete all existing squad players to rebuild deterministically
+            const oldSquadPlayers = await base44.asServiceRole.entities.FantasySquadPlayer.filter({ 
+                squad_id: squad.id 
+            });
+            for (const sp of oldSquadPlayers) {
+                await base44.asServiceRole.entities.FantasySquadPlayer.delete(sp.id);
+            }
         } else {
             // Delete draft squads if any
             for (const s of existingSquads) {
-                if (s.status === 'DRAFT') {
-                    const squadPlayers = await base44.asServiceRole.entities.FantasySquadPlayer.filter({ 
-                        squad_id: s.id 
-                    });
-                    for (const sp of squadPlayers) {
-                        await base44.asServiceRole.entities.FantasySquadPlayer.delete(sp.id);
-                    }
-                    await base44.asServiceRole.entities.FantasySquad.delete(s.id);
+                const squadPlayers = await base44.asServiceRole.entities.FantasySquadPlayer.filter({ 
+                    squad_id: s.id 
+                });
+                for (const sp of squadPlayers) {
+                    await base44.asServiceRole.entities.FantasySquadPlayer.delete(sp.id);
                 }
+                await base44.asServiceRole.entities.FantasySquad.delete(s.id);
             }
 
             // Create new squad
@@ -277,33 +283,60 @@ Deno.serve(async (req) => {
             });
         }
 
-        // Step 4: Populate squad players (if not already done)
-        const existingSquadPlayers = await base44.asServiceRole.entities.FantasySquadPlayer.filter({
-            squad_id: squad.id
-        });
-
+        // Step 4: Build deterministic squad with exactly 11 STARTERS including goal scorers
+        const allPlayers = await base44.asServiceRole.entities.Player.list();
+        const playersMap = Object.fromEntries(allPlayers.map(p => [p.id, p]));
+        
+        // Identify goal scorers from stats
+        const goalScorers = matchStats.filter(s => s.goals > 0).map(s => s.player_id);
+        
+        // Build starter list: prioritize goal scorers, then fill to 11 with other stats
+        const starterPlayerIds = new Set();
+        
+        // Add all goal scorers first
+        for (const playerId of goalScorers) {
+            starterPlayerIds.add(playerId);
+        }
+        
+        // Fill remaining slots to reach 11 starters
+        for (const stat of matchStats) {
+            if (starterPlayerIds.size >= 11) break;
+            starterPlayerIds.add(stat.player_id);
+        }
+        
+        // Convert to array and take exactly 11
+        const finalStarters = Array.from(starterPlayerIds).slice(0, 11);
+        
+        // Create STARTER entries
         let playersAdded = 0;
-
-        if (existingSquadPlayers.length === 0) {
-            // Load all players to get positions
-            const allPlayers = await base44.asServiceRole.entities.Player.list();
-            const playersMap = Object.fromEntries(allPlayers.map(p => [p.id, p]));
-
-            // Add each player from stats as starter
-            for (const stat of matchStats) {
-                const player = playersMap[stat.player_id];
-                if (player) {
-                    await base44.asServiceRole.entities.FantasySquadPlayer.create({
-                        squad_id: squad.id,
-                        player_id: stat.player_id,
-                        slot_type: 'STARTER',
-                        starter_position: player.position
-                    });
-                    playersAdded++;
-                }
+        for (const playerId of finalStarters) {
+            const player = playersMap[playerId];
+            if (player) {
+                await base44.asServiceRole.entities.FantasySquadPlayer.create({
+                    squad_id: squad.id,
+                    player_id: playerId,
+                    slot_type: 'STARTER',
+                    starter_position: player.position
+                });
+                playersAdded++;
             }
-        } else {
-            playersAdded = existingSquadPlayers.length;
+        }
+        
+        // Remaining players go to BENCH (if any)
+        const benchPlayerIds = matchStats
+            .map(s => s.player_id)
+            .filter(id => !starterPlayerIds.has(id));
+            
+        for (const playerId of benchPlayerIds) {
+            const player = playersMap[playerId];
+            if (player) {
+                await base44.asServiceRole.entities.FantasySquadPlayer.create({
+                    squad_id: squad.id,
+                    player_id: playerId,
+                    slot_type: 'BENCH',
+                    starter_position: null
+                });
+            }
         }
 
         // Step 5: Check if scoring already done (unless force=true)
@@ -330,7 +363,7 @@ Deno.serve(async (req) => {
                 }
             };
         } else {
-            // Create void entries if force re-scoring
+            // Create void entries if force re-scoring (only if previous awards > 0)
             if (force && priorEntriesForMatch.length > 0) {
                 const voidsByUser = {};
                 for (const entry of priorEntriesForMatch) {
@@ -338,21 +371,24 @@ Deno.serve(async (req) => {
                 }
 
                 for (const [user_id, totalPoints] of Object.entries(voidsByUser)) {
-                    await base44.asServiceRole.entities.PointsLedger.create({
-                        user_id,
-                        mode: 'FANTASY',
-                        source_type: 'FANTASY_MATCH',
-                        source_id: matchId,
-                        points: -totalPoints,
-                        breakdown_json: JSON.stringify({
-                            type: 'VOID',
-                            match_id: matchId,
-                            phase,
-                            reason: 'Force re-score from devFantasyTestSetup',
-                            voided_points: totalPoints,
-                            timestamp: new Date().toISOString()
-                        })
-                    });
+                    // Only create VOID if there were actual points to void
+                    if (totalPoints > 0) {
+                        await base44.asServiceRole.entities.PointsLedger.create({
+                            user_id,
+                            mode: 'FANTASY',
+                            source_type: 'FANTASY_MATCH',
+                            source_id: matchId,
+                            points: -totalPoints,
+                            breakdown_json: JSON.stringify({
+                                type: 'VOID',
+                                match_id: matchId,
+                                phase,
+                                reason: 'Force re-score from devFantasyTestSetup',
+                                voided_points: totalPoints,
+                                timestamp: new Date().toISOString()
+                            })
+                        });
+                    }
                 }
             }
 
@@ -377,19 +413,17 @@ Deno.serve(async (req) => {
 
                 let playerPoints = 0;
 
-                // Goals by position
-                if (player.position === 'FWD') playerPoints += goals * 5;
-                else if (player.position === 'MID') playerPoints += goals * 6;
-                else if (player.position === 'DEF') playerPoints += goals * 7;
-                else if (player.position === 'GK') playerPoints += goals * 7;
+                // Base minutes points
+                if (minutes >= 60) playerPoints += 1;
+
+                // Goals by position (align with fantasyScoringService)
+                if (player.position === 'FWD') playerPoints += goals * 4;
+                else if (player.position === 'MID') playerPoints += goals * 5;
+                else if (player.position === 'DEF' || player.position === 'GK') playerPoints += goals * 6;
 
                 // Cards
                 playerPoints += yellowCards * -1;
                 playerPoints += redCards * -3;
-
-                // Minutes
-                if (minutes >= 60) playerPoints += 2;
-                else if (minutes >= 1) playerPoints += 1;
 
                 totalPoints += playerPoints;
 
