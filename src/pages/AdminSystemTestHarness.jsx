@@ -654,6 +654,20 @@ export default function AdminSystemTestHarness() {
         return test;
     };
 
+    const runDevFantasySetup = async () => {
+        setDevSetupRunning(true);
+        setDevSetupResult(null);
+
+        try {
+            const response = await base44.functions.invoke('devFantasyTestSetup', {});
+            setDevSetupResult(response.data);
+        } catch (error) {
+            setDevSetupResult({ error: error.message });
+        }
+
+        setDevSetupRunning(false);
+    };
+
     const resetTestData = async () => {
         if (!testRunId) {
             alert('No test run to clean up');
