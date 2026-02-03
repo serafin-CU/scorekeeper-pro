@@ -196,6 +196,10 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
     }
 
     const statsMap = Object.fromEntries(allStats.map(s => [s.player_id, s]));
+    
+    // Load all players for position lookup
+    const allPlayers = await base44.asServiceRole.entities.Player.list();
+    const playersMap = Object.fromEntries(allPlayers.map(p => [p.id, p]));
 
     // Simplified scoring rules for validation
     const rules = {
@@ -229,7 +233,9 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
         yc_sum: allStats.reduce((sum, s) => sum + (s.yellow_cards || 0), 0),
         rc_sum: allStats.reduce((sum, s) => sum + (s.red_cards || 0), 0),
         goal_scorer_player_ids: goalScorerPlayerIds,
-        per_player_breakdown: []
+        per_player_breakdown: [],
+        dnp_starters_count: 0,
+        auto_subs_count: 0
     };
 
     if (allSquads.length === 0) {
@@ -241,10 +247,6 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
             details: { match_id, phase, finalized_squads: 0 }
         };
     }
-
-    // Load all players for position lookup
-    const allPlayers = await base44.asServiceRole.entities.Player.list();
-    const playersMap = Object.fromEntries(allPlayers.map(p => [p.id, p]));
 
     // Check for prior scoring (re-score detection)
     const allLedger = await base44.asServiceRole.entities.PointsLedger.list();
@@ -317,23 +319,151 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
         let squadTotalPoints = 0;
         const perPlayerDetails = [];
 
-        // Get starter players only
-        const squadPlayers = await base44.asServiceRole.entities.FantasySquadPlayer.filter({
-            squad_id: squad.id,
-            slot_type: 'STARTER'
+        // Get all squad players (starters + bench)
+        const allSquadPlayers = await base44.asServiceRole.entities.FantasySquadPlayer.filter({
+            squad_id: squad.id
         });
         
-        const starterPlayerIds = squadPlayers.map(sp => sp.player_id);
-        allStarterPlayerIds.push(...starterPlayerIds);
+        const starters = allSquadPlayers.filter(sp => sp.slot_type === 'STARTER');
+        const bench = allSquadPlayers.filter(sp => sp.slot_type === 'BENCH').sort((a, b) => (a.bench_order || 0) - (b.bench_order || 0));
         
-        // Identify captain
-        const captain = squadPlayers.find(sp => sp.is_captain);
+        // Auto-substitution logic
+        const autoSubs = [];
+        const usedBenchPlayerIds = new Set();
+        const resolvedXI = [...starters]; // Start with original starters
+        
+        // Detect DNP starters
+        const dnpStarters = starters.filter(sp => {
+            const stat = statsMap[sp.player_id];
+            return stat && stat.minutes_played === 0;
+        });
+        
+        diagnostics.dnp_starters_count += dnpStarters.length;
+        
+        // Process each DNP starter
+        for (const dnpStarter of dnpStarters) {
+            const dnpPlayer = playersMap[dnpStarter.player_id];
+            if (!dnpPlayer) continue;
+            
+            let substituted = false;
+            
+            // Try exact position match first
+            for (const benchPlayer of bench) {
+                if (usedBenchPlayerIds.has(benchPlayer.player_id)) continue;
+                
+                const benchStat = statsMap[benchPlayer.player_id];
+                if (!benchStat || benchStat.minutes_played === 0) continue;
+                
+                const benchPlayerData = playersMap[benchPlayer.player_id];
+                if (!benchPlayerData) continue;
+                
+                // Same position match
+                if (benchPlayerData.position === dnpPlayer.position) {
+                    // Replace DNP starter with bench player in resolvedXI
+                    const index = resolvedXI.findIndex(sp => sp.player_id === dnpStarter.player_id);
+                    if (index !== -1) {
+                        resolvedXI[index] = {
+                            ...benchPlayer,
+                            slot_type: 'STARTER',
+                            starter_position: dnpPlayer.position,
+                            is_captain: dnpStarter.is_captain // Preserve captain status
+                        };
+                    }
+                    
+                    usedBenchPlayerIds.add(benchPlayer.player_id);
+                    autoSubs.push({
+                        out_player_id: dnpStarter.player_id,
+                        out_player_name: dnpPlayer.full_name,
+                        in_player_id: benchPlayer.player_id,
+                        in_player_name: benchPlayerData.full_name,
+                        bench_order: benchPlayer.bench_order,
+                        reason: 'DNP - exact position match'
+                    });
+                    substituted = true;
+                    break;
+                }
+            }
+            
+            // If no exact match, try flexible substitution (with formation check)
+            if (!substituted) {
+                for (const benchPlayer of bench) {
+                    if (usedBenchPlayerIds.has(benchPlayer.player_id)) continue;
+                    
+                    const benchStat = statsMap[benchPlayer.player_id];
+                    if (!benchStat || benchStat.minutes_played === 0) continue;
+                    
+                    const benchPlayerData = playersMap[benchPlayer.player_id];
+                    if (!benchPlayerData) continue;
+                    
+                    // Test if this substitution keeps formation valid
+                    const testXI = [...resolvedXI];
+                    const index = testXI.findIndex(sp => sp.player_id === dnpStarter.player_id);
+                    if (index !== -1) {
+                        testXI[index] = {
+                            ...benchPlayer,
+                            slot_type: 'STARTER',
+                            starter_position: benchPlayerData.position,
+                            is_captain: dnpStarter.is_captain
+                        };
+                    }
+                    
+                    // Check formation
+                    const positionCounts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+                    for (const sp of testXI) {
+                        const p = playersMap[sp.player_id];
+                        if (p) {
+                            positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+                        }
+                    }
+                    
+                    const formationValid = positionCounts.GK === 1 && 
+                                          positionCounts.DEF === 4 && 
+                                          positionCounts.MID === 3 && 
+                                          positionCounts.FWD === 3;
+                    
+                    if (formationValid) {
+                        resolvedXI.splice(index, 1, testXI[index]);
+                        usedBenchPlayerIds.add(benchPlayer.player_id);
+                        autoSubs.push({
+                            out_player_id: dnpStarter.player_id,
+                            out_player_name: dnpPlayer.full_name,
+                            in_player_id: benchPlayer.player_id,
+                            in_player_name: benchPlayerData.full_name,
+                            bench_order: benchPlayer.bench_order,
+                            reason: 'DNP - flexible sub (formation preserved)'
+                        });
+                        substituted = true;
+                        break;
+                    }
+                }
+            }
+            
+            // If still not substituted, DNP starter contributes 0 points
+            if (!substituted) {
+                autoSubs.push({
+                    out_player_id: dnpStarter.player_id,
+                    out_player_name: dnpPlayer.full_name,
+                    in_player_id: null,
+                    in_player_name: null,
+                    bench_order: null,
+                    reason: 'DNP - no valid bench sub available'
+                });
+            }
+        }
+        
+        diagnostics.auto_subs_count += autoSubs.length;
+        
+        const resolvedPlayerIds = resolvedXI.map(sp => sp.player_id);
+        allStarterPlayerIds.push(...resolvedPlayerIds);
+        
+        // Identify captain (may have been substituted)
+        const captain = resolvedXI.find(sp => sp.is_captain);
         let captainMultiplierAppliedTo = null;
         let captainBasePoints = 0;
         let captainMultipliedPoints = 0;
         let captainPlayerName = null;
 
-        for (const squadPlayer of squadPlayers) {
+        for (const squadPlayer of resolvedXI) {
             const player = playersMap[squadPlayer.player_id];
             if (!player) {
                 console.warn(`Player ${squadPlayer.player_id} not found in playersMap`);
@@ -432,6 +562,9 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
                 phase,
                 squad_id: squad.id,
                 per_player: perPlayerDetails,
+                auto_subs: autoSubs,
+                dnp_starters_count: dnpStarters.length,
+                resolved_xi_player_ids: resolvedPlayerIds,
                 captain: {
                     player_id: captainMultiplierAppliedTo,
                     player_name: captainPlayerName,
@@ -442,7 +575,9 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
                 },
                 totals: {
                     squad_points: squadTotalPoints,
-                    starters_count: squadPlayers.length
+                    starters_count: starters.length,
+                    bench_count: bench.length,
+                    resolved_xi_count: resolvedXI.length
                 },
                 timestamp: new Date().toISOString()
             })
@@ -452,23 +587,27 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
         
         // Count positions for diagnostics
         const positionCounts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
-        for (const sp of squadPlayers) {
+        for (const sp of resolvedXI) {
             const player = playersMap[sp.player_id];
             if (player) {
                 positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
             }
         }
         const formationString = `${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
-        
+
         const captainDelta = captainMultipliedPoints - captainBasePoints;
 
         squadDiagnostics.push({
             squad_id: squad.id,
             user_id: squad.user_id,
-            starters_count: squadPlayers.length,
+            starters_count: starters.length,
+            bench_count: bench.length,
+            dnp_starters_count: dnpStarters.length,
+            auto_subs: autoSubs,
+            resolved_xi_count: resolvedXI.length,
+            resolved_xi_player_ids: resolvedPlayerIds,
             formation: formationString,
             position_counts: positionCounts,
-            starter_player_ids: starterPlayerIds,
             captain_player_id: captain?.player_id || null,
             captain_player_name: captainPlayerName,
             captain_multiplier_applied: !!captainMultiplierAppliedTo,
