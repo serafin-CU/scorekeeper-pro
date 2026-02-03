@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Pencil, AlertTriangle } from 'lucide-react';
+import { Pencil, AlertTriangle, Shield } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function AdminFantasyStatsViewer() {
     const [selectedMatchId, setSelectedMatchId] = useState(() => {
@@ -17,6 +18,8 @@ export default function AdminFantasyStatsViewer() {
     });
     const [editingStat, setEditingStat] = useState(null);
     const [squadPlayers, setSquadPlayers] = useState([]);
+    const [currentSquadId, setCurrentSquadId] = useState(null);
+    const [confirmCaptainDialog, setConfirmCaptainDialog] = useState(null);
     const [editForm, setEditForm] = useState({
         goals: 0,
         yellow_cards: 0,
@@ -96,9 +99,11 @@ export default function AdminFantasyStatsViewer() {
 
                 const squads = await base44.entities.FantasySquad.filter({ phase: match.phase, status: 'FINAL' });
                 if (squads.length > 0) {
+                    setCurrentSquadId(squads[0].id);
                     const squadPlayersData = await base44.entities.FantasySquadPlayer.filter({ squad_id: squads[0].id });
                     setSquadPlayers(squadPlayersData);
                 } else {
+                    setCurrentSquadId(null);
                     setSquadPlayers([]);
                 }
             };
@@ -108,68 +113,71 @@ export default function AdminFantasyStatsViewer() {
     
     const setCaptainMutation = useMutation({
         mutationFn: async ({ playerId, squadId }) => {
-            // Get all squad players
-            const allSquadPlayers = await base44.entities.FantasySquadPlayer.filter({ squad_id: squadId });
-            
-            // Check if target player is a starter
-            const targetPlayer = allSquadPlayers.find(sp => sp.player_id === playerId);
-            if (!targetPlayer || targetPlayer.slot_type !== 'STARTER') {
-                throw new Error('Captain must be a STARTER');
-            }
-            
-            // Clear captain from all players and set new captain
-            for (const sp of allSquadPlayers) {
-                await base44.entities.FantasySquadPlayer.update(sp.id, {
-                    is_captain: sp.player_id === playerId
-                });
-            }
-            
-            // Create audit log
-            await base44.entities.AdminAuditLog.create({
-                admin_user_id: currentUser.id,
-                actor_type: 'ADMIN',
-                action: 'SET_CAPTAIN',
-                entity_type: 'FantasySquadPlayer',
-                entity_id: targetPlayer.id,
-                reason: 'Captain set via AdminFantasyStatsViewer',
-                details_json: JSON.stringify({
-                    squad_id: squadId,
-                    player_id: playerId,
-                    timestamp: new Date().toISOString()
-                })
+            const response = await base44.functions.invoke('squadCaptainService', {
+                action: 'set_captain',
+                squad_id: squadId,
+                player_id: playerId
             });
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['squadPlayers'] });
-            // Refresh squad players
-            if (selectedMatchId) {
-                const match = matches.find(m => m.id === selectedMatchId);
-                if (match) {
-                    base44.entities.FantasySquad.filter({ phase: match.phase, status: 'FINAL' }).then(squads => {
-                        if (squads.length > 0) {
-                            base44.entities.FantasySquadPlayer.filter({ squad_id: squads[0].id }).then(setSquadPlayers);
-                        }
-                    });
-                }
+            
+            if (response.data.status === 'ERROR') {
+                throw new Error(response.data.message || 'Failed to set captain');
             }
+            
+            return response.data;
+        },
+        onSuccess: (data) => {
+            toast.success(data.message || 'Captain set successfully');
+            
+            // Refresh squad players
+            if (currentSquadId) {
+                base44.entities.FantasySquadPlayer.filter({ squad_id: currentSquadId })
+                    .then(setSquadPlayers);
+            }
+            
+            setConfirmCaptainDialog(null);
+        },
+        onError: (error) => {
+            const errorMessages = {
+                'NOT_A_STARTER': 'Only starters can be set as captain',
+                'PLAYER_NOT_IN_SQUAD': 'Player is not in this squad',
+                'INVALID_SQUAD': 'Squad not found',
+                'FORBIDDEN': 'You do not have permission to modify this squad'
+            };
+            
+            const message = errorMessages[error.message] || error.message || 'Failed to set captain';
+            toast.error(message);
+            setConfirmCaptainDialog(null);
         }
     });
     
-    const handleSetCaptain = async (playerId) => {
-        const match = matches.find(m => m.id === selectedMatchId);
-        if (!match) return;
-        
-        const squads = await base44.entities.FantasySquad.filter({ phase: match.phase, status: 'FINAL' });
-        if (squads.length === 0) {
-            alert('No squad found for this phase');
+    const handleSetCaptainClick = (playerId) => {
+        if (!currentSquadId) {
+            toast.error('No squad found for this phase');
             return;
         }
         
-        try {
-            await setCaptainMutation.mutateAsync({ playerId, squadId: squads[0].id });
-        } catch (error) {
-            alert(error.message);
+        const player = playersMap[playerId];
+        const squadPlayer = squadPlayers.find(sp => sp.player_id === playerId);
+        
+        // Client-side validation
+        if (!squadPlayer || squadPlayer.slot_type !== 'STARTER') {
+            toast.error('Only starters can be set as captain');
+            return;
         }
+        
+        setConfirmCaptainDialog({
+            playerId,
+            playerName: player?.full_name || 'Unknown Player'
+        });
+    };
+    
+    const confirmSetCaptain = () => {
+        if (!confirmCaptainDialog) return;
+        
+        setCaptainMutation.mutate({
+            playerId: confirmCaptainDialog.playerId,
+            squadId: currentSquadId
+        });
     };
     
     const updateStatsMutation = useMutation({
@@ -245,7 +253,7 @@ export default function AdminFantasyStatsViewer() {
                 <CardHeader>
                     <CardTitle>Select Match</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
                     <Select value={selectedMatchId || ''} onValueChange={setSelectedMatchId}>
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select a finalized match" />
@@ -258,6 +266,15 @@ export default function AdminFantasyStatsViewer() {
                             ))}
                         </SelectContent>
                     </Select>
+                    
+                    {currentSquadId && (
+                        <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+                            <Shield className="w-4 h-4 text-blue-600 mt-0.5" />
+                            <div className="text-blue-800">
+                                <strong>Captain Info:</strong> Captain multiplies their points by 2x. Only starters can be captain. Click "Set C" to assign captain.
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -314,16 +331,21 @@ export default function AdminFantasyStatsViewer() {
                                                 </TableCell>
                                                 <TableCell>
                                                     {squadPlayer?.is_captain ? (
-                                                        <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+                                                        <span 
+                                                            className="inline-flex items-center px-2 py-1 bg-blue-600 text-white rounded-full text-xs font-semibold"
+                                                            aria-label="Captain"
+                                                            title="Captain (2x points multiplier)"
+                                                        >
                                                             C
                                                         </span>
                                                     ) : isAdmin && squadPlayer?.slot_type === 'STARTER' ? (
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => handleSetCaptain(stat.player_id)}
+                                                            onClick={() => handleSetCaptainClick(stat.player_id)}
                                                             disabled={setCaptainMutation.isPending}
                                                             className="h-6 text-xs"
+                                                            title="Set as Captain"
                                                         >
                                                             Set C
                                                         </Button>
@@ -372,6 +394,41 @@ export default function AdminFantasyStatsViewer() {
                     </CardContent>
                 </Card>
             )}
+            
+            <Dialog open={!!confirmCaptainDialog} onOpenChange={(open) => !open && setConfirmCaptainDialog(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Confirm Captain Selection</DialogTitle>
+                    </DialogHeader>
+                    
+                    {confirmCaptainDialog && (
+                        <div className="space-y-4">
+                            <div className="text-sm">
+                                Set <strong className="text-blue-600">{confirmCaptainDialog.playerName}</strong> as Captain?
+                            </div>
+                            <div className="text-sm text-gray-600">
+                                This will replace any current captain and multiply this player's points by 2x.
+                            </div>
+                        </div>
+                    )}
+                    
+                    <DialogFooter>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setConfirmCaptainDialog(null)}
+                            disabled={setCaptainMutation.isPending}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={confirmSetCaptain}
+                            disabled={setCaptainMutation.isPending}
+                        >
+                            {setCaptainMutation.isPending ? 'Setting...' : 'Confirm'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             
             <Dialog open={!!editingStat} onOpenChange={(open) => !open && setEditingStat(null)}>
                 <DialogContent>
