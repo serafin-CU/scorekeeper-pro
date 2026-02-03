@@ -798,7 +798,7 @@ export default function AdminSystemTestHarness() {
                         positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
                     }
                 }
-                formationString = `${positionCounts.GK}-${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
+                formationString = `${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
             }
             
             const allLedger = await base44.entities.PointsLedger.list();
@@ -981,9 +981,12 @@ export default function AdminSystemTestHarness() {
                                         </div>
                                         <div>
                                             <strong>Formation:</strong> {matchDiagnostics.formation || 'N/A'}
-                                            <span className="text-xs text-gray-500 ml-1">
-                                                (GK-DEF-MID-FWD)
-                                            </span>
+                                            <div className="text-xs text-gray-500">
+                                                GK:{matchDiagnostics.position_counts?.GK || 0} 
+                                                DEF:{matchDiagnostics.position_counts?.DEF || 0} 
+                                                MID:{matchDiagnostics.position_counts?.MID || 0} 
+                                                FWD:{matchDiagnostics.position_counts?.FWD || 0}
+                                            </div>
                                         </div>
                                         <div><strong>Users Scored:</strong> {matchDiagnostics.scored_users}</div>
                                         <div className="col-span-2">
