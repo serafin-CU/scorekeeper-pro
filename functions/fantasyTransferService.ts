@@ -451,7 +451,7 @@ async function applyTransferPenalties(base44, user_id, phase, forceTransfersCoun
         penaltyBreakdown = penaltyResult.breakdown;
     }
 
-    const excessTransfers = Math.max(0, transfersCount - transferResult.free_transfers);
+    const excessTransfers = Math.max(0, transfersCount - rules.free_transfers);
 
     if (penaltyPoints >= 0) {
         return {
