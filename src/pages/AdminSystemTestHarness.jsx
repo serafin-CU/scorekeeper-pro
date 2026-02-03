@@ -1093,10 +1093,16 @@ export default function AdminSystemTestHarness() {
                                                    <div>
                                                        <strong>DNP Starters:</strong> {scoringResult.diagnostics.dnp_starters_count}
                                                        <div className="text-gray-500">Starters with 0 minutes</div>
+                                                       {scoringResult.diagnostics.dnp_starters_count === 0 && (
+                                                           <span className="text-yellow-600 text-xs">⚠️ No DNP scenario</span>
+                                                       )}
                                                    </div>
                                                    <div>
                                                        <strong>Auto-Subs:</strong> {scoringResult.diagnostics.auto_subs_count}
                                                        <div className="text-gray-500">Bench players subbed in</div>
+                                                       {scoringResult.diagnostics.dnp_starters_count > 0 && scoringResult.diagnostics.auto_subs_count === 0 && (
+                                                           <span className="text-red-600 text-xs">⚠️ DNP exists but no sub occurred</span>
+                                                       )}
                                                    </div>
                                                    <div><strong>Goals Sum:</strong> {scoringResult.diagnostics.goals_sum}</div>
                                                    <div>
@@ -1110,9 +1116,20 @@ export default function AdminSystemTestHarness() {
 
                                                {scoringResult.diagnostics.squad_details?.[0] && (
                                                    <>
+                                                       <div className="mt-3 p-2 bg-gray-50 border border-gray-300 rounded text-xs">
+                                                           <strong className="text-gray-900">Squad Structure (First Squad):</strong>
+                                                           <div className="mt-1 grid grid-cols-2 gap-2 text-gray-800">
+                                                               <div><strong>Starters:</strong> {scoringResult.diagnostics.squad_details[0].starters_count}</div>
+                                                               <div><strong>Bench:</strong> {scoringResult.diagnostics.squad_details[0].bench_count}</div>
+                                                               <div><strong>DNP Starters:</strong> {scoringResult.diagnostics.squad_details[0].dnp_starters_count}</div>
+                                                               <div><strong>Auto-Subs:</strong> {scoringResult.diagnostics.squad_details[0].auto_subs?.length || 0}</div>
+                                                               <div className="col-span-2"><strong>Resolved XI:</strong> {scoringResult.diagnostics.squad_details[0].resolved_xi_count}</div>
+                                                           </div>
+                                                       </div>
+                                                       
                                                        {scoringResult.diagnostics.squad_details[0].auto_subs?.length > 0 && (
                                                            <div className="mt-3 p-2 bg-purple-50 border border-purple-200 rounded text-xs">
-                                                               <strong className="text-purple-900">Auto-Substitutions (First Squad):</strong>
+                                                               <strong className="text-purple-900">Auto-Substitutions:</strong>
                                                                <div className="mt-1 space-y-1">
                                                                    {scoringResult.diagnostics.squad_details[0].auto_subs.map((sub, idx) => (
                                                                        <div key={idx} className="text-purple-800">
@@ -1253,8 +1270,21 @@ export default function AdminSystemTestHarness() {
                                                 </div>
                                             )}
                                         </div>
-                                        <div><strong>Bench Count:</strong> {devSetupResult.bench_count || 0}</div>
-                                        <div><strong>DNP Starters:</strong> {devSetupResult.dnp_starters_count || 0}</div>
+                                        <div>
+                                            <strong>Bench Count:</strong> {devSetupResult.bench_count || 0}
+                                            {devSetupResult.bench_count > 3 && (
+                                                <span className="text-red-600 ml-1">⚠️ Invalid dev setup: bench overflow</span>
+                                            )}
+                                            {devSetupResult.bench_count !== 3 && devSetupResult.bench_count <= 3 && (
+                                                <span className="text-yellow-600 ml-1">⚠️ Should be 3</span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <strong>DNP Starters:</strong> {devSetupResult.dnp_starters_count || 0}
+                                            {devSetupResult.dnp_starters_count === 0 && (
+                                                <span className="text-yellow-600 ml-1">⚠️ Should be 1 for testing</span>
+                                            )}
+                                        </div>
                                         <div><strong>Goal Scorers Count:</strong> {devSetupResult.goal_scorers_count}</div>
                                         <div><strong>Goal Scorers in Starters:</strong> {devSetupResult.goal_scorers_in_starters_count}
                                             {devSetupResult.goal_scorers_count > 0 && devSetupResult.goal_scorers_in_starters_count === 0 && (

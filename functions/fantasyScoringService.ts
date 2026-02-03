@@ -340,6 +340,9 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
         
         diagnostics.dnp_starters_count += dnpStarters.length;
         
+        const dnpStarterPlayerIds = dnpStarters.map(sp => sp.player_id);
+        const benchPlayerIds = bench.map(bp => bp.player_id);
+        
         // Process each DNP starter
         for (const dnpStarter of dnpStarters) {
             const dnpPlayer = playersMap[dnpStarter.player_id];
@@ -603,6 +606,8 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
             starters_count: starters.length,
             bench_count: bench.length,
             dnp_starters_count: dnpStarters.length,
+            dnp_starter_player_ids: dnpStarterPlayerIds,
+            bench_player_ids: benchPlayerIds,
             auto_subs: autoSubs,
             resolved_xi_count: resolvedXI.length,
             resolved_xi_player_ids: resolvedPlayerIds,
