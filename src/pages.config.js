@@ -57,6 +57,7 @@ import AdminMatchSourceLinks from './pages/AdminMatchSourceLinks';
 import AdminMatchValidation from './pages/AdminMatchValidation';
 import AdminSystemTestHarness from './pages/AdminSystemTestHarness';
 import SquadManagement from './pages/SquadManagement';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -75,4 +76,5 @@ export const PAGES = {
 export const pagesConfig = {
     mainPage: "AdminDataSources",
     Pages: PAGES,
+    Layout: __Layout,
 };
