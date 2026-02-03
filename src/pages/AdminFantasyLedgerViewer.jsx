@@ -228,10 +228,25 @@ export default function AdminFantasyLedgerViewer() {
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-xs">
-                                                {isVoid 
-                                                    ? `Voided ${breakdown.voided_points} pts` 
-                                                    : `${breakdown.per_player?.length || 0} players`
-                                                }
+                                                {isVoid ? (
+                                                    `Voided ${breakdown.voided_points} pts`
+                                                ) : breakdown.captain ? (
+                                                    <div className="space-y-0.5">
+                                                        <div>{breakdown.per_player?.length || 0} players</div>
+                                                        {breakdown.captain.player_name && (
+                                                            <div className="text-blue-700">
+                                                                <strong>C:</strong> {breakdown.captain.player_name}
+                                                            </div>
+                                                        )}
+                                                        {breakdown.captain.delta_from_multiplier > 0 && (
+                                                            <div className="text-green-700 font-semibold">
+                                                                +{breakdown.captain.delta_from_multiplier} (2x)
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    `${breakdown.per_player?.length || 0} players`
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-xs text-gray-500">
                                                 {new Date(entry.created_date).toLocaleString()}

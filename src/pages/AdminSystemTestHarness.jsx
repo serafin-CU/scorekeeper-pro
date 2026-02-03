@@ -1078,44 +1078,66 @@ export default function AdminSystemTestHarness() {
                                         </>
                                     )}
                                     {scoringResult.diagnostics && (
-                                        <details className="mt-3">
-                                            <summary className="cursor-pointer font-semibold text-gray-700">Scoring Diagnostics</summary>
-                                            <div className="mt-2 p-3 bg-white rounded border space-y-2">
-                                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                                    <div>
-                                                        <strong>Stats Count:</strong> {scoringResult.diagnostics.stats_count}
-                                                        <div className="text-gray-500">FantasyMatchPlayerStats rows</div>
-                                                    </div>
-                                                    <div><strong>Squads Count:</strong> {scoringResult.diagnostics.squads_count}</div>
-                                                    <div>
-                                                        <strong>Starters Count:</strong> {scoringResult.diagnostics.starters_count}
-                                                        {scoringResult.diagnostics.starters_count !== 11 && (
-                                                            <span className="text-red-600 ml-1">⚠️ Must be 11</span>
-                                                        )}
-                                                        <div className="text-gray-500">slot_type=STARTER across all squads</div>
-                                                    </div>
-                                                    <div><strong>Goals Sum:</strong> {scoringResult.diagnostics.goals_sum}</div>
-                                                    <div>
-                                                        <strong>Goal Scorers in Starters:</strong> {scoringResult.diagnostics.goal_scorers_in_starters_count}
-                                                        {scoringResult.diagnostics.goals_sum > 0 && scoringResult.diagnostics.goal_scorers_in_starters_count === 0 && (
-                                                            <span className="text-red-600 ml-1">⚠️ Should be &gt; 0</span>
-                                                        )}
-                                                    </div>
-                                                    <div><strong>Computed Total Points:</strong> {scoringResult.diagnostics.computed_total_points}</div>
-                                                </div>
-                                                {scoringResult.diagnostics.excluded_goal_scorer_player_ids?.length > 0 && (
-                                                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                                                        <strong className="text-yellow-800">⚠️ Excluded Goal Scorers:</strong>
-                                                        <div className="mt-1 text-yellow-700">
-                                                            {scoringResult.diagnostics.excluded_goal_scorer_player_ids.length} player(s) scored goals but are not in any squad's starters
-                                                        </div>
-                                                        <code className="text-xs">
-                                                            {scoringResult.diagnostics.excluded_goal_scorer_player_ids.join(', ')}
-                                                        </code>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </details>
+                                       <details className="mt-3">
+                                           <summary className="cursor-pointer font-semibold text-gray-700">Scoring Diagnostics</summary>
+                                           <div className="mt-2 p-3 bg-white rounded border space-y-2">
+                                               <div className="grid grid-cols-2 gap-2 text-xs">
+                                                   <div>
+                                                       <strong>Stats Count:</strong> {scoringResult.diagnostics.stats_count}
+                                                       <div className="text-gray-500">FantasyMatchPlayerStats rows</div>
+                                                   </div>
+                                                   <div><strong>Squads Count:</strong> {scoringResult.diagnostics.squads_count}</div>
+                                                   <div>
+                                                       <strong>Starters Count:</strong> {scoringResult.diagnostics.starters_count}
+                                                       {scoringResult.diagnostics.starters_count !== 11 && (
+                                                           <span className="text-red-600 ml-1">⚠️ Must be 11</span>
+                                                       )}
+                                                       <div className="text-gray-500">slot_type=STARTER across all squads</div>
+                                                   </div>
+                                                   <div><strong>Goals Sum:</strong> {scoringResult.diagnostics.goals_sum}</div>
+                                                   <div>
+                                                       <strong>Goal Scorers in Starters:</strong> {scoringResult.diagnostics.goal_scorers_in_starters_count}
+                                                       {scoringResult.diagnostics.goals_sum > 0 && scoringResult.diagnostics.goal_scorers_in_starters_count === 0 && (
+                                                           <span className="text-red-600 ml-1">⚠️ Should be &gt; 0</span>
+                                                       )}
+                                                   </div>
+                                                   <div><strong>Computed Total Points:</strong> {scoringResult.diagnostics.computed_total_points}</div>
+                                               </div>
+
+                                               {scoringResult.diagnostics.squad_details?.[0] && (
+                                                   <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                                                       <strong className="text-blue-900">Captain Info (First Squad):</strong>
+                                                       <div className="mt-1 space-y-1 text-blue-800">
+                                                           {scoringResult.diagnostics.squad_details[0].captain_player_name ? (
+                                                               <>
+                                                                   <div><strong>Captain:</strong> {scoringResult.diagnostics.squad_details[0].captain_player_name}</div>
+                                                                   <div className="text-xs text-blue-600">
+                                                                       ID: {scoringResult.diagnostics.squad_details[0].captain_player_id?.slice(-8)}
+                                                                   </div>
+                                                                   <div>
+                                                                       <strong>Captain Delta:</strong> +{scoringResult.diagnostics.squad_details[0].delta_from_captain_multiplier} points (2x applied)
+                                                                   </div>
+                                                               </>
+                                                           ) : (
+                                                               <div className="text-yellow-700">No captain data available</div>
+                                                           )}
+                                                       </div>
+                                                   </div>
+                                               )}
+
+                                               {scoringResult.diagnostics.excluded_goal_scorer_player_ids?.length > 0 && (
+                                                   <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                                       <strong className="text-yellow-800">⚠️ Excluded Goal Scorers:</strong>
+                                                       <div className="mt-1 text-yellow-700">
+                                                           {scoringResult.diagnostics.excluded_goal_scorer_player_ids.length} player(s) scored goals but are not in any squad's starters
+                                                       </div>
+                                                       <code className="text-xs">
+                                                           {scoringResult.diagnostics.excluded_goal_scorer_player_ids.join(', ')}
+                                                       </code>
+                                                   </div>
+                                               )}
+                                           </div>
+                                       </details>
                                     )}
                                 </div>
                             )}
