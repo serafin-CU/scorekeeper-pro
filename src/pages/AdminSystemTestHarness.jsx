@@ -914,6 +914,62 @@ export default function AdminSystemTestHarness() {
 
             <Card className="mb-6">
                 <CardHeader>
+                    <CardTitle>Fantasy Transfer Testing</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex gap-2">
+                        <Button
+                            onClick={async () => {
+                                if (!selectedMatchId) {
+                                    alert('Please select a match first');
+                                    return;
+                                }
+                                try {
+                                    const match = matches.find(m => m.id === selectedMatchId);
+                                    const response = await base44.functions.invoke('fantasyTransferService', {
+                                        action: 'apply_transfer_penalties',
+                                        user_id: (await base44.auth.me()).id,
+                                        phase: match?.phase || 'ROUND_OF_16',
+                                        force_transfers_count: 11
+                                    });
+                                    alert(`Simulate Max Transfers Result:\n${JSON.stringify(response.data, null, 2)}`);
+                                } catch (error) {
+                                    alert(`Error: ${error.message}`);
+                                }
+                            }}
+                            variant="outline"
+                            size="sm"
+                        >
+                            Simulate Max Transfers (11)
+                        </Button>
+                        <Button
+                            onClick={async () => {
+                                if (!selectedMatchId) {
+                                    alert('Please select a match first');
+                                    return;
+                                }
+                                try {
+                                    const match = matches.find(m => m.id === selectedMatchId);
+                                    const response = await base44.functions.invoke('fantasyTransferService', {
+                                        action: 'check_phase_lock',
+                                        target_phase: match?.phase || 'ROUND_OF_16'
+                                    });
+                                    alert(`Phase Lock Check:\n${JSON.stringify(response.data, null, 2)}`);
+                                } catch (error) {
+                                    alert(`Error: ${error.message}`);
+                                }
+                            }}
+                            variant="outline"
+                            size="sm"
+                        >
+                            Check Phase Lock
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="mb-6">
+                <CardHeader>
                     <CardTitle>Fantasy Scoring Controls</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1126,6 +1182,19 @@ export default function AdminSystemTestHarness() {
                                                                <div className="col-span-2"><strong>Resolved XI:</strong> {scoringResult.diagnostics.squad_details[0].resolved_xi_count}</div>
                                                            </div>
                                                        </div>
+                                                       
+                                                       {scoringResult.diagnostics.squad_details[0].transfers_count !== undefined && (
+                                                           <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs">
+                                                               <strong className="text-orange-900">Transfer Info:</strong>
+                                                               <div className="mt-1 grid grid-cols-2 gap-2 text-orange-800">
+                                                                   <div><strong>Transfers:</strong> {scoringResult.diagnostics.squad_details[0].transfers_count}</div>
+                                                                   <div><strong>Free:</strong> {scoringResult.diagnostics.squad_details[0].free_transfers}</div>
+                                                                   <div className="col-span-2">
+                                                                       <strong>Penalty:</strong> {scoringResult.diagnostics.squad_details[0].penalty_points} points
+                                                                   </div>
+                                                               </div>
+                                                           </div>
+                                                       )}
                                                        
                                                        {scoringResult.diagnostics.squad_details[0].auto_subs?.length > 0 && (
                                                            <div className="mt-3 p-2 bg-purple-50 border border-purple-200 rounded text-xs">

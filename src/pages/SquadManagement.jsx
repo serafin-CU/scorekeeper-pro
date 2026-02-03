@@ -136,6 +136,12 @@ export default function SquadManagement() {
             return;
         }
 
+        // Check phase lock
+        if (isPhaseLocked) {
+            toast.error('Squad is locked - cannot change captain after phase cutoff');
+            return;
+        }
+
         const player = playersMap[playerId];
         const squadPlayer = squadPlayers.find(sp => sp.player_id === playerId);
 
@@ -202,10 +208,10 @@ export default function SquadManagement() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleSetCaptainClick(squadPlayer.player_id)}
-                        disabled={setCaptainMutation.isPending}
+                        disabled={setCaptainMutation.isPending || isPhaseLocked}
                         className="ml-4"
                     >
-                        Set C
+                        {isPhaseLocked ? 'Locked' : 'Set C'}
                     </Button>
                 )}
             </div>
@@ -233,6 +239,22 @@ export default function SquadManagement() {
             </div>
         );
     }
+
+    // Check phase lock
+    const { data: phaseLockData } = useQuery({
+        queryKey: ['phaseLock', activeSquad?.phase],
+        queryFn: async () => {
+            if (!activeSquad) return null;
+            const response = await base44.functions.invoke('fantasyTransferService', {
+                action: 'check_phase_lock',
+                target_phase: activeSquad.phase
+            });
+            return response.data;
+        },
+        enabled: !!activeSquad
+    });
+
+    const isPhaseLocked = phaseLockData?.is_locked || false;
 
     if (!activeSquad) {
         return (
@@ -262,11 +284,26 @@ export default function SquadManagement() {
                 <p className="text-gray-600 mt-1">Manage your fantasy football team</p>
             </div>
 
+            {/* Phase lock warning */}
+            {isPhaseLocked && (
+                <div className="mb-6 flex items-start gap-2 p-4 bg-red-50 border border-red-300 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-red-800">
+                        <strong>Squad Locked:</strong> This phase is locked. No changes can be made to your squad, captain, or bench.
+                    </div>
+                </div>
+            )}
+
             {/* Helper text */}
             <div className="mb-6 flex items-start gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <Shield className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-blue-800">
                     <strong>Captain Info:</strong> Only starters can be Captain. Captain earns 2x points. Set one captain among your 11 starters.
+                    {phaseLockData && !isPhaseLocked && phaseLockData.hours_until_lock > 0 && (
+                        <span className="block mt-1 text-blue-700">
+                            Squad locks in {phaseLockData.hours_until_lock} hours ({new Date(phaseLockData.lock_time).toLocaleString()})
+                        </span>
+                    )}
                 </div>
             </div>
 
