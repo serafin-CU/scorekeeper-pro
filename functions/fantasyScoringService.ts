@@ -46,6 +46,93 @@ Deno.serve(async (req) => {
     }
 });
 
+/**
+ * Validates a fantasy squad's starters configuration
+ * @returns {ok: boolean, error?: {code, message, hint, details}}
+ */
+async function validateFantasySquad(base44, squad_id) {
+    const squadPlayers = await base44.asServiceRole.entities.FantasySquadPlayer.filter({ squad_id });
+    
+    const starters = squadPlayers.filter(sp => sp.slot_type === 'STARTER');
+    const bench = squadPlayers.filter(sp => sp.slot_type === 'BENCH');
+    
+    // Check for duplicate players
+    const allPlayerIds = squadPlayers.map(sp => sp.player_id);
+    const uniquePlayerIds = [...new Set(allPlayerIds)];
+    if (allPlayerIds.length !== uniquePlayerIds.length) {
+        return {
+            ok: false,
+            error: {
+                code: 'DUPLICATE_PLAYER_IN_SQUAD',
+                message: 'Squad contains duplicate players',
+                hint: 'Each player can only appear once in a squad (either as STARTER or BENCH).',
+                details: { squad_id, total_players: allPlayerIds.length, unique_players: uniquePlayerIds.length }
+            }
+        };
+    }
+    
+    // Validate exactly 11 starters
+    if (starters.length !== 11) {
+        return {
+            ok: false,
+            error: {
+                code: 'INVALID_STARTERS_COUNT',
+                message: `Squad has ${starters.length} starters, must have exactly 11`,
+                hint: 'Ensure the squad has exactly 11 FantasySquadPlayer records with slot_type=STARTER.',
+                details: { squad_id, starters_count: starters.length, bench_count: bench.length }
+            }
+        };
+    }
+    
+    // Load player data for position validation
+    const allPlayers = await base44.asServiceRole.entities.Player.list();
+    const playersMap = Object.fromEntries(allPlayers.map(p => [p.id, p]));
+    
+    // Count positions in starters
+    const positionCounts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+    for (const starter of starters) {
+        const player = playersMap[starter.player_id];
+        if (player) {
+            positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
+        }
+    }
+    
+    // Validate formation rules
+    const errors = [];
+    if (positionCounts.GK !== 1) {
+        errors.push(`GK: ${positionCounts.GK} (must be exactly 1)`);
+    }
+    if (positionCounts.DEF < 3 || positionCounts.DEF > 5) {
+        errors.push(`DEF: ${positionCounts.DEF} (must be 3-5)`);
+    }
+    if (positionCounts.MID < 3 || positionCounts.MID > 5) {
+        errors.push(`MID: ${positionCounts.MID} (must be 3-5)`);
+    }
+    if (positionCounts.FWD < 1 || positionCounts.FWD > 3) {
+        errors.push(`FWD: ${positionCounts.FWD} (must be 1-3)`);
+    }
+    
+    if (errors.length > 0) {
+        const formationString = `${positionCounts.GK}-${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
+        return {
+            ok: false,
+            error: {
+                code: 'INVALID_FORMATION',
+                message: `Invalid formation: ${formationString}`,
+                hint: 'Formation must be: 1 GK, 3-5 DEF, 3-5 MID, 1-3 FWD (total 11).',
+                details: { 
+                    squad_id, 
+                    formation: formationString,
+                    position_counts: positionCounts,
+                    violations: errors
+                }
+            }
+        };
+    }
+    
+    return { ok: true, positionCounts };
+}
+
 async function scoreFantasyMatch(base44, match_id, force = false) {
     // Load match and result
     const match = await base44.asServiceRole.entities.Match.get(match_id);
@@ -196,6 +283,12 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
     const allStarterPlayerIds = [];
     
     for (const squad of allSquads) {
+        // Validate squad formation
+        const validation = await validateFantasySquad(base44, squad.id);
+        if (!validation.ok) {
+            return validation.error;
+        }
+        
         let squadTotalPoints = 0;
         const perPlayerDetails = [];
 
@@ -207,23 +300,6 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
         
         const starterPlayerIds = squadPlayers.map(sp => sp.player_id);
         allStarterPlayerIds.push(...starterPlayerIds);
-        
-        // Validate exactly 11 starters
-        if (!squadPlayers || squadPlayers.length !== 11) {
-            return {
-                ok: false,
-                code: 'INVALID_STARTERS_COUNT',
-                message: `Squad has ${squadPlayers?.length || 0} starters, must have exactly 11`,
-                hint: 'Ensure the squad has exactly 11 FantasySquadPlayer records with slot_type=STARTER. Run Dev Fantasy Setup to auto-create a valid squad.',
-                details: { 
-                    match_id, 
-                    squad_id: squad.id, 
-                    user_id: squad.user_id,
-                    starters_count: squadPlayers?.length || 0,
-                    diagnostics
-                }
-            };
-        }
 
         for (const squadPlayer of squadPlayers) {
             const player = playersMap[squadPlayer.player_id];
@@ -312,10 +388,22 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
 
         ledgerAwards.push(ledgerEntry);
         
+        // Count positions for diagnostics
+        const positionCounts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+        for (const sp of squadPlayers) {
+            const player = playersMap[sp.player_id];
+            if (player) {
+                positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
+            }
+        }
+        const formationString = `${positionCounts.GK}-${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
+        
         squadDiagnostics.push({
             squad_id: squad.id,
             user_id: squad.user_id,
             starters_count: squadPlayers.length,
+            formation: formationString,
+            position_counts: positionCounts,
             starter_player_ids: starterPlayerIds,
             squad_points: squadTotalPoints
         });

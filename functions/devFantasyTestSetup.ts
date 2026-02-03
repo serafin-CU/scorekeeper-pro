@@ -5,6 +5,93 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
  * Creates a test user, squad, and runs fantasy scoring for validation
  */
 
+/**
+ * Validates a fantasy squad's starters configuration
+ * @returns {ok: boolean, error?: {code, message, hint, details}}
+ */
+async function validateFantasySquad(base44, squad_id) {
+    const squadPlayers = await base44.asServiceRole.entities.FantasySquadPlayer.filter({ squad_id });
+    
+    const starters = squadPlayers.filter(sp => sp.slot_type === 'STARTER');
+    const bench = squadPlayers.filter(sp => sp.slot_type === 'BENCH');
+    
+    // Check for duplicate players
+    const allPlayerIds = squadPlayers.map(sp => sp.player_id);
+    const uniquePlayerIds = [...new Set(allPlayerIds)];
+    if (allPlayerIds.length !== uniquePlayerIds.length) {
+        return {
+            ok: false,
+            error: {
+                code: 'DUPLICATE_PLAYER_IN_SQUAD',
+                message: 'Squad contains duplicate players',
+                hint: 'Each player can only appear once in a squad (either as STARTER or BENCH).',
+                details: { squad_id, total_players: allPlayerIds.length, unique_players: uniquePlayerIds.length }
+            }
+        };
+    }
+    
+    // Validate exactly 11 starters
+    if (starters.length !== 11) {
+        return {
+            ok: false,
+            error: {
+                code: 'INVALID_STARTERS_COUNT',
+                message: `Squad has ${starters.length} starters, must have exactly 11`,
+                hint: 'Ensure the squad has exactly 11 FantasySquadPlayer records with slot_type=STARTER.',
+                details: { squad_id, starters_count: starters.length, bench_count: bench.length }
+            }
+        };
+    }
+    
+    // Load player data for position validation
+    const allPlayers = await base44.asServiceRole.entities.Player.list();
+    const playersMap = Object.fromEntries(allPlayers.map(p => [p.id, p]));
+    
+    // Count positions in starters
+    const positionCounts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+    for (const starter of starters) {
+        const player = playersMap[starter.player_id];
+        if (player) {
+            positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
+        }
+    }
+    
+    // Validate formation rules
+    const errors = [];
+    if (positionCounts.GK !== 1) {
+        errors.push(`GK: ${positionCounts.GK} (must be exactly 1)`);
+    }
+    if (positionCounts.DEF < 3 || positionCounts.DEF > 5) {
+        errors.push(`DEF: ${positionCounts.DEF} (must be 3-5)`);
+    }
+    if (positionCounts.MID < 3 || positionCounts.MID > 5) {
+        errors.push(`MID: ${positionCounts.MID} (must be 3-5)`);
+    }
+    if (positionCounts.FWD < 1 || positionCounts.FWD > 3) {
+        errors.push(`FWD: ${positionCounts.FWD} (must be 1-3)`);
+    }
+    
+    if (errors.length > 0) {
+        const formationString = `${positionCounts.GK}-${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
+        return {
+            ok: false,
+            error: {
+                code: 'INVALID_FORMATION',
+                message: `Invalid formation: ${formationString}`,
+                hint: 'Formation must be: 1 GK, 3-5 DEF, 3-5 MID, 1-3 FWD (total 11).',
+                details: { 
+                    squad_id, 
+                    formation: formationString,
+                    position_counts: positionCounts,
+                    violations: errors
+                }
+            }
+        };
+    }
+    
+    return { ok: true, positionCounts };
+}
+
 Deno.serve(async (req) => {
     const testRunId = `dev_test_${Date.now()}`;
     
@@ -284,28 +371,52 @@ Deno.serve(async (req) => {
         }
 
         // Step 4: Build deterministic squad with exactly 11 STARTERS including goal scorers
+        // Must satisfy formation rules: 1 GK, 3-5 DEF, 3-5 MID, 1-3 FWD
         const allPlayers = await base44.asServiceRole.entities.Player.list();
         const playersMap = Object.fromEntries(allPlayers.map(p => [p.id, p]));
         
         // Identify goal scorers from stats
         const goalScorers = matchStats.filter(s => s.goals > 0).map(s => s.player_id);
         
-        // Build starter list: prioritize goal scorers, then fill to 11 with other stats
-        const starterPlayerIds = new Set();
+        // Build valid formation with goal scorers included
+        const startersByPosition = { GK: [], DEF: [], MID: [], FWD: [] };
+        const remainingByPosition = { GK: [], DEF: [], MID: [], FWD: [] };
         
-        // Add all goal scorers first
-        for (const playerId of goalScorers) {
-            starterPlayerIds.add(playerId);
-        }
-        
-        // Fill remaining slots to reach 11 starters
+        // Categorize all available players by position
         for (const stat of matchStats) {
-            if (starterPlayerIds.size >= 11) break;
-            starterPlayerIds.add(stat.player_id);
+            const player = playersMap[stat.player_id];
+            if (!player) continue;
+            
+            const isGoalScorer = goalScorers.includes(stat.player_id);
+            if (isGoalScorer) {
+                startersByPosition[player.position].push(stat.player_id);
+            } else {
+                remainingByPosition[player.position].push(stat.player_id);
+            }
         }
         
-        // Convert to array and take exactly 11
-        const finalStarters = Array.from(starterPlayerIds).slice(0, 11);
+        // Target formation: 1-4-3-3 (commonly valid)
+        const targetFormation = { GK: 1, DEF: 4, MID: 3, FWD: 3 };
+        
+        // Fill starters respecting formation rules
+        const finalStarters = [];
+        for (const [pos, target] of Object.entries(targetFormation)) {
+            const goalScorerSlots = startersByPosition[pos].slice(0, target);
+            finalStarters.push(...goalScorerSlots);
+            
+            const needed = target - goalScorerSlots.length;
+            if (needed > 0) {
+                const fillSlots = remainingByPosition[pos].slice(0, needed);
+                finalStarters.push(...fillSlots);
+            }
+        }
+        
+        // Fallback: if we don't have enough for target formation, take first 11 available
+        if (finalStarters.length < 11) {
+            const allAvailable = matchStats.map(s => s.player_id).filter(id => playersMap[id]);
+            finalStarters.length = 0;
+            finalStarters.push(...allAvailable.slice(0, 11));
+        }
         
         // Create STARTER entries
         let playersAdded = 0;
@@ -323,9 +434,10 @@ Deno.serve(async (req) => {
         }
         
         // Remaining players go to BENCH (if any)
+        const starterSet = new Set(finalStarters);
         const benchPlayerIds = matchStats
             .map(s => s.player_id)
-            .filter(id => !starterPlayerIds.has(id));
+            .filter(id => !starterSet.has(id));
             
         for (const playerId of benchPlayerIds) {
             const player = playersMap[playerId];
@@ -337,6 +449,15 @@ Deno.serve(async (req) => {
                     starter_position: null
                 });
             }
+        }
+        
+        // Validate the created squad
+        const validation = await validateFantasySquad(base44, squad.id);
+        if (!validation.ok) {
+            return Response.json({
+                ...validation.error,
+                ok: false
+            }, { status: 200 });
         }
 
         // Step 5: Check if scoring already done (unless force=true)
@@ -528,6 +649,16 @@ Deno.serve(async (req) => {
         const startersCount = finalSquadPlayers.filter(sp => sp.slot_type === 'STARTER').length;
         const goalScorersCount = goalScorers.length;
         const goalScorersInStarters = goalScorers.filter(gId => finalStarters.includes(gId)).length;
+        
+        // Get formation details
+        const starterPositionCounts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+        for (const sp of finalSquadPlayers.filter(sp => sp.slot_type === 'STARTER')) {
+            const player = playersMap[sp.player_id];
+            if (player) {
+                starterPositionCounts[player.position] = (starterPositionCounts[player.position] || 0) + 1;
+            }
+        }
+        const formationString = `${starterPositionCounts.GK}-${starterPositionCounts.DEF}-${starterPositionCounts.MID}-${starterPositionCounts.FWD}`;
 
         return Response.json({
             ok: true,
@@ -542,6 +673,8 @@ Deno.serve(async (req) => {
             user_email: testUser.email,
             stats_count: matchStats.length,
             starters_count: startersCount,
+            formation: formationString,
+            position_counts: starterPositionCounts,
             goal_scorers_count: goalScorersCount,
             goal_scorers_in_starters_count: goalScorersInStarters,
             players_added: playersAdded,

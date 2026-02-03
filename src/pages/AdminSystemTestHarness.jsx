@@ -798,18 +798,20 @@ export default function AdminSystemTestHarness() {
             });
 
             setMatchDiagnostics({
-                match_id: matchId,
-                match_label: getMatchLabel(match),
-                status: match?.status,
-                phase: match?.phase,
-                finalized: matchResults.length > 0,
-                stats_count: stats.length,
-                squads_count: allSquads.length,
-                starters_count: startersCount,
-                bench_count: benchCount,
-                scored_users: matchLedger.length,
-                last_scored_at: matchLedger.length > 0 ? matchLedger[0].created_date : null
-            });
+                  match_id: matchId,
+                  match_label: getMatchLabel(match),
+                  status: match?.status,
+                  phase: match?.phase,
+                  finalized: matchResults.length > 0,
+                  stats_count: stats.length,
+                  squads_count: allSquads.length,
+                  starters_count: startersCount,
+                  formation: formationString,
+                  position_counts: positionCounts,
+                  bench_count: benchCount,
+                  scored_users: matchLedger.length,
+                  last_scored_at: matchLedger.length > 0 ? matchLedger[0].created_date : null
+              });
         } catch (error) {
             setMatchDiagnostics({ error: error.message });
         }
@@ -955,8 +957,18 @@ export default function AdminSystemTestHarness() {
                                         </div>
                                         <div><strong>Finalized?:</strong> {matchDiagnostics.finalized ? '✓ Yes' : '✗ No'}</div>
                                         <div><strong>Squads Count:</strong> {matchDiagnostics.squads_count}</div>
-                                        <div><strong>Starters Count:</strong> {matchDiagnostics.starters_count}
-                                            <span className="text-xs text-gray-500 ml-1">(slot_type=STARTER, must be 11)</span>
+                                        <div>
+                                            <strong>Starters Count:</strong> {matchDiagnostics.starters_count}
+                                            {matchDiagnostics.starters_count !== 11 && (
+                                                <span className="text-red-600 ml-1">⚠️ Must be 11</span>
+                                            )}
+                                            <span className="text-xs text-gray-500 ml-1">(slot_type=STARTER)</span>
+                                        </div>
+                                        <div>
+                                            <strong>Formation:</strong> {matchDiagnostics.formation || 'N/A'}
+                                            <span className="text-xs text-gray-500 ml-1">
+                                                (GK-DEF-MID-FWD)
+                                            </span>
                                         </div>
                                         <div><strong>Users Scored:</strong> {matchDiagnostics.scored_users}</div>
                                         <div className="col-span-2">
@@ -1162,9 +1174,21 @@ export default function AdminSystemTestHarness() {
                                         <div className="grid grid-cols-2 gap-3 text-sm">
                                         <div><strong>Match ID:</strong> <code className="text-xs">{devSetupResult.match_id?.slice(-12)}</code></div>
                                         <div><strong>Stats Count:</strong> {devSetupResult.stats_count}</div>
-                                        <div><strong>Starters Count:</strong> {devSetupResult.starters_count}
+                                        <div>
+                                            <strong>Starters Count:</strong> {devSetupResult.starters_count}
                                             {devSetupResult.starters_count !== 11 && (
                                                 <span className="text-red-600 ml-1">⚠️ Must be 11</span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <strong>Formation:</strong> {devSetupResult.formation || 'N/A'}
+                                            {devSetupResult.position_counts && (
+                                                <div className="text-xs text-gray-500">
+                                                    GK:{devSetupResult.position_counts.GK} 
+                                                    DEF:{devSetupResult.position_counts.DEF} 
+                                                    MID:{devSetupResult.position_counts.MID} 
+                                                    FWD:{devSetupResult.position_counts.FWD}
+                                                </div>
                                             )}
                                         </div>
                                         <div><strong>Goal Scorers Count:</strong> {devSetupResult.goal_scorers_count}</div>
