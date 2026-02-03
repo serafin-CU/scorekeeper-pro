@@ -89,6 +89,33 @@ async function validateFantasySquad(base44, squad_id) {
         };
     }
     
+    // Validate captain/vice-captain
+    const captains = starters.filter(sp => sp.is_captain);
+    if (captains.length !== 1) {
+        return {
+            ok: false,
+            error: {
+                code: 'INVALID_CAPTAIN',
+                message: `Squad has ${captains.length} captains, must have exactly 1`,
+                hint: 'Exactly one player must be captain among starters.',
+                details: { squad_id, captain_count: captains.length }
+            }
+        };
+    }
+
+    const viceCaptains = starters.filter(sp => sp.is_vice_captain);
+    if (viceCaptains.length > 1) {
+        return {
+            ok: false,
+            error: {
+                code: 'INVALID_VICE_CAPTAIN',
+                message: `Squad has ${viceCaptains.length} vice-captains, must have 0 or 1`,
+                hint: 'A maximum of one player can be vice-captain among starters.',
+                details: { squad_id, vice_captain_count: viceCaptains.length }
+            }
+        };
+    }
+    
     return { ok: true, positionCounts };
 }
 
@@ -549,7 +576,26 @@ Deno.serve(async (req) => {
                 playerPoints += yellowCards * -1;
                 playerPoints += redCards * -3;
 
-                totalPoints += playerPoints;
+                // Apply captain multiplier
+                let multiplier = 1;
+                const isCaptain = sp.is_captain;
+                const isViceCaptain = sp.is_vice_captain;
+                
+                // Find captain to check DNP
+                const captain = squadPlayers.find(p => p.is_captain);
+                if (captain) {
+                    const captainStat = matchStats.find(s => s.player_id === captain.player_id);
+                    const captainMinutes = captainStat?.minutes_played || 0;
+                    
+                    if (isCaptain && captainMinutes > 0) {
+                        multiplier = 2;
+                    } else if (isViceCaptain && captainMinutes === 0) {
+                        multiplier = 2;
+                    }
+                }
+
+                const finalPoints = playerPoints * multiplier;
+                totalPoints += finalPoints;
 
                 perPlayerDetails.push({
                     player_id: sp.player_id,
@@ -559,7 +605,11 @@ Deno.serve(async (req) => {
                     goals,
                     yellow_cards: yellowCards,
                     red_cards: redCards,
-                    points: playerPoints
+                    base_points: playerPoints,
+                    multiplier,
+                    points: finalPoints,
+                    is_captain: isCaptain,
+                    is_vice_captain: isViceCaptain
                 });
             }
 
