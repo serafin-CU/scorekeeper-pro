@@ -97,29 +97,29 @@ async function validateFantasySquad(base44, squad_id) {
         }
     }
     
-    // Validate formation rules
+    // Validate strict 4-3-3 formation
     const errors = [];
     if (positionCounts.GK !== 1) {
         errors.push(`GK: ${positionCounts.GK} (must be exactly 1)`);
     }
-    if (positionCounts.DEF < 3 || positionCounts.DEF > 5) {
-        errors.push(`DEF: ${positionCounts.DEF} (must be 3-5)`);
+    if (positionCounts.DEF !== 4) {
+        errors.push(`DEF: ${positionCounts.DEF} (must be exactly 4)`);
     }
-    if (positionCounts.MID < 3 || positionCounts.MID > 5) {
-        errors.push(`MID: ${positionCounts.MID} (must be 3-5)`);
+    if (positionCounts.MID !== 3) {
+        errors.push(`MID: ${positionCounts.MID} (must be exactly 3)`);
     }
-    if (positionCounts.FWD < 1 || positionCounts.FWD > 3) {
-        errors.push(`FWD: ${positionCounts.FWD} (must be 1-3)`);
+    if (positionCounts.FWD !== 3) {
+        errors.push(`FWD: ${positionCounts.FWD} (must be exactly 3)`);
     }
     
     if (errors.length > 0) {
-        const formationString = `${positionCounts.GK}-${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
+        const formationString = `${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
         return {
             ok: false,
             error: {
                 code: 'INVALID_FORMATION',
-                message: `Invalid formation: ${formationString}`,
-                hint: 'Formation must be: 1 GK, 3-5 DEF, 3-5 MID, 1-3 FWD (total 11).',
+                message: `Invalid formation: GK=${positionCounts.GK}, ${formationString}`,
+                hint: 'Formation must be exactly: 1 GK, 4 DEF, 3 MID, 3 FWD (4-3-3).',
                 details: { 
                     squad_id, 
                     formation: formationString,
@@ -445,7 +445,7 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
                 positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
             }
         }
-        const formationString = `${positionCounts.GK}-${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
+        const formationString = `${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
         
         squadDiagnostics.push({
             squad_id: squad.id,

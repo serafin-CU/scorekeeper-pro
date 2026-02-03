@@ -56,29 +56,29 @@ async function validateFantasySquad(base44, squad_id) {
         }
     }
     
-    // Validate formation rules
+    // Validate strict 4-3-3 formation
     const errors = [];
     if (positionCounts.GK !== 1) {
         errors.push(`GK: ${positionCounts.GK} (must be exactly 1)`);
     }
-    if (positionCounts.DEF < 3 || positionCounts.DEF > 5) {
-        errors.push(`DEF: ${positionCounts.DEF} (must be 3-5)`);
+    if (positionCounts.DEF !== 4) {
+        errors.push(`DEF: ${positionCounts.DEF} (must be exactly 4)`);
     }
-    if (positionCounts.MID < 3 || positionCounts.MID > 5) {
-        errors.push(`MID: ${positionCounts.MID} (must be 3-5)`);
+    if (positionCounts.MID !== 3) {
+        errors.push(`MID: ${positionCounts.MID} (must be exactly 3)`);
     }
-    if (positionCounts.FWD < 1 || positionCounts.FWD > 3) {
-        errors.push(`FWD: ${positionCounts.FWD} (must be 1-3)`);
+    if (positionCounts.FWD !== 3) {
+        errors.push(`FWD: ${positionCounts.FWD} (must be exactly 3)`);
     }
     
     if (errors.length > 0) {
-        const formationString = `${positionCounts.GK}-${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
+        const formationString = `${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
         return {
             ok: false,
             error: {
                 code: 'INVALID_FORMATION',
-                message: `Invalid formation: ${formationString}`,
-                hint: 'Formation must be: 1 GK, 3-5 DEF, 3-5 MID, 1-3 FWD (total 11).',
+                message: `Invalid formation: GK=${positionCounts.GK}, ${formationString}`,
+                hint: 'Formation must be exactly: 1 GK, 4 DEF, 3 MID, 3 FWD (4-3-3).',
                 details: { 
                     squad_id, 
                     formation: formationString,
@@ -395,52 +395,54 @@ Deno.serve(async (req) => {
             });
         }
 
-        // Step 4: Build deterministic squad with exactly 11 STARTERS including goal scorers
-        // Must satisfy formation rules: 1 GK, 3-5 DEF, 3-5 MID, 1-3 FWD
+        // Step 4: Build deterministic squad with strict 4-3-3 formation
         const allPlayers = await base44.asServiceRole.entities.Player.list();
         const playersMap = Object.fromEntries(allPlayers.map(p => [p.id, p]));
-        
+
         // Identify goal scorers from stats
-        const goalScorers = matchStats.filter(s => s.goals > 0).map(s => s.player_id);
-        
-        // Build valid formation with goal scorers included
-        const startersByPosition = { GK: [], DEF: [], MID: [], FWD: [] };
-        const remainingByPosition = { GK: [], DEF: [], MID: [], FWD: [] };
-        
+        const goalScorers = new Set(matchStats.filter(s => s.goals > 0).map(s => s.player_id));
+
         // Categorize all available players by position
+        const availableByPosition = { GK: [], DEF: [], MID: [], FWD: [] };
         for (const stat of matchStats) {
             const player = playersMap[stat.player_id];
-            if (!player) continue;
-            
-            const isGoalScorer = goalScorers.includes(stat.player_id);
-            if (isGoalScorer) {
-                startersByPosition[player.position].push(stat.player_id);
-            } else {
-                remainingByPosition[player.position].push(stat.player_id);
-            }
+            if (!player || stat.minutes_played === 0) continue;
+            availableByPosition[player.position].push(stat.player_id);
         }
-        
-        // Target formation: 1-4-3-3 (commonly valid)
-        const targetFormation = { GK: 1, DEF: 4, MID: 3, FWD: 3 };
-        
-        // Fill starters respecting formation rules
+
+        // Sort each position: goal scorers first, then by player_id for determinism
+        for (const pos of ['GK', 'DEF', 'MID', 'FWD']) {
+            availableByPosition[pos].sort((a, b) => {
+                const aIsGoalScorer = goalScorers.has(a);
+                const bIsGoalScorer = goalScorers.has(b);
+                if (aIsGoalScorer && !bIsGoalScorer) return -1;
+                if (!aIsGoalScorer && bIsGoalScorer) return 1;
+                return a.localeCompare(b);
+            });
+        }
+
+        // Strict 4-3-3 formation
+        const requiredFormation = { GK: 1, DEF: 4, MID: 3, FWD: 3 };
+
+        // Build finalStarters with strict counts
         const finalStarters = [];
-        for (const [pos, target] of Object.entries(targetFormation)) {
-            const goalScorerSlots = startersByPosition[pos].slice(0, target);
-            finalStarters.push(...goalScorerSlots);
-            
-            const needed = target - goalScorerSlots.length;
-            if (needed > 0) {
-                const fillSlots = remainingByPosition[pos].slice(0, needed);
-                finalStarters.push(...fillSlots);
+        for (const [pos, required] of Object.entries(requiredFormation)) {
+            const available = availableByPosition[pos];
+            if (available.length < required) {
+                return Response.json({
+                    ok: false,
+                    code: 'DEV_SETUP_INVALID_FORMATION',
+                    message: `Not enough ${pos} players with minutes > 0`,
+                    hint: `Need ${required} ${pos}, but only ${available.length} available in match stats.`,
+                    details: { 
+                        match_id: matchId,
+                        position: pos,
+                        required,
+                        available: available.length
+                    }
+                }, { status: 200 });
             }
-        }
-        
-        // Fallback: if we don't have enough for target formation, take first 11 available
-        if (finalStarters.length < 11) {
-            const allAvailable = matchStats.map(s => s.player_id).filter(id => playersMap[id]);
-            finalStarters.length = 0;
-            finalStarters.push(...allAvailable.slice(0, 11));
+            finalStarters.push(...available.slice(0, required));
         }
         
         // Create STARTER entries - assign captain to a goal scorer if available, otherwise first
