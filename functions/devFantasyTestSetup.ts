@@ -6,6 +6,80 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
  */
 
 /**
+ * Ensure match has enough stats rows for 4-3-3 formation
+ * Creates/updates stats to guarantee 1 GK, 4 DEF, 3 MID, 3 FWD with minutes_played = 90
+ */
+async function ensureMatchHasFormationStats(base44, match_id, home_team_id, away_team_id) {
+    const existingStats = await base44.asServiceRole.entities.FantasyMatchPlayerStats.filter({ match_id });
+    const statsMap = Object.fromEntries(existingStats.map(s => [s.player_id, s]));
+    
+    const allPlayers = await base44.asServiceRole.entities.Player.list();
+    const homeTeamPlayers = allPlayers.filter(p => p.team_id === home_team_id);
+    const awayTeamPlayers = allPlayers.filter(p => p.team_id === away_team_id);
+    
+    const requiredFormation = { GK: 1, DEF: 4, MID: 3, FWD: 3 };
+    const updatedStats = [];
+    const createdStats = [];
+    
+    // For each team, ensure we have the required positions
+    for (const teamPlayers of [homeTeamPlayers, awayTeamPlayers]) {
+        const teamId = teamPlayers[0]?.team_id;
+        if (!teamId) continue;
+        
+        const playersByPos = { GK: [], DEF: [], MID: [], FWD: [] };
+        for (const player of teamPlayers) {
+            playersByPos[player.position].push(player);
+        }
+        
+        // Ensure each position has enough players with minutes = 90
+        for (const [pos, required] of Object.entries(requiredFormation)) {
+            const posPlayers = playersByPos[pos] || [];
+            
+            for (let i = 0; i < required && i < posPlayers.length; i++) {
+                const player = posPlayers[i];
+                const existingStat = statsMap[player.id];
+                
+                if (existingStat) {
+                    // Update if minutes are 0
+                    if (existingStat.minutes_played === 0) {
+                        await base44.asServiceRole.entities.FantasyMatchPlayerStats.update(existingStat.id, {
+                            minutes_played: 90,
+                            minute_out: 90
+                        });
+                        updatedStats.push(player.id);
+                    }
+                } else {
+                    // Create new stat
+                    await base44.asServiceRole.entities.FantasyMatchPlayerStats.create({
+                        match_id,
+                        player_id: player.id,
+                        team_id: teamId,
+                        started: true,
+                        substituted_in: false,
+                        substituted_out: false,
+                        minute_in: null,
+                        minute_out: 90,
+                        minutes_played: 90,
+                        goals: 0,
+                        yellow_cards: 0,
+                        red_cards: 0,
+                        source: 'MANUAL'
+                    });
+                    createdStats.push(player.id);
+                }
+            }
+        }
+    }
+    
+    return {
+        updated_count: updatedStats.length,
+        created_count: createdStats.length,
+        updated_player_ids: updatedStats,
+        created_player_ids: createdStats
+    };
+}
+
+/**
  * Validates a fantasy squad's starters configuration
  * @param {boolean} isDevBaseline - If true, skip minutes_played validation (for baseline squad creation)
  * @returns {ok: boolean, error?: {code, message, hint, details}}
@@ -230,6 +304,14 @@ Deno.serve(async (req) => {
         const phase = targetMatch.phase;
 
         // Step 2b: Seed full lineup if requested and no stats exist
+        // Step 2a: Ensure match has enough stats for formation (DEV MODE)
+        const statsEnsureResult = await ensureMatchHasFormationStats(
+            base44, 
+            matchId, 
+            targetMatch.home_team_id, 
+            targetMatch.away_team_id
+        );
+
         if (seedFullLineup && matchStats.length === 0) {
             // Get or create 22 players (11 per team)
             const homeTeamData = await base44.asServiceRole.entities.Team.get(targetMatch.home_team_id);
@@ -511,12 +593,13 @@ Deno.serve(async (req) => {
             const player = playersMap[pid];
             return player && player.position === 'MID';
         });
-        
+
+        let dnpPlayerId = null;
         if (midStarterIds.length > 0) {
-            const targetMidId = midStarterIds[0];
-            const targetStat = matchStats.find(s => s.player_id === targetMidId);
-            
-            if (targetStat && targetStat.minutes_played !== 0) {
+            dnpPlayerId = midStarterIds[0];
+            const targetStat = matchStats.find(s => s.player_id === dnpPlayerId);
+
+            if (targetStat) {
                 await base44.asServiceRole.entities.FantasyMatchPlayerStats.update(targetStat.id, {
                     minutes_played: 0,
                     minute_in: null,
@@ -755,6 +838,19 @@ Deno.serve(async (req) => {
         
         const goalScorersCount = goalScorers.size;
         const goalScorersInStarters = Array.from(goalScorers).filter(gId => finalStarters.includes(gId)).length;
+
+        // Count stats by position for diagnostics
+        const statsByPosition = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+        const statsWithMinutesByPosition = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+        for (const stat of matchStats) {
+            const player = playersMap[stat.player_id];
+            if (player) {
+                statsByPosition[player.position] = (statsByPosition[player.position] || 0) + 1;
+                if (stat.minutes_played > 0) {
+                    statsWithMinutesByPosition[player.position] = (statsWithMinutesByPosition[player.position] || 0) + 1;
+                }
+            }
+        }
         
         // Get formation details
         const starterPositionCounts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
@@ -778,10 +874,14 @@ Deno.serve(async (req) => {
             user_id: testUser.id,
             user_email: testUser.email,
             stats_count: matchStats.length,
+            stats_by_position: statsByPosition,
+            stats_with_minutes_by_position: statsWithMinutesByPosition,
+            stats_ensure_result: statsEnsureResult,
             starters_count: startersCount,
             bench_count: benchCount,
             dnp_starters_count: dnpStarters.length,
             dnp_starter_player_ids: dnpStarterPlayerIds,
+            dnp_player_id: dnpPlayerId,
             bench_player_ids: benchPlayerIds,
             formation: formationString,
             position_counts: starterPositionCounts,

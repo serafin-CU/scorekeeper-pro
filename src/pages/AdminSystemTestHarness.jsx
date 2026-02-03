@@ -1382,6 +1382,26 @@ export default function AdminSystemTestHarness() {
                                         <div className="grid grid-cols-2 gap-3 text-sm">
                                         <div><strong>Match ID:</strong> <code className="text-xs">{devSetupResult.match_id?.slice(-12)}</code></div>
                                         <div><strong>Stats Count:</strong> {devSetupResult.stats_count}</div>
+                                        {devSetupResult.stats_by_position && (
+                                            <div className="col-span-2 p-2 bg-blue-50 rounded text-xs">
+                                                <strong>Stats by Position:</strong>
+                                                <div className="mt-1 font-mono">
+                                                    GK:{devSetupResult.stats_by_position.GK} 
+                                                    ({devSetupResult.stats_with_minutes_by_position?.GK || 0} with minutes) | 
+                                                    DEF:{devSetupResult.stats_by_position.DEF} 
+                                                    ({devSetupResult.stats_with_minutes_by_position?.DEF || 0} with minutes) | 
+                                                    MID:{devSetupResult.stats_by_position.MID} 
+                                                    ({devSetupResult.stats_with_minutes_by_position?.MID || 0} with minutes) | 
+                                                    FWD:{devSetupResult.stats_by_position.FWD} 
+                                                    ({devSetupResult.stats_with_minutes_by_position?.FWD || 0} with minutes)
+                                                </div>
+                                            </div>
+                                        )}
+                                        {devSetupResult.dnp_player_id && (
+                                            <div className="col-span-2 text-xs text-purple-700">
+                                                <strong>DNP Player ID:</strong> {devSetupResult.dnp_player_id.slice(-8)} (set to 0 minutes)
+                                            </div>
+                                        )}
                                         <div>
                                             <strong>Starters Count:</strong> {devSetupResult.starters_count}
                                             {devSetupResult.starters_count !== 11 && (
