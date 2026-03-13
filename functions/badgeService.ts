@@ -41,6 +41,53 @@ Deno.serve(async (req) => {
     }
 });
 
+async function awardLoyalCoreBadge(base44, user_id) {
+    const THRESHOLD = 9;
+    const BASE_PHASE = 'ROUND_OF_32';
+    const TARGET_PHASE = 'FINAL';
+
+    const [finalSquads, r32Squads] = await Promise.all([
+        base44.asServiceRole.entities.FantasySquad.filter({ user_id, phase: TARGET_PHASE, status: 'FINAL' }),
+        base44.asServiceRole.entities.FantasySquad.filter({ user_id, phase: BASE_PHASE, status: 'FINAL' })
+    ]);
+
+    if (finalSquads.length === 0) return { awarded: false, reason: 'NO_FINAL_SQUAD' };
+    if (r32Squads.length === 0) return { awarded: false, reason: 'NO_R32_SQUAD' };
+
+    const [finalPlayers, r32Players] = await Promise.all([
+        base44.asServiceRole.entities.FantasySquadPlayer.filter({ squad_id: finalSquads[0].id }),
+        base44.asServiceRole.entities.FantasySquadPlayer.filter({ squad_id: r32Squads[0].id })
+    ]);
+
+    const finalStarters = new Set(finalPlayers.filter(sp => sp.slot_type === 'STARTER').map(sp => sp.player_id));
+    const r32Starters = new Set(r32Players.filter(sp => sp.slot_type === 'STARTER').map(sp => sp.player_id));
+
+    let keptCount = 0;
+    for (const pid of finalStarters) {
+        if (r32Starters.has(pid)) keptCount++;
+    }
+
+    if (keptCount < THRESHOLD) {
+        return { awarded: false, kept_count: keptCount, threshold: THRESHOLD, base_phase: BASE_PHASE, phase: TARGET_PHASE };
+    }
+
+    // Idempotency check
+    const existing = await base44.asServiceRole.entities.BadgeAward.filter({ user_id, badge_type: 'LOYAL_CORE', phase: TARGET_PHASE });
+    if (existing.length > 0) {
+        return { awarded: true, already_existed: true, kept_count: keptCount, threshold: THRESHOLD, base_phase: BASE_PHASE, phase: TARGET_PHASE, badge_id: existing[0].id };
+    }
+
+    const badge = await base44.asServiceRole.entities.BadgeAward.create({
+        user_id,
+        badge_type: 'LOYAL_CORE',
+        phase: TARGET_PHASE,
+        awarded_at: new Date().toISOString(),
+        metadata_json: JSON.stringify({ kept_count: keptCount, threshold: THRESHOLD, base_phase: BASE_PHASE })
+    });
+
+    return { awarded: true, already_existed: false, kept_count: keptCount, threshold: THRESHOLD, base_phase: BASE_PHASE, phase: TARGET_PHASE, badge_id: badge.id };
+}
+
 export async function awardCoreKeeperBadge(base44, user_id, phase) {
     // Only valid for knockout phases
     const prevPhase = KNOCKOUT_PHASE_PREV[phase];
