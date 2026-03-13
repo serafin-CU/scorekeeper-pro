@@ -439,6 +439,11 @@ async function applyTransferPenalties(base44, user_id, phase, forceTransfersCoun
         transfersCount = forceTransfersCount;
     }
 
+    // Award CORE_KEEPER badge (fire-and-forget, non-blocking)
+    awardCoreKeeperBadge(base44, user_id, phase).catch(e => 
+        console.warn('CORE_KEEPER badge award failed (non-fatal):', e.message)
+    );
+
     // Get lock status for this phase
     const lockStatus = await checkPhaseLock(base44, phase);
 
@@ -451,4 +456,57 @@ async function applyTransferPenalties(base44, user_id, phase, forceTransfersCoun
         first_match_time: lockStatus.first_match_time,
         message: `Transfers recorded: ${transfersCount} (no penalties applied)`
     };
+}
+
+// ─── CORE_KEEPER Badge Logic ───────────────────────────────────────────────
+
+const KNOCKOUT_PHASE_PREV = {
+    'ROUND_OF_16': 'ROUND_OF_32',
+    'QUARTERFINALS': 'ROUND_OF_16',
+    'SEMIFINALS': 'QUARTERFINALS',
+    'FINAL': 'SEMIFINALS'
+};
+
+async function awardCoreKeeperBadge(base44, user_id, phase) {
+    const prevPhase = KNOCKOUT_PHASE_PREV[phase];
+    if (!prevPhase) return { awarded: false, reason: 'NOT_A_KNOCKOUT_PHASE' };
+
+    const currentSquads = await base44.asServiceRole.entities.FantasySquad.filter({ user_id, phase, status: 'FINAL' });
+    if (currentSquads.length === 0) return { awarded: false, reason: 'NO_CURRENT_FINAL_SQUAD' };
+
+    const prevSquads = await base44.asServiceRole.entities.FantasySquad.filter({ user_id, phase: prevPhase, status: 'FINAL' });
+    if (prevSquads.length === 0) return { awarded: false, reason: 'NO_PREVIOUS_FINAL_SQUAD' };
+
+    const [currentPlayers, prevPlayers] = await Promise.all([
+        base44.asServiceRole.entities.FantasySquadPlayer.filter({ squad_id: currentSquads[0].id }),
+        base44.asServiceRole.entities.FantasySquadPlayer.filter({ squad_id: prevSquads[0].id })
+    ]);
+
+    const currentStarters = new Set(currentPlayers.filter(sp => sp.slot_type === 'STARTER').map(sp => sp.player_id));
+    const prevStarters = new Set(prevPlayers.filter(sp => sp.slot_type === 'STARTER').map(sp => sp.player_id));
+
+    let keptCount = 0;
+    for (const pid of currentStarters) {
+        if (prevStarters.has(pid)) keptCount++;
+    }
+
+    if (keptCount < 8) {
+        return { awarded: false, kept_count: keptCount, threshold: 8, phase, prev_phase: prevPhase };
+    }
+
+    // Idempotency check
+    const existing = await base44.asServiceRole.entities.BadgeAward.filter({ user_id, badge_type: 'CORE_KEEPER', phase });
+    if (existing.length > 0) {
+        return { awarded: true, already_existed: true, kept_count: keptCount, threshold: 8, phase, prev_phase: prevPhase, badge_id: existing[0].id };
+    }
+
+    const badge = await base44.asServiceRole.entities.BadgeAward.create({
+        user_id,
+        badge_type: 'CORE_KEEPER',
+        phase,
+        awarded_at: new Date().toISOString(),
+        metadata_json: JSON.stringify({ kept_count: keptCount, threshold: 8, prev_phase: prevPhase })
+    });
+
+    return { awarded: true, already_existed: false, kept_count: keptCount, threshold: 8, phase, prev_phase: prevPhase, badge_id: badge.id };
 }
