@@ -59,6 +59,7 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
+      <Route path="/FAFOChat" element={<LayoutWrapper currentPageName="FAFOChat"><FAFOChat /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
