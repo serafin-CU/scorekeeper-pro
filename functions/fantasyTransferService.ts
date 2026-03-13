@@ -401,24 +401,6 @@ async function applyTransferPenalties(base44, user_id, phase, forceTransfersCoun
         return baselineResult;
     }
 
-    // Check for existing penalty for this user + phase (idempotency)
-    const existingPenalties = await base44.asServiceRole.entities.PointsLedger.filter({
-        user_id,
-        mode: 'PENALTY',
-        source_type: 'TRANSFER_PENALTY'
-    });
-
-    let existingPenaltyForPhase = null;
-    for (const p of existingPenalties) {
-        try {
-            const breakdown = JSON.parse(p.breakdown_json);
-            if (breakdown.phase === phase) {
-                existingPenaltyForPhase = p;
-                break;
-            }
-        } catch {}
-    }
-
     const squads = await base44.asServiceRole.entities.FantasySquad.filter({
         user_id,
         phase,
@@ -450,82 +432,11 @@ async function applyTransferPenalties(base44, user_id, phase, forceTransfersCoun
         return transferResult;
     }
 
-    let penaltyPoints = transferResult.penalty_points;
     let transfersCount = transferResult.transfers_count;
-    let penaltyBreakdown = transferResult.penalty_breakdown;
 
     // Override for testing
     if (forceTransfersCount !== null && forceTransfersCount !== undefined) {
         transfersCount = forceTransfersCount;
-        
-        // Validate against max_allowed_transfers (hard cap for QF/SF)
-        if (transfersCount > rules.max_allowed_transfers) {
-            return {
-                status: 'ERROR',
-                code: 'TOO_MANY_TRANSFERS_FOR_PHASE',
-                message: `Phase ${phase} allows maximum ${rules.max_allowed_transfers} transfers, but ${transfersCount} were attempted`,
-                phase,
-                transfers_count: transfersCount,
-                max_allowed_transfers: rules.max_allowed_transfers,
-                hint: `Reduce transfers to ${rules.max_allowed_transfers} or fewer for this phase`
-            };
-        }
-        
-        const penaltyResult = calculatePenalty(phase, forceTransfersCount);
-        penaltyPoints = penaltyResult.penalty;
-        penaltyBreakdown = penaltyResult.breakdown;
-    }
-
-    const excessTransfers = Math.max(0, transfersCount - rules.free_transfers);
-
-    if (penaltyPoints >= 0) {
-        return {
-            status: 'SUCCESS',
-            penalty_applied: false,
-            message: 'No penalty to apply',
-            transfers_count: transfersCount,
-            free_transfers: transferResult.free_transfers,
-            excess_transfers: excessTransfers,
-            penalty_points: 0
-        };
-    }
-
-    // Idempotent: update existing or create new
-    let ledgerEntryId;
-    if (existingPenaltyForPhase) {
-        await base44.asServiceRole.entities.PointsLedger.update(existingPenaltyForPhase.id, {
-            points: penaltyPoints,
-            breakdown_json: JSON.stringify({
-                type: 'TRANSFER_PENALTY',
-                phase: phase,
-                transfers_count: transfersCount,
-                free_transfers: transferResult.free_transfers,
-                excess_transfers: excessTransfers,
-                penalty_points: penaltyPoints,
-                penalty_breakdown: penaltyBreakdown,
-                timestamp: new Date().toISOString()
-            })
-        });
-        ledgerEntryId = existingPenaltyForPhase.id;
-    } else {
-        const newEntry = await base44.asServiceRole.entities.PointsLedger.create({
-            user_id,
-            mode: 'PENALTY',
-            source_type: 'TRANSFER_PENALTY',
-            source_id: `TRANSFER:${phase}`,
-            points: penaltyPoints,
-            breakdown_json: JSON.stringify({
-                type: 'TRANSFER_PENALTY',
-                phase: phase,
-                transfers_count: transfersCount,
-                free_transfers: transferResult.free_transfers,
-                excess_transfers: excessTransfers,
-                penalty_points: penaltyPoints,
-                penalty_breakdown: penaltyBreakdown,
-                timestamp: new Date().toISOString()
-            })
-        });
-        ledgerEntryId = newEntry.id;
     }
 
     // Get lock status for this phase
@@ -533,19 +444,11 @@ async function applyTransferPenalties(base44, user_id, phase, forceTransfersCoun
 
     return {
         status: 'SUCCESS',
-        penalty_applied: true,
-        penalty_points: penaltyPoints,
-        penalty_breakdown: penaltyBreakdown,
         transfers_count: transfersCount,
-        free_transfers: rules.free_transfers,
-        excess_transfers: excessTransfers,
-        max_allowed_transfers: rules.max_allowed_transfers,
         baseline_status: baselineResult.baseline_status,
-        ledger_entry_id: ledgerEntryId,
-        source_type: 'TRANSFER_PENALTY',
         is_locked: lockStatus.is_locked,
         lock_time: lockStatus.lock_time,
         first_match_time: lockStatus.first_match_time,
-        message: `Transfer penalty applied: ${penaltyPoints} points`
+        message: `Transfers recorded: ${transfersCount} (no penalties applied)`
     };
 }

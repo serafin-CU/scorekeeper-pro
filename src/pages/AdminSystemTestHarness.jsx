@@ -1051,30 +1051,6 @@ export default function AdminSystemTestHarness() {
                                         <div><strong>Phase:</strong> {selectedPhase}</div>
                                         <div><strong>Baseline Status:</strong> {transferTestResult.baseline_status || 'N/A'}</div>
                                         <div><strong>Transfers Count:</strong> {transferTestResult.transfers_count}</div>
-                                        <div><strong>Max Allowed:</strong> {transferTestResult.max_allowed_transfers === Infinity ? '∞' : transferTestResult.max_allowed_transfers}</div>
-                                        <div><strong>Free Transfers:</strong> {transferTestResult.free_transfers}</div>
-                                        <div><strong>Excess Transfers:</strong> {transferTestResult.excess_transfers}</div>
-                                        <div className="col-span-2">
-                                            <strong>Penalty Points:</strong> 
-                                            <span className={`ml-2 font-bold ${transferTestResult.penalty_points < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                                                {transferTestResult.penalty_points}
-                                            </span>
-                                        </div>
-                                        {transferTestResult.penalty_breakdown && (
-                                            <div className="col-span-2 p-2 bg-orange-100 rounded border border-orange-300">
-                                                <strong>Breakdown:</strong> 
-                                                <div className="font-mono text-xs mt-1">{transferTestResult.penalty_breakdown}</div>
-                                            </div>
-                                        )}
-                                        <div className="col-span-2">
-                                            <strong>Penalty Applied:</strong> {transferTestResult.penalty_applied ? 'Yes' : 'No'}
-                                        </div>
-                                        {transferTestResult.ledger_entry_id && (
-                                            <div className="col-span-2">
-                                                <strong>Ledger Entry ID:</strong> <code className="text-xs">{transferTestResult.ledger_entry_id.slice(-8)}</code>
-                                                <span className="ml-2 text-gray-600">({transferTestResult.source_type})</span>
-                                            </div>
-                                        )}
                                         {transferTestResult.is_locked !== undefined && (
                                             <div className="col-span-2 p-2 bg-yellow-50 rounded border border-yellow-200">
                                                 <strong>Phase Lock Status:</strong> {transferTestResult.is_locked ? '🔒 LOCKED' : '🔓 OPEN'}
