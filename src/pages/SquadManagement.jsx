@@ -218,6 +218,22 @@ export default function SquadManagement() {
         );
     };
 
+    // Check phase lock
+    const { data: phaseLockData } = useQuery({
+        queryKey: ['phaseLock', activeSquad?.phase],
+        queryFn: async () => {
+            if (!activeSquad) return null;
+            const response = await base44.functions.invoke('fantasyTransferService', {
+                action: 'check_phase_lock',
+                target_phase: activeSquad.phase
+            });
+            return response.data;
+        },
+        enabled: !!activeSquad
+    });
+
+    const isPhaseLocked = phaseLockData?.is_locked || false;
+
     if (userLoading || squadsLoading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -239,22 +255,6 @@ export default function SquadManagement() {
             </div>
         );
     }
-
-    // Check phase lock
-    const { data: phaseLockData } = useQuery({
-        queryKey: ['phaseLock', activeSquad?.phase],
-        queryFn: async () => {
-            if (!activeSquad) return null;
-            const response = await base44.functions.invoke('fantasyTransferService', {
-                action: 'check_phase_lock',
-                target_phase: activeSquad.phase
-            });
-            return response.data;
-        },
-        enabled: !!activeSquad
-    });
-
-    const isPhaseLocked = phaseLockData?.is_locked || false;
 
     if (!activeSquad) {
         return (
