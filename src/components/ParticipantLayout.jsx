@@ -3,19 +3,11 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, LogOut, Shield } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-
-export default function ParticipantLayout({ children, currentPageName }) {
-    const { data: currentUser } = useQuery({
-        queryKey: ['currentUser'],
-        queryFn: () => base44.auth.me()
-    });
-
-    const isAdmin = currentUser?.role === 'admin';
+import { Users, LogOut, Shield, MessageSquare } from 'lucide-react';
 
     const navItems = [
-        { name: 'SquadManagement', label: 'My Squad', icon: Users }
+        { name: 'SquadManagement', label: 'My Squad', icon: Users },
+        { name: 'FAFOChat', label: 'FAFO', icon: MessageSquare }
     ];
 
     const handleLogout = () => {
