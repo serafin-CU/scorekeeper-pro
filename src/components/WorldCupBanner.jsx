@@ -93,7 +93,6 @@ export default function WorldCupBanner({ compact = false }) {
                             src={CU_LOGO_URL}
                             alt="CookUnity"
                             className="h-5"
-                            style={{ filter: 'brightness(0) invert(1)' }}
                             onError={e => { e.target.style.display = 'none'; }}
                         />
                         <div className="w-px h-4 bg-white/20" />
@@ -145,7 +144,6 @@ export default function WorldCupBanner({ compact = false }) {
                         src={CU_LOGO_URL}
                         alt="CookUnity"
                         className="h-6 sm:h-7"
-                        style={{ filter: 'brightness(0) invert(1)' }}
                         onError={e => { e.target.style.display = 'none'; }}
                     />
                     
