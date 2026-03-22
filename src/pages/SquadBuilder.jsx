@@ -276,7 +276,14 @@ export default function SquadBuilder() {
     const isSquadComplete = startersComplete && benchComplete && hasCaptain;
 
     const existingSquadForPhase = existingSquads.find(s => s.phase === phase);
-    const isFinalized = existingSquadForPhase?.status === 'FINAL';
+    const hasFinalSquad = existingSquadForPhase?.status === 'FINAL';
+    const isPhaseLocked = phaseLock?.is_locked === true;
+    // View-only if locked (regardless of squad status) OR if no phase lock data yet
+    const isViewOnly = hasFinalSquad && isPhaseLocked;
+    // Allow editing a FINAL squad if phase is NOT locked
+    const isEditable = hasFinalSquad && !isPhaseLocked;
+    // For backwards compat: disable pool/slots when truly view-only
+    const isFinalized = isViewOnly;
 
     // Smart auto-filter: show the position you need next
     useEffect(() => {
