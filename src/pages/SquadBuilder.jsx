@@ -474,6 +474,12 @@ export default function SquadBuilder() {
                         <p style={{ fontFamily: "'Raleway', sans-serif", color: '#6b7280', marginTop: '4px' }}>
                             Pick 11 starters + 3 bench · Budget: ${BUDGET_CAP}M · Formation: 4-3-3
                         </p>
+                        {/* Transfer window countdown — only show when not locked */}
+                        {phaseLock && !phaseLock.is_locked && lockCountdown && (
+                            <p className="mt-1 text-sm font-semibold" style={{ fontFamily: "'Raleway', sans-serif", color: CU.orange }}>
+                                ⏱ Transfer window closes in {lockCountdown}
+                            </p>
+                        )}
                     </div>
                     <Select value={phase} onValueChange={handlePhaseChange}>
                         <SelectTrigger className="w-[220px]" style={{ fontFamily: "'Raleway', sans-serif" }}>
@@ -487,13 +493,30 @@ export default function SquadBuilder() {
                     </Select>
                 </div>
 
-                {/* Finalized banner */}
-                {isFinalized && (
+                {/* Status banners */}
+                {lockLoading && (
+                    <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}>
+                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#9ca3af' }} />
+                        <span style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af', fontSize: '0.875rem' }}>Checking transfer window...</span>
+                    </div>
+                )}
+                {/* Locked view-only banner */}
+                {isViewOnly && (
                     <div className="mb-6 flex items-center gap-2 px-4 py-3 rounded-xl"
-                         style={{ background: CU.green + '10', border: `1px solid ${CU.green}30` }}>
-                        <Check className="w-5 h-5" style={{ color: CU.green }} />
-                        <span style={{ fontFamily: "'Raleway', sans-serif", color: CU.green, fontWeight: 600 }}>
-                            Squad finalized for this phase
+                         style={{ background: '#1f2937' + '0a', border: `1px solid #374151` + '40' }}>
+                        <Lock className="w-5 h-5 shrink-0" style={{ color: '#374151' }} />
+                        <span style={{ fontFamily: "'Raleway', sans-serif", color: '#374151', fontWeight: 600 }}>
+                            🔒 Squad locked since {phaseLock?.lock_time ? new Date(phaseLock.lock_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}. Changes are no longer allowed for this phase.
+                        </span>
+                    </div>
+                )}
+                {/* Editable FINAL squad banner */}
+                {isEditable && (
+                    <div className="mb-6 flex items-center gap-2 px-4 py-3 rounded-xl"
+                         style={{ background: CU.orange + '10', border: `1px solid ${CU.orange}30` }}>
+                        <AlertCircle className="w-5 h-5 shrink-0" style={{ color: CU.orange }} />
+                        <span style={{ fontFamily: "'Raleway', sans-serif", color: '#9a6e00', fontWeight: 600 }}>
+                            You can edit your squad until {phaseLock?.lock_time ? new Date(phaseLock.lock_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                         </span>
                     </div>
                 )}
