@@ -16,7 +16,7 @@ export default function ParticipantLayout({ children, currentPageName }) {
     const navItems = [
         { name: 'SquadManagement', label: 'My Squad', icon: Users },
         { name: 'ProdePredictions', label: 'Prode', icon: Trophy },
-        { name: 'Leaderboard', label: 'Leaderboard', icon: BarChart2 },
+        { name: 'Leaderboard', label: 'Leaderboard', icon: Trophy },
         { name: 'FAFOChat', label: 'FAFO', icon: MessageSquare }
     ];
 
