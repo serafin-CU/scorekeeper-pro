@@ -6,6 +6,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import FAFOChat from './pages/FAFOChat';
+import ProdePredictions from './pages/ProdePredictions';
 import AdminBadgesViewer from './pages/AdminBadgesViewer';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -61,6 +62,7 @@ const AuthenticatedApp = () => {
         />
       ))}
       <Route path="/FAFOChat" element={<LayoutWrapper currentPageName="FAFOChat"><FAFOChat /></LayoutWrapper>} />
+      <Route path="/ProdePredictions" element={<LayoutWrapper currentPageName="ProdePredictions"><ProdePredictions /></LayoutWrapper>} />
       <Route path="/AdminBadgesViewer" element={<LayoutWrapper currentPageName="AdminBadgesViewer"><AdminBadgesViewer /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
