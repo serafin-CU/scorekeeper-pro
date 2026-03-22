@@ -1018,7 +1018,7 @@ export default function AdminSystemTestHarness() {
                                 try {
                                     const currentUser = await base44.auth.me();
                                     const response = await base44.functions.invoke('badgeService', {
-                                        action: 'award_core_keeper',
+                                        action: 'award_unbreakable_xi',
                                         user_id: currentUser.id,
                                         phase: selectedPhase
                                     });
@@ -1031,7 +1031,7 @@ export default function AdminSystemTestHarness() {
                                         `phase: ${d.phase ?? selectedPhase}`,
                                         d.reason ? `reason: ${d.reason}` : null
                                     ].filter(Boolean);
-                                    alert(`CORE_KEEPER Badge (${selectedPhase}):\n\n${lines.join('\n')}`);
+                                    alert(`🛡️ UNBREAKABLE_XI Badge (${selectedPhase}):\n\n${lines.join('\n')}`);
                                 } catch (error) {
                                     alert(`Error: ${error.message}`);
                                 }
@@ -1039,14 +1039,14 @@ export default function AdminSystemTestHarness() {
                             variant="outline"
                             size="sm"
                         >
-                            Award CORE_KEEPER (current phase)
+                            Award UNBREAKABLE_XI (current phase)
                         </Button>
                         <Button
                             onClick={async () => {
                                 try {
                                     const currentUser = await base44.auth.me();
                                     const response = await base44.functions.invoke('badgeService', {
-                                        action: 'award_loyal_core',
+                                        action: 'award_the_originals',
                                         user_id: currentUser.id
                                     });
                                     const d = response.data;
@@ -1058,7 +1058,7 @@ export default function AdminSystemTestHarness() {
                                         `base_phase: ${d.base_phase ?? 'ROUND_OF_32'}`,
                                         d.reason ? `reason: ${d.reason}` : null
                                     ].filter(Boolean);
-                                    alert(`LOYAL_CORE Badge (FINAL):\n\n${lines.join('\n')}`);
+                                    alert(`👑 THE_ORIGINALS Badge (FINAL):\n\n${lines.join('\n')}`);
                                 } catch (error) {
                                     alert(`Error: ${error.message}`);
                                 }
@@ -1066,7 +1066,7 @@ export default function AdminSystemTestHarness() {
                             variant="outline"
                             size="sm"
                         >
-                            Award LOYAL_CORE (FINAL)
+                            Award THE_ORIGINALS (FINAL)
                         </Button>
                     </div>
 
