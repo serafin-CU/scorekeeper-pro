@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, Search, Upload, X } from 'lucide-react';
 
 const CU = {
@@ -343,6 +343,7 @@ function Completion({ displayName, department, preferredTeamId, avatarUrl }) {
 
 export default function Onboarding() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [step, setStep] = useState(0);
     const [displayName, setDisplayName] = useState('');
     const [department, setDepartment] = useState('');
@@ -377,6 +378,7 @@ export default function Onboarding() {
                 avatar_url: avatarUrl,
                 onboarding_completed: true
             });
+            await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
             setStep(4);
         } catch (err) {
             console.error('Save failed:', err);
