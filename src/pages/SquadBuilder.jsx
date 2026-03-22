@@ -745,7 +745,7 @@ export default function SquadBuilder() {
                             style={{ background: CU.magenta, fontFamily: "'Raleway', sans-serif", cursor: 'pointer' }}
                         >
                             <Check className="w-5 h-5" />
-                            Finalize Squad · {starters.length} starters · {benchPlayers.length} bench · Captain: {playersMap[captainId]?.full_name || '—'}
+                            Save Squad · {starters.length} starters · {benchPlayers.length} bench · Captain: {playersMap[captainId]?.full_name || '—'}
                         </button>
                     </div>
                 </div>
