@@ -125,27 +125,39 @@ export default function WorldCupBanner({ compact = false }) {
         <div
             className="rounded-2xl overflow-hidden mb-8"
             style={{
-                background: `linear-gradient(135deg, ${CU.orange} 0%, #F96F15 50%, ${CU.orange} 100%)`,
-                borderBottom: `4px solid ${CU.charcoal}`,
+                background: `linear-gradient(135deg, ${CU.charcoal} 0%, #1a1919 40%, #2a2020 70%, ${CU.charcoal} 100%)`,
+                borderBottom: `4px solid ${CU.orange}`,
                 position: 'relative'
             }}
         >
+            {/* Subtle pitch pattern overlay */}
+            <div
+                style={{
+                    position: 'absolute',
+                    inset: 0,
+                    opacity: 0.03,
+                    backgroundImage: `repeating-linear-gradient(90deg, white 0px, white 1px, transparent 1px, transparent 60px), 
+                                      repeating-linear-gradient(0deg, white 0px, white 1px, transparent 1px, transparent 60px)`,
+                    pointerEvents: 'none'
+                }}
+            />
+
             <div className="relative z-10 px-5 sm:px-8 py-6 sm:py-8" style={{ aspectRatio: '16/7' }}>
-                {/* CU Logo — centered, dark filter for gold bg */}
+                {/* CU Logo — centered, white on dark */}
                 <div className="flex flex-col items-center mb-4">
                     <img
                         src={CU_LOGO_COLORFUL_URL}
                         alt="CookUnity"
                         className="w-64 sm:w-80 max-w-full"
-                        style={{ filter: 'brightness(0)' }}
+                        style={{ filter: 'brightness(0) invert(1)' }}
                         onError={e => { e.target.style.display = 'none'; }}
                     />
                     <div
                         className="mt-2 px-3 py-1 rounded-full text-xs font-semibold tracking-widest uppercase"
                         style={{
                             fontFamily: "'Raleway', sans-serif",
-                            background: CU.charcoal,
-                            color: 'white'
+                            background: CU.orange,
+                            color: CU.charcoal
                         }}
                     >
                         Internal Competition
@@ -155,20 +167,20 @@ export default function WorldCupBanner({ compact = false }) {
                 {/* Title */}
                 <div className="text-center mb-5 sm:mb-6">
                     <h1
-                        className="text-3xl sm:text-4xl font-bold mb-1"
-                        style={{ fontFamily: "'DM Serif Display', serif", color: CU.charcoal }}
+                        className="text-3xl sm:text-4xl font-bold text-white mb-1"
+                        style={{ fontFamily: "'DM Serif Display', serif" }}
                     >
                         UnityCup
                     </h1>
                     <p
-                        className="text-sm sm:text-base font-semibold"
-                        style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal, opacity: 0.75 }}
+                        className="text-sm sm:text-base"
+                        style={{ fontFamily: "'Raleway', sans-serif", color: 'rgba(255,255,255,0.5)' }}
                     >
                         FIFA World Cup 2026
                     </p>
                     <p
                         className="text-xs mt-1"
-                        style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal, opacity: 0.55 }}
+                        style={{ fontFamily: "'Raleway', sans-serif", color: CU.orange }}
                     >
                         Canada · Mexico · United States · June 11 — July 19, 2026
                     </p>
@@ -179,17 +191,17 @@ export default function WorldCupBanner({ compact = false }) {
                     <div>
                         <p
                             className="text-center text-xs uppercase tracking-widest mb-3"
-                            style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal, opacity: 0.5 }}
+                            style={{ fontFamily: "'Raleway', sans-serif", color: 'rgba(255,255,255,0.35)' }}
                         >
                             Countdown to Kickoff
                         </p>
                         <div className="flex items-center justify-center gap-3 sm:gap-4">
                             <CountdownUnit value={countdown.days} label="Days" />
-                            <span className="text-2xl font-light mt-[-20px]" style={{ color: 'rgba(44,43,43,0.3)' }}>:</span>
+                            <span className="text-white/20 text-2xl font-light mt-[-20px]">:</span>
                             <CountdownUnit value={countdown.hours} label="Hrs" />
-                            <span className="text-2xl font-light mt-[-20px]" style={{ color: 'rgba(44,43,43,0.3)' }}>:</span>
+                            <span className="text-white/20 text-2xl font-light mt-[-20px]">:</span>
                             <CountdownUnit value={countdown.minutes} label="Min" />
-                            <span className="text-2xl font-light mt-[-20px]" style={{ color: 'rgba(44,43,43,0.3)' }}>:</span>
+                            <span className="text-white/20 text-2xl font-light mt-[-20px]">:</span>
                             <CountdownUnit value={countdown.seconds} label="Sec" />
                         </div>
                     </div>
@@ -199,7 +211,7 @@ export default function WorldCupBanner({ compact = false }) {
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold"
                             style={{
                                 fontFamily: "'Raleway', sans-serif",
-                                background: CU.charcoal,
+                                background: CU.green,
                                 color: 'white'
                             }}
                         >
@@ -212,10 +224,9 @@ export default function WorldCupBanner({ compact = false }) {
                 <div className="flex items-end justify-between mt-5">
                     {!fifaLogoError ? (
                         <img
-                            src={FIFA_EMBLEM_BLACK_URL}
+                            src={FIFA_EMBLEM_URL}
                             alt="FIFA World Cup 2026"
                             className="h-14 sm:h-16"
-                            style={{ opacity: 0.75 }}
                             onError={() => setFifaLogoError(true)}
                         />
                     ) : (
