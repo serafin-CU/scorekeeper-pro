@@ -219,40 +219,25 @@ Deno.serve(async (req) => {
             players_created += created.length;
         }
 
-        // ── 4. Create group stage matches ──
+        // ── 4. Create group stage matches from real fixtures ──
         console.log('Creating matches...');
 
-        // Flatten all 72 matches across all groups and MDs, then assign slots
-        // 12 groups × 2 matches per MD × 3 MDs = 72 matches
-        // Each MD spans 4 days × 6 slots = 24 slots (we have 24 matches per MD)
-
-        const allMatchData = [];
-        for (const [phase, pairs] of Object.entries(MATCHDAY_PAIRS)) {
-            const dates = MD_DATES[phase];
-            let slotIndex = 0;
-
-            for (const group of GROUPS) {
-                const groupTeams = group.teams;
-                for (const [hiIdx, awIdx] of pairs) {
-                    const homeTeam = teamMap[groupTeams[hiIdx].code];
-                    const awayTeam = teamMap[groupTeams[awIdx].code];
-
-                    const dayIdx = Math.floor(slotIndex / SLOT_TIMES.length) % dates.length;
-                    const timeIdx = slotIndex % SLOT_TIMES.length;
-                    const kickoff = new Date(`${dates[dayIdx]}T${SLOT_TIMES[timeIdx]}:00Z`);
-
-                    allMatchData.push({
-                        phase,
-                        kickoff_at: kickoff.toISOString(),
-                        home_team_id: homeTeam.id,
-                        away_team_id: awayTeam.id,
-                        status: 'SCHEDULED',
-                        venue: `Group ${group.name} - ${phase} Match`,
-                    });
-                    slotIndex++;
-                }
-            }
+        function buildMatchesFromFixtures(fixtureList, phase) {
+            return fixtureList.map(([groupName, homeCode, awayCode, kickoff_utc]) => ({
+                phase,
+                kickoff_at: kickoff_utc,
+                home_team_id: teamMap[homeCode].id,
+                away_team_id: teamMap[awayCode].id,
+                status: 'SCHEDULED',
+                venue: `Group ${groupName} - ${phase}`,
+            }));
         }
+
+        const allMatchData = [
+            ...buildMatchesFromFixtures(MD1_FIXTURES, 'GROUP_MD1'),
+            ...buildMatchesFromFixtures(MD2_FIXTURES, 'GROUP_MD2'),
+            ...buildMatchesFromFixtures(MD3_FIXTURES, 'GROUP_MD3'),
+        ];
 
         const createdMatches = await base44.asServiceRole.entities.Match.bulkCreate(allMatchData);
         matches_created = createdMatches.length;
