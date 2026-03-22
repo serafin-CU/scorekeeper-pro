@@ -771,15 +771,12 @@ export default function SquadBuilder() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle style={{ fontFamily: "'DM Serif Display', serif" }}>
-                            {isEditable ? 'Update Your Squad?' : 'Finalize Your Squad?'}
+                            Save Squad Changes
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-3" style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.875rem' }}>
                         <p>
-                            {isEditable
-                                ? <>This will update your squad for <strong>{PHASE_OPTIONS.find(p => p.value === phase)?.label}</strong>.</>
-                                : <>This will lock your squad for <strong>{PHASE_OPTIONS.find(p => p.value === phase)?.label}</strong>.</>
-                            }
+                            Saving your squad for <strong>{PHASE_OPTIONS.find(p => p.value === phase)?.label}</strong>.
                         </p>
                         <div className="grid grid-cols-2 gap-2 text-xs">
                             <div className="p-2 rounded bg-gray-50"><strong>Starters:</strong> {starters.length}/11</div>
@@ -789,10 +786,17 @@ export default function SquadBuilder() {
                                 <strong>Captain:</strong> {playersMap[captainId]?.full_name || '—'}
                             </div>
                         </div>
-                        {!isEditable && (
-                            <p className="text-xs" style={{ color: '#9ca3af' }}>
-                                After finalizing, you won't be able to edit this squad (until the next transfer window).
-                            </p>
+                        {phaseLock?.lock_time && (
+                            <div className="rounded-lg px-3 py-2.5 space-y-1" style={{ background: CU.orange + '12', border: `1px solid ${CU.orange}40` }}>
+                                <p className="text-xs" style={{ color: '#6b4f00' }}>
+                                    You can still make changes until <strong>{new Date(phaseLock.lock_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>. After that, your squad will be locked for this phase.
+                                </p>
+                                {lockCountdown && (
+                                    <p className="text-xs font-bold" style={{ color: CU.orange }}>
+                                        ⏱️ Transfer window closes in {lockCountdown}
+                                    </p>
+                                )}
+                            </div>
                         )}
                     </div>
                     <DialogFooter>
@@ -802,7 +806,7 @@ export default function SquadBuilder() {
                             disabled={saving}
                             style={{ background: CU.magenta, color: 'white', fontFamily: "'Raleway', sans-serif", fontWeight: 700 }}
                         >
-                            {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</> : isEditable ? 'Update Squad ✓' : 'Finalize Squad ✓'}
+                            {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</> : 'Save Squad ✓'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
