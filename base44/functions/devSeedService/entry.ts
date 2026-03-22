@@ -27,9 +27,52 @@ Deno.serve(async (req) => {
     }
 });
 
+async function resetMatchDates(base44) {
+    const phaseSchedule = {
+        'GROUP_MD1':    { days: ['2026-06-11','2026-06-12','2026-06-13','2026-06-14'] },
+        'GROUP_MD2':    { days: ['2026-06-18','2026-06-19','2026-06-20','2026-06-21'] },
+        'GROUP_MD3':    { days: ['2026-06-25','2026-06-26','2026-06-27','2026-06-28'] },
+        'ROUND_OF_32':  { days: ['2026-07-01','2026-07-02','2026-07-03','2026-07-04'] },
+        'ROUND_OF_16':  { days: ['2026-07-05','2026-07-06','2026-07-07','2026-07-08'] },
+        'QUARTERFINALS':{ days: ['2026-07-09','2026-07-10'] },
+        'SEMIFINALS':   { days: ['2026-07-13','2026-07-14'] },
+        'FINAL':        { days: ['2026-07-18'] },
+    };
+    const kickoffTimes = ['13:00', '16:00', '19:00'];
+
+    const allMatches = await base44.asServiceRole.entities.Match.list();
+    let updated = 0;
+
+    // Group matches by phase
+    const byPhase = {};
+    for (const m of allMatches) {
+        if (!byPhase[m.phase]) byPhase[m.phase] = [];
+        byPhase[m.phase].push(m);
+    }
+
+    for (const [phase, schedule] of Object.entries(phaseSchedule)) {
+        const matches = byPhase[phase] || [];
+        for (let i = 0; i < matches.length; i++) {
+            const dayIdx = i % schedule.days.length;
+            const timeIdx = Math.floor(i / schedule.days.length) % kickoffTimes.length;
+            const kickoff = new Date(`${schedule.days[dayIdx]}T${kickoffTimes[timeIdx]}:00Z`);
+            await base44.asServiceRole.entities.Match.update(matches[i].id, {
+                kickoff_at: kickoff.toISOString(),
+                status: 'SCHEDULED'
+            });
+            updated++;
+        }
+    }
+
+    return updated;
+}
+
 async function seedDevData(base44) {
     const seedId = DEV_SEED_MARKER;
-    
+
+    // Step 0: Reset all existing match dates to future
+    const matchesUpdated = await resetMatchDates(base44);
+
     // Check if dev seed already exists
     const existingTeams = await base44.asServiceRole.entities.Team.filter({});
     const hasDevSeed = existingTeams.some(t => t.name && t.name.includes('[DEV-'));
