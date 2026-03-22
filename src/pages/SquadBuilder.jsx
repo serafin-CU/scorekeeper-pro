@@ -360,17 +360,16 @@ export default function SquadBuilder() {
     const handleFinalize = async () => {
         setSaving(true);
         try {
-            // Step 1: Create or reuse DRAFT squad
             let squadId = existingSquadId;
 
-            if (!squadId || isFinalized) {
+            // Step 1: Get or create squad record
+            if (!squadId) {
                 const createRes = await base44.functions.invoke('fantasyService', {
                     action: 'create_squad',
                     phase,
                     budget_cap: BUDGET_CAP
                 });
                 if (createRes.data?.error) {
-                    // Might already have a draft
                     if (createRes.data.existing_squad) {
                         squadId = createRes.data.existing_squad.id;
                     } else {
@@ -381,7 +380,7 @@ export default function SquadBuilder() {
                 }
             }
 
-            // Step 2: Clear existing squad players (if reusing draft)
+            // Step 2: Clear ALL existing squad players for THIS squad only
             const existingPlayers = await base44.entities.FantasySquadPlayer.filter({ squad_id: squadId });
             for (const sp of existingPlayers) {
                 await base44.entities.FantasySquadPlayer.delete(sp.id);
@@ -406,7 +405,6 @@ export default function SquadBuilder() {
                     player_id: benchPlayers[i],
                     slot_type: 'BENCH'
                 });
-                // Set bench_order directly
                 if (spResult.data?.squad_player?.id) {
                     await base44.entities.FantasySquadPlayer.update(spResult.data.squad_player.id, {
                         bench_order: i + 1
@@ -414,7 +412,7 @@ export default function SquadBuilder() {
                 }
             }
 
-            // Step 5: Set captain via squadCaptainService
+            // Step 5: Set captain
             if (captainId) {
                 await base44.functions.invoke('squadCaptainService', {
                     action: 'set_captain',
@@ -423,13 +421,22 @@ export default function SquadBuilder() {
                 });
             }
 
-            // Step 6: Finalize
-            await base44.functions.invoke('fantasyService', {
-                action: 'finalize_squad',
-                squad_id: squadId
-            });
+            // Step 6: Mark squad as FINAL (reuse existing or finalize fresh)
+            if (isEditable) {
+                // Re-finalize existing squad record with updated timestamp
+                await base44.entities.FantasySquad.update(squadId, {
+                    status: 'FINAL',
+                    finalized_at: new Date().toISOString(),
+                    total_cost: totalCost
+                });
+            } else {
+                await base44.functions.invoke('fantasyService', {
+                    action: 'finalize_squad',
+                    squad_id: squadId
+                });
+            }
 
-            toast.success('Squad finalized! 🎉');
+            toast.success(isEditable ? 'Squad updated! ✓' : 'Squad finalized! 🎉');
             setExistingSquadId(squadId);
             queryClient.invalidateQueries(['userSquads']);
             setShowConfirmFinalize(false);
