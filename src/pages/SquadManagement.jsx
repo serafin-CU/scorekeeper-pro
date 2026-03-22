@@ -330,6 +330,7 @@ export default function SquadManagement() {
 
     return (
         <div className="p-4 md:p-8 max-w-6xl mx-auto">
+            <WorldCupBanner compact />
             {/* Header */}
             <div className="mb-6">
                 <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: '2rem', color: CU.charcoal }}>🏟️ My Squad</h1>
