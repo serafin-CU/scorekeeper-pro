@@ -127,6 +127,42 @@ export default function AdminDevSeed() {
         <div className="p-8 max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold mb-6">Dev Seed Data</h1>
 
+            <Card className="mb-6 border-red-200 bg-red-50">
+                <CardHeader>
+                    <CardTitle className="text-red-800 flex items-center gap-2">
+                        <RotateCcw className="w-5 h-5" />
+                        Reset Test Data
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-sm text-red-700">
+                        Wipes all scores, squads, badges, and match results. Resets all match statuses to SCHEDULED. <strong>Predictions, teams, players, and matches are preserved.</strong>
+                    </p>
+                    <Button
+                        onClick={resetTestData}
+                        disabled={resetting}
+                        variant="destructive"
+                        className="w-full sm:w-auto"
+                    >
+                        {resetting ? (
+                            <>Resetting...</>
+                        ) : (
+                            <>
+                                <RotateCcw className="w-4 h-4 mr-2" />
+                                Reset Test Data
+                            </>
+                        )}
+                    </Button>
+                    {summary?.resetSummary && (
+                        <div className="text-sm text-red-800 space-y-1 mt-2">
+                            {Object.entries(summary.resetSummary).map(([key, val]) => (
+                                <div key={key}>• {key.replace(/_/g, ' ')}: <strong>{val}</strong></div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <Card>
                     <CardHeader>
