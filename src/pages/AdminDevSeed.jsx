@@ -8,6 +8,7 @@ import { CheckCircle, Trash2, Database, ArrowRight, AlertCircle, RotateCcw } fro
 export default function AdminDevSeed() {
     const [seeding, setSeeding] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [resetting, setResetting] = useState(false);
     const [hasDevSeed, setHasDevSeed] = useState(false);
     const [summary, setSummary] = useState(null);
 
