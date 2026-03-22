@@ -19,7 +19,7 @@ const CU = {
 
 const KICKOFF = new Date('2026-06-11T19:00:00Z'); // Mexico vs South Africa, 3pm ET
 
-const CU_LOGO_URL = 'https://www.cookunity.com/assets/icons/cu-logo.svg';
+const CU_LOGO_URL = 'https://media.base44.com/images/public/697e13bb6118f7db732b8054/407350a2e_CU_Logo_Horizontal-021.png';
 const FIFA_EMBLEM_URL = 'https://media.base44.com/images/public/697e13bb6118f7db732b8054/3070234a7_image.png';
 
 function useCountdown(target) {
