@@ -88,8 +88,8 @@ export default function WorldCupBanner({ compact = false }) {
             <div
                 className="rounded-xl overflow-hidden mb-6"
                 style={{
-                    background: `linear-gradient(135deg, ${CU.charcoal} 0%, #1a1919 50%, ${CU.charcoal} 100%)`,
-                    borderBottom: `3px solid ${CU.orange}`
+                    background: `linear-gradient(135deg, ${CU.orange} 0%, #F96F15 50%, ${CU.orange} 100%)`,
+                    borderBottom: `3px solid ${CU.charcoal}`
                 }}
             >
                 <div className="px-4 py-3 flex items-center justify-between">
@@ -98,20 +98,21 @@ export default function WorldCupBanner({ compact = false }) {
                             src={CU_LOGO_URL}
                             alt="CookUnity"
                             className="h-5"
+                            style={{ filter: 'brightness(0)' }}
                             onError={e => { e.target.style.display = 'none'; }}
                         />
-                        <div className="w-px h-4 bg-white/20" />
+                        <div className="w-px h-4" style={{ background: 'rgba(44,43,43,0.25)' }} />
                         <span
-                            className="text-sm font-semibold text-white/80"
-                            style={{ fontFamily: "'Raleway', sans-serif" }}
+                            className="text-sm font-bold"
+                            style={{ fontFamily: "'DM Serif Display', serif", color: CU.charcoal }}
                         >
-                            World Cup 2026
+                            ⚽ UnityCup
                         </span>
                     </div>
                     {!countdown.started && (
                         <span
-                            className="text-xs font-medium"
-                            style={{ fontFamily: "'Raleway', sans-serif", color: CU.orange }}
+                            className="text-xs font-semibold"
+                            style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal, opacity: 0.7 }}
                         >
                             {countdown.days}d {countdown.hours}h to kickoff
                         </span>
