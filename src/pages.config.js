@@ -72,10 +72,11 @@ export const PAGES = {
     "AdminMatchValidation": AdminMatchValidation,
     "AdminSystemTestHarness": AdminSystemTestHarness,
     "SquadManagement": SquadManagement,
+    "Dashboard": Dashboard,
 }
 
 export const pagesConfig = {
-    mainPage: "AdminDataSources",
+    mainPage: "Dashboard",
     Pages: PAGES,
     Layout: __Layout,
 };
