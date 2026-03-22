@@ -309,7 +309,8 @@ async function seedDevData(base44) {
         counts: {
             created: created_count,
             reused: reused_count,
-            skipped: skipped_count
+            skipped: skipped_count,
+            matches_date_reset: matchesUpdated
         }
     });
 }
