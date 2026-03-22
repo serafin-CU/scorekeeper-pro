@@ -16,7 +16,8 @@ const navItems = [
     { name: 'SquadManagement', label: 'My Squad', icon: Users },
     { name: 'SquadBuilder', label: 'Build Squad', icon: Shield },
     { name: 'Leaderboard', label: 'Standings', icon: Trophy },
-    { name: 'AlbaChat', label: 'Alba 🤖', icon: MessageSquare }
+    { name: 'AlbaChat', label: 'Alba 🤖', icon: MessageSquare },
+    { name: 'Profile', label: 'Profile', icon: User }
 ];
 
 export default function ParticipantLayout({ children, currentPageName }) {

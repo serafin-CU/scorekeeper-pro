@@ -10,6 +10,8 @@ import ProdePredictions from './pages/ProdePredictions';
 import Leaderboard from './pages/Leaderboard';
 import AdminBadgesViewer from './pages/AdminBadgesViewer';
 import SquadBuilder from './pages/SquadBuilder';
+import Onboarding from './pages/Onboarding';
+import Profile from './pages/Profile';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -22,7 +24,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -42,6 +44,11 @@ const AuthenticatedApp = () => {
       navigateToLogin();
       return null;
     }
+  }
+
+  // Show onboarding if user hasn't completed it
+  if (user && !user.onboarding_completed) {
+    return <Onboarding />;
   }
 
   // Render the main app
@@ -68,6 +75,7 @@ const AuthenticatedApp = () => {
       <Route path="/Leaderboard" element={<LayoutWrapper currentPageName="Leaderboard"><Leaderboard /></LayoutWrapper>} />
       <Route path="/AdminBadgesViewer" element={<LayoutWrapper currentPageName="AdminBadgesViewer"><AdminBadgesViewer /></LayoutWrapper>} />
       <Route path="/SquadBuilder" element={<LayoutWrapper currentPageName="SquadBuilder"><SquadBuilder /></LayoutWrapper>} />
+      <Route path="/Profile" element={<LayoutWrapper currentPageName="Profile"><Profile /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
