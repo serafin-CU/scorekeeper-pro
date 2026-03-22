@@ -752,7 +752,7 @@ export default function SquadBuilder() {
             )}
 
             {/* Not-ready indicator */}
-            {!isSquadComplete && !isFinalized && (starters.length > 0 || benchPlayers.length > 0) && (
+            {!isSquadComplete && (!isFinalized || isEditable) && (starters.length > 0 || benchPlayers.length > 0) && (
                 <div className="fixed bottom-0 left-0 right-0 z-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-4 pt-3">
                         <div className="w-full h-12 rounded-xl flex items-center justify-center gap-3 text-sm"
