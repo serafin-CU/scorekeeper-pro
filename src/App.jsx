@@ -5,7 +5,7 @@ import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
-import FAFOChat from './pages/FAFOChat';
+import AlbaChat from './pages/AlbaChat';
 import ProdePredictions from './pages/ProdePredictions';
 import Leaderboard from './pages/Leaderboard';
 import AdminBadgesViewer from './pages/AdminBadgesViewer';
@@ -63,7 +63,7 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
-      <Route path="/FAFOChat" element={<LayoutWrapper currentPageName="FAFOChat"><FAFOChat /></LayoutWrapper>} />
+      <Route path="/AlbaChat" element={<LayoutWrapper currentPageName="AlbaChat"><AlbaChat /></LayoutWrapper>} />
       <Route path="/ProdePredictions" element={<LayoutWrapper currentPageName="ProdePredictions"><ProdePredictions /></LayoutWrapper>} />
       <Route path="/Leaderboard" element={<LayoutWrapper currentPageName="Leaderboard"><Leaderboard /></LayoutWrapper>} />
       <Route path="/AdminBadgesViewer" element={<LayoutWrapper currentPageName="AdminBadgesViewer"><AdminBadgesViewer /></LayoutWrapper>} />
