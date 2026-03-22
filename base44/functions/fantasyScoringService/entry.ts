@@ -598,7 +598,7 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
         }
         const formationString = `${positionCounts.DEF}-${positionCounts.MID}-${positionCounts.FWD}`;
 
-        const captainDelta = captainMultipliedPoints - captainBasePoints;
+        
 
         squadDiagnostics.push({
             squad_id: squad.id,
