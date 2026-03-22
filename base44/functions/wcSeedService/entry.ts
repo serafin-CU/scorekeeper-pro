@@ -153,8 +153,69 @@ Deno.serve(async (req) => {
 
         const body = await req.json();
 
-        if (!['seed_wc2026', 'reseed_matches'].includes(body.action)) {
-            return Response.json({ error: 'Invalid action. Use seed_wc2026 or reseed_matches' }, { status: 400 });
+        if (!['seed_wc2026', 'reseed_matches', 'reset_test_data'].includes(body.action)) {
+            return Response.json({ error: 'Invalid action. Use seed_wc2026, reseed_matches, or reset_test_data' }, { status: 400 });
+        }
+
+        // ── reset_test_data: wipe scores/squads/badges, reset match statuses ──
+        if (body.action === 'reset_test_data') {
+            console.log('Resetting test data...');
+
+            async function deleteAll(entity) {
+                const items = await entity.list();
+                for (let i = 0; i < items.length; i += 20) {
+                    const chunk = items.slice(i, i + 20);
+                    await Promise.all(chunk.map(x => entity.delete(x.id)));
+                    if (i + 20 < items.length) await new Promise(r => setTimeout(r, 300));
+                }
+                return items.length;
+            }
+
+            const [
+                pointsDeleted,
+                badgesDeleted,
+                scoringJobsDeleted,
+                matchResultsDeleted,
+                playerStatsDeleted,
+                matchValidationsDeleted,
+                squadPlayersDeleted,
+                squadsDeleted,
+            ] = await Promise.all([
+                deleteAll(base44.asServiceRole.entities.PointsLedger),
+                deleteAll(base44.asServiceRole.entities.BadgeAward),
+                deleteAll(base44.asServiceRole.entities.ScoringJob),
+                deleteAll(base44.asServiceRole.entities.MatchResultFinal),
+                deleteAll(base44.asServiceRole.entities.FantasyMatchPlayerStats),
+                deleteAll(base44.asServiceRole.entities.MatchValidation),
+                deleteAll(base44.asServiceRole.entities.FantasySquadPlayer),
+                deleteAll(base44.asServiceRole.entities.FantasySquad),
+            ]);
+
+            // Reset all match statuses to SCHEDULED
+            const allMatches = await base44.asServiceRole.entities.Match.list();
+            for (let i = 0; i < allMatches.length; i += 20) {
+                const chunk = allMatches.slice(i, i + 20);
+                await Promise.all(chunk.map(m => base44.asServiceRole.entities.Match.update(m.id, { status: 'SCHEDULED' })));
+                if (i + 20 < allMatches.length) await new Promise(r => setTimeout(r, 300));
+            }
+
+            console.log('Reset complete.');
+
+            return Response.json({
+                success: true,
+                message: 'Test data reset successfully',
+                summary: {
+                    points_ledger_deleted: pointsDeleted,
+                    badges_deleted: badgesDeleted,
+                    scoring_jobs_deleted: scoringJobsDeleted,
+                    match_results_deleted: matchResultsDeleted,
+                    player_stats_deleted: playerStatsDeleted,
+                    match_validations_deleted: matchValidationsDeleted,
+                    squad_players_deleted: squadPlayersDeleted,
+                    squads_deleted: squadsDeleted,
+                    matches_reset_to_scheduled: allMatches.length,
+                },
+            });
         }
 
         const reseedMatchesOnly = body.action === 'reseed_matches';
