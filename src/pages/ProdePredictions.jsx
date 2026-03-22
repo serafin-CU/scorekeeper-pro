@@ -47,6 +47,7 @@ function FontLoader() {
 
 /* ── Score stepper component ─────────────────────────────── */
 function ScoreStepper({ value, onChange, disabled }) {
+    const [editing, setEditing] = useState(false);
     const numVal = value === '' || value === null || value === undefined ? null : Number(value);
     
     const decrement = () => {
@@ -60,6 +61,13 @@ function ScoreStepper({ value, onChange, disabled }) {
         if (numVal === null) { onChange(0); return; }
         if (numVal >= 15) return;
         onChange(numVal + 1);
+    };
+
+    const handleKeyInput = (e) => {
+        const raw = e.target.value.replace(/[^0-9]/g, '');
+        if (raw === '') { onChange(null); return; }
+        const num = Math.min(15, Math.max(0, parseInt(raw, 10)));
+        onChange(num);
     };
 
     return (
@@ -76,17 +84,39 @@ function ScoreStepper({ value, onChange, disabled }) {
             >
                 −
             </button>
-            <div 
-                className="w-12 h-10 flex items-center justify-center text-xl font-bold border-t border-b"
-                style={{ 
-                    fontFamily: "'DM Serif Display', serif",
-                    borderColor: '#e5e7eb',
-                    color: numVal !== null ? CU.charcoal : '#ccc',
-                    background: 'white'
-                }}
-            >
-                {numVal !== null ? numVal : '–'}
-            </div>
+            {editing && !disabled ? (
+                <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoFocus
+                    value={numVal !== null ? numVal : ''}
+                    onChange={handleKeyInput}
+                    onBlur={() => setEditing(false)}
+                    onKeyDown={e => { if (e.key === 'Enter') setEditing(false); }}
+                    className="w-12 h-10 text-center text-xl font-bold border-t border-b outline-none"
+                    style={{ 
+                        fontFamily: "'DM Serif Display', serif",
+                        borderColor: CU.orange,
+                        color: CU.charcoal,
+                        background: CU.orange + '10'
+                    }}
+                />
+            ) : (
+                <div 
+                    onClick={() => { if (!disabled) setEditing(true); }}
+                    className="w-12 h-10 flex items-center justify-center text-xl font-bold border-t border-b"
+                    style={{ 
+                        fontFamily: "'DM Serif Display', serif",
+                        borderColor: '#e5e7eb',
+                        color: numVal !== null ? CU.charcoal : '#ccc',
+                        background: 'white',
+                        cursor: disabled ? 'default' : 'pointer'
+                    }}
+                >
+                    {numVal !== null ? numVal : '–'}
+                </div>
+            )}
             <button
                 onClick={increment}
                 disabled={disabled}
