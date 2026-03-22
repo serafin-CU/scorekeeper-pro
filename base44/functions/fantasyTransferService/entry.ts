@@ -439,15 +439,15 @@ async function applyTransfersAndBadges(base44, user_id, phase, forceTransfersCou
         transfersCount = forceTransfersCount;
     }
 
-    // Award CORE_KEEPER badge (fire-and-forget, non-blocking)
-    awardCoreKeeperBadge(base44, user_id, phase).catch(e => 
-        console.warn('CORE_KEEPER badge award failed (non-fatal):', e.message)
+    // Award UNBREAKABLE_XI badge (fire-and-forget, non-blocking)
+    awardUnbreakableXiBadge(base44, user_id, phase).catch(e => 
+        console.warn('UNBREAKABLE_XI badge award failed (non-fatal):', e.message)
     );
 
-    // Award LOYAL_CORE badge when FINAL phase is processed (fire-and-forget)
+    // Award THE_ORIGINALS badge when FINAL phase is processed (fire-and-forget)
     if (phase === 'FINAL') {
-        awardLoyalCoreBadge(base44, user_id).catch(e =>
-            console.warn('LOYAL_CORE badge award failed (non-fatal):', e.message)
+        awardTheOriginalsBadge(base44, user_id).catch(e =>
+            console.warn('THE_ORIGINALS badge award failed (non-fatal):', e.message)
         );
     }
 

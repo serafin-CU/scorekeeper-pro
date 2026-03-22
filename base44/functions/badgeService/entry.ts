@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 const KNOCKOUT_PHASE_PREV = {
     'ROUND_OF_16': 'ROUND_OF_32',
@@ -20,13 +20,18 @@ Deno.serve(async (req) => {
 
         const { action, user_id, phase } = await req.json();
 
-        if (action === 'award_core_keeper') {
-            const result = await awardCoreKeeperBadge(base44, user_id || user.id, phase);
+        if (action === 'award_unbreakable_xi') {
+            const result = await awardUnbreakableXiBadge(base44, user_id || user.id, phase);
             return Response.json({ status: 'SUCCESS', ...result });
         }
 
-        if (action === 'award_loyal_core') {
-            const result = await awardLoyalCoreBadge(base44, user_id || user.id);
+        if (action === 'award_the_originals') {
+            const result = await awardTheOriginalsBadge(base44, user_id || user.id);
+            return Response.json({ status: 'SUCCESS', ...result });
+        }
+
+        if (action === 'award_perfect_matchday') {
+            const result = await awardPerfectMatchdayBadge(base44, user_id || user.id, phase);
             return Response.json({ status: 'SUCCESS', ...result });
         }
 
@@ -41,7 +46,81 @@ Deno.serve(async (req) => {
     }
 });
 
-async function awardLoyalCoreBadge(base44, user_id) {
+async function awardPerfectMatchdayBadge(base44, user_id, phase) {
+    const VALID_PHASES = ['GROUP_MD1', 'GROUP_MD2', 'GROUP_MD3'];
+    if (!VALID_PHASES.includes(phase)) {
+        return { awarded: false, reason: 'INVALID_PHASE', phase };
+    }
+
+    // Idempotency check
+    const existing = await base44.asServiceRole.entities.BadgeAward.filter({ user_id, badge_type: 'PERFECT_MATCHDAY', phase });
+    if (existing.length > 0) {
+        return { awarded: true, already_existed: true, phase, badge_id: existing[0].id };
+    }
+
+    // Get all matches in this matchday phase
+    const matches = await base44.asServiceRole.entities.Match.filter({ phase });
+    if (matches.length === 0) {
+        return { awarded: false, reason: 'NO_MATCHES_IN_PHASE', phase };
+    }
+
+    // Get finalized results for all matches in this phase
+    const matchIds = matches.map(m => m.id);
+    const allResults = await Promise.all(
+        matchIds.map(mid => base44.asServiceRole.entities.MatchResultFinal.filter({ match_id: mid }))
+    );
+
+    const resultsMap = {};
+    for (let i = 0; i < matchIds.length; i++) {
+        if (allResults[i].length > 0) {
+            resultsMap[matchIds[i]] = allResults[i][0];
+        }
+    }
+
+    // Only proceed if ALL matches are finalized
+    const finalizedCount = Object.keys(resultsMap).length;
+    if (finalizedCount < matches.length) {
+        return { awarded: false, reason: 'NOT_ALL_MATCHES_FINALIZED', finalized: finalizedCount, total: matches.length, phase };
+    }
+
+    // Get user's predictions for this phase
+    const allPredictions = await base44.asServiceRole.entities.ProdePrediction.filter({ user_id });
+    const phasePredictions = allPredictions.filter(p => matchIds.includes(p.match_id));
+
+    if (phasePredictions.length < matches.length) {
+        return { awarded: false, reason: 'MISSING_PREDICTIONS', predicted: phasePredictions.length, total: matches.length, phase };
+    }
+
+    // Check each prediction
+    let correctCount = 0;
+    for (const pred of phasePredictions) {
+        const result = resultsMap[pred.match_id];
+        if (!result) continue;
+
+        const predOutcome = pred.pred_home_goals > pred.pred_away_goals ? 'HOME' :
+                            pred.pred_away_goals > pred.pred_home_goals ? 'AWAY' : 'DRAW';
+        const actualOutcome = result.home_goals > result.away_goals ? 'HOME' :
+                              result.away_goals > result.home_goals ? 'AWAY' : 'DRAW';
+
+        if (predOutcome === actualOutcome) correctCount++;
+    }
+
+    if (correctCount < matches.length) {
+        return { awarded: false, reason: 'NOT_ALL_CORRECT', correct_count: correctCount, total_matches: matches.length, phase };
+    }
+
+    const badge = await base44.asServiceRole.entities.BadgeAward.create({
+        user_id,
+        badge_type: 'PERFECT_MATCHDAY',
+        phase,
+        awarded_at: new Date().toISOString(),
+        metadata_json: JSON.stringify({ correct_count: correctCount, total_matches: matches.length })
+    });
+
+    return { awarded: true, already_existed: false, correct_count: correctCount, total_matches: matches.length, phase, badge_id: badge.id };
+}
+
+async function awardTheOriginalsBadge(base44, user_id) {
     const THRESHOLD = 9;
     const BASE_PHASE = 'ROUND_OF_32';
     const TARGET_PHASE = 'FINAL';
@@ -72,14 +151,14 @@ async function awardLoyalCoreBadge(base44, user_id) {
     }
 
     // Idempotency check
-    const existing = await base44.asServiceRole.entities.BadgeAward.filter({ user_id, badge_type: 'LOYAL_CORE', phase: TARGET_PHASE });
+    const existing = await base44.asServiceRole.entities.BadgeAward.filter({ user_id, badge_type: 'THE_ORIGINALS', phase: TARGET_PHASE });
     if (existing.length > 0) {
         return { awarded: true, already_existed: true, kept_count: keptCount, threshold: THRESHOLD, base_phase: BASE_PHASE, phase: TARGET_PHASE, badge_id: existing[0].id };
     }
 
     const badge = await base44.asServiceRole.entities.BadgeAward.create({
         user_id,
-        badge_type: 'LOYAL_CORE',
+        badge_type: 'THE_ORIGINALS',
         phase: TARGET_PHASE,
         awarded_at: new Date().toISOString(),
         metadata_json: JSON.stringify({ kept_count: keptCount, threshold: THRESHOLD, base_phase: BASE_PHASE })
@@ -88,53 +167,25 @@ async function awardLoyalCoreBadge(base44, user_id) {
     return { awarded: true, already_existed: false, kept_count: keptCount, threshold: THRESHOLD, base_phase: BASE_PHASE, phase: TARGET_PHASE, badge_id: badge.id };
 }
 
-export async function awardCoreKeeperBadge(base44, user_id, phase) {
-    // Only valid for knockout phases
+export async function awardUnbreakableXiBadge(base44, user_id, phase) {
     const prevPhase = KNOCKOUT_PHASE_PREV[phase];
     if (!prevPhase) {
-        return {
-            awarded: false,
-            reason: 'NOT_A_KNOCKOUT_PHASE',
-            phase
-        };
+        return { awarded: false, reason: 'NOT_A_KNOCKOUT_PHASE', phase };
     }
 
-    // Load current phase squad (FINAL)
-    const currentSquads = await base44.asServiceRole.entities.FantasySquad.filter({
-        user_id,
-        phase,
-        status: 'FINAL'
-    });
+    const currentSquads = await base44.asServiceRole.entities.FantasySquad.filter({ user_id, phase, status: 'FINAL' });
+    if (currentSquads.length === 0) return { awarded: false, reason: 'NO_CURRENT_FINAL_SQUAD', phase };
 
-    if (currentSquads.length === 0) {
-        return { awarded: false, reason: 'NO_CURRENT_FINAL_SQUAD', phase };
-    }
+    const prevSquads = await base44.asServiceRole.entities.FantasySquad.filter({ user_id, phase: prevPhase, status: 'FINAL' });
+    if (prevSquads.length === 0) return { awarded: false, reason: 'NO_PREVIOUS_FINAL_SQUAD', phase, prev_phase: prevPhase };
 
-    // Load previous phase squad (FINAL)
-    const prevSquads = await base44.asServiceRole.entities.FantasySquad.filter({
-        user_id,
-        phase: prevPhase,
-        status: 'FINAL'
-    });
+    const [currentPlayers, prevPlayers] = await Promise.all([
+        base44.asServiceRole.entities.FantasySquadPlayer.filter({ squad_id: currentSquads[0].id }),
+        base44.asServiceRole.entities.FantasySquadPlayer.filter({ squad_id: prevSquads[0].id })
+    ]);
 
-    if (prevSquads.length === 0) {
-        return { awarded: false, reason: 'NO_PREVIOUS_FINAL_SQUAD', phase, prev_phase: prevPhase };
-    }
-
-    // Get starters from both squads
-    const currentPlayers = await base44.asServiceRole.entities.FantasySquadPlayer.filter({
-        squad_id: currentSquads[0].id
-    });
-    const prevPlayers = await base44.asServiceRole.entities.FantasySquadPlayer.filter({
-        squad_id: prevSquads[0].id
-    });
-
-    const currentStarters = new Set(
-        currentPlayers.filter(sp => sp.slot_type === 'STARTER').map(sp => sp.player_id)
-    );
-    const prevStarters = new Set(
-        prevPlayers.filter(sp => sp.slot_type === 'STARTER').map(sp => sp.player_id)
-    );
+    const currentStarters = new Set(currentPlayers.filter(sp => sp.slot_type === 'STARTER').map(sp => sp.player_id));
+    const prevStarters = new Set(prevPlayers.filter(sp => sp.slot_type === 'STARTER').map(sp => sp.player_id));
 
     let keptCount = 0;
     for (const pid of currentStarters) {
@@ -142,54 +193,21 @@ export async function awardCoreKeeperBadge(base44, user_id, phase) {
     }
 
     if (keptCount < CORE_KEEPER_THRESHOLD) {
-        return {
-            awarded: false,
-            kept_count: keptCount,
-            threshold: CORE_KEEPER_THRESHOLD,
-            phase,
-            prev_phase: prevPhase
-        };
+        return { awarded: false, kept_count: keptCount, threshold: CORE_KEEPER_THRESHOLD, phase, prev_phase: prevPhase };
     }
 
-    // Idempotent upsert: check if badge already exists
-    const existing = await base44.asServiceRole.entities.BadgeAward.filter({
-        user_id,
-        badge_type: 'CORE_KEEPER',
-        phase
-    });
-
+    const existing = await base44.asServiceRole.entities.BadgeAward.filter({ user_id, badge_type: 'UNBREAKABLE_XI', phase });
     if (existing.length > 0) {
-        return {
-            awarded: true,
-            already_existed: true,
-            kept_count: keptCount,
-            threshold: CORE_KEEPER_THRESHOLD,
-            phase,
-            prev_phase: prevPhase,
-            badge_id: existing[0].id
-        };
+        return { awarded: true, already_existed: true, kept_count: keptCount, threshold: CORE_KEEPER_THRESHOLD, phase, prev_phase: prevPhase, badge_id: existing[0].id };
     }
 
-    // Create badge
     const badge = await base44.asServiceRole.entities.BadgeAward.create({
         user_id,
-        badge_type: 'CORE_KEEPER',
+        badge_type: 'UNBREAKABLE_XI',
         phase,
         awarded_at: new Date().toISOString(),
-        metadata_json: JSON.stringify({
-            kept_count: keptCount,
-            threshold: CORE_KEEPER_THRESHOLD,
-            prev_phase: prevPhase
-        })
+        metadata_json: JSON.stringify({ kept_count: keptCount, threshold: CORE_KEEPER_THRESHOLD, prev_phase: prevPhase })
     });
 
-    return {
-        awarded: true,
-        already_existed: false,
-        kept_count: keptCount,
-        threshold: CORE_KEEPER_THRESHOLD,
-        phase,
-        prev_phase: prevPhase,
-        badge_id: badge.id
-    };
+    return { awarded: true, already_existed: false, kept_count: keptCount, threshold: CORE_KEEPER_THRESHOLD, phase, prev_phase: prevPhase, badge_id: badge.id };
 }
