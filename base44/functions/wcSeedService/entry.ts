@@ -154,18 +154,22 @@ Deno.serve(async (req) => {
 
         const body = await req.json();
 
-        if (body.action !== 'seed_wc2026') {
-            return Response.json({ error: 'Invalid action. Use seed_wc2026' }, { status: 400 });
+        if (!['seed_wc2026', 'reseed_matches'].includes(body.action)) {
+            return Response.json({ error: 'Invalid action. Use seed_wc2026 or reseed_matches' }, { status: 400 });
         }
 
-        // ── 1. Clean slate: delete existing matches, players, teams ──
-        // Fetch all in parallel, then delete sequentially per type
-        console.log('Fetching existing data for deletion...');
-        const [existingMatches, existingPlayers, existingTeams] = await Promise.all([
-            base44.asServiceRole.entities.Match.list(),
-            base44.asServiceRole.entities.Player.list(),
-            base44.asServiceRole.entities.Team.list(),
-        ]);
+        const reseedMatchesOnly = body.action === 'reseed_matches';
+
+        // ── 1. Fetch existing data ──
+        console.log('Fetching existing data...');
+        const fetchTargets = reseedMatchesOnly
+            ? [base44.asServiceRole.entities.Match.list(), Promise.resolve([]), Promise.resolve([])]
+            : [
+                base44.asServiceRole.entities.Match.list(),
+                base44.asServiceRole.entities.Player.list(),
+                base44.asServiceRole.entities.Team.list(),
+              ];
+        const [existingMatches, existingPlayers, existingTeams] = await Promise.all(fetchTargets);
 
         console.log(`Deleting ${existingMatches.length} matches, ${existingPlayers.length} players, ${existingTeams.length} teams...`);
 
