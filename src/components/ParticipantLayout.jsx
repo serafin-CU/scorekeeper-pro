@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Users, LogOut, Shield, MessageSquare, Trophy, Target, LayoutDashboard, User } from 'lucide-react';
+import AlbaChatWidget from '@/components/AlbaChatWidget';
 
 const CU = {
     orange: '#FFB81C',
@@ -129,6 +130,7 @@ export default function ParticipantLayout({ children, currentPageName }) {
             <main>
                 {children}
             </main>
+            <AlbaChatWidget userName={currentUser?.display_name || currentUser?.full_name || ''} />
         </div>
     );
 }
