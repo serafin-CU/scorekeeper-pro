@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle, XCircle, RefreshCw, Users, Calendar, Trophy, Activity, Zap } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, RefreshCw, Users, Calendar, Trophy, Activity, Zap, BarChart3 } from 'lucide-react';
 
 const CU = { orange: '#FFB81C', charcoal: '#2C2B2B' };
 
@@ -238,6 +238,24 @@ export default function AdminWCDataSync() {
                         loading={loadingMap['results']}
                         result={resultMap['results']}
                         buttonLabel="Sync Results"
+                    />
+                    <SyncCard
+                        title="5. Sync Standings"
+                        description="Fetches live group standings (W/D/L, GD, Pts) from API-Football."
+                        icon={BarChart3}
+                        onSync={() => runAction('standings', 'sync_standings', { action: 'get_standings' })}
+                        loading={loadingMap['standings']}
+                        result={resultMap['standings']}
+                        buttonLabel="Refresh Standings"
+                    />
+                    <SyncCard
+                        title="6. Sync Match Events"
+                        description="Syncs player performance data (goals, cards, minutes) for finished matches."
+                        icon={Activity}
+                        onSync={() => runAction('events', 'sync_events', { action: 'sync_all_events' })}
+                        loading={loadingMap['events']}
+                        result={resultMap['events']}
+                        buttonLabel="Sync Match Events"
                     />
                 </div>
 
