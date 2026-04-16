@@ -214,7 +214,10 @@ function MatchRow({ match, teams, localPrediction, savedPrediction, onUpdate, is
             {/* Teams + Score */}
             <div className="flex items-center gap-2 px-4 pb-4 pt-1">
                 {/* Home team */}
-                <div className="flex-1 text-right pr-2">
+                <div className="flex-1 flex flex-col items-end text-right pr-2 gap-1">
+                    {homeTeam?.logo_url && (
+                        <img src={homeTeam.logo_url} alt={homeName} className="w-8 h-8 object-contain" />
+                    )}
                     <div className="text-lg font-bold" style={{ fontFamily: "'DM Serif Display', serif", color: CU.charcoal }}>
                         {homeName}
                     </div>
@@ -239,7 +242,10 @@ function MatchRow({ match, teams, localPrediction, savedPrediction, onUpdate, is
                 </div>
 
                 {/* Away team */}
-                <div className="flex-1 pl-2">
+                <div className="flex-1 flex flex-col items-start pl-2 gap-1">
+                    {awayTeam?.logo_url && (
+                        <img src={awayTeam.logo_url} alt={awayName} className="w-8 h-8 object-contain" />
+                    )}
                     <div className="text-lg font-bold" style={{ fontFamily: "'DM Serif Display', serif", color: CU.charcoal }}>
                         {awayName}
                     </div>

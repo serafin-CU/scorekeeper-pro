@@ -115,20 +115,9 @@ Deno.serve(async (req) => {
                     name: t.name,
                     fifa_code: (t.code || t.name.substring(0, 3)).toUpperCase().substring(0, 3),
                     is_qualified: true,
-                    // Store API-Football team ID in a findable way via name search later
-                    // We store api_id in name field temporarily — no, we'll store it cleanly:
-                    // Use a dedicated approach: store api_team_id in the name as suffix won't work
-                    // Instead we'll rely on name matching when syncing fixtures
+                    logo_url: item.team?.logo || null,
                 });
-                // Tag the record so we can look up by API id later
-                await base44.asServiceRole.entities.Team.update(team.id, {
-                    name: t.name,
-                    fifa_code: (t.code || t.name.substring(0, 3)).toUpperCase().substring(0, 3),
-                    is_qualified: true,
-                    // Store api_football_id in fifa_code field as a workaround is bad
-                    // We'll store it as part of a lookup map returned in the response
-                });
-                created.push({ id: team.id, name: t.name, api_id: t.id, fifa_code: t.code });
+                created.push({ id: team.id, name: t.name, api_id: t.id, fifa_code: t.code, logo_url: item.team?.logo });
             }
 
             return Response.json({

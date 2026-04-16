@@ -1,0 +1,47 @@
+{
+  "name": "Team",
+  "type": "object",
+  "description": "National teams participating in World Cup 2026",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Team name (e.g., Argentina, Brazil)"
+    },
+    "fifa_code": {
+      "type": "string",
+      "description": "3-letter FIFA code (e.g., ARG, BRA, USA)",
+      "pattern": "^[A-Z]{3}$",
+      "minLength": 3,
+      "maxLength": 3
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL to the team's official logo from API-Football"
+    },
+    "is_qualified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether team has qualified for tournament"
+    },
+    "eliminated_at_phase": {
+      "type": "string",
+      "enum": [
+        "PRE_TOURNAMENT",
+        "GROUP_MD1",
+        "GROUP_MD2",
+        "GROUP_MD3",
+        "ROUND_OF_32",
+        "ROUND_OF_16",
+        "QUARTERFINALS",
+        "SEMIFINALS",
+        "FINAL",
+        "TOURNAMENT_DONE"
+      ],
+      "description": "Tournament phase at which team was eliminated (null if still active)"
+    }
+  },
+  "required": [
+    "name",
+    "fifa_code"
+  ]
+}
