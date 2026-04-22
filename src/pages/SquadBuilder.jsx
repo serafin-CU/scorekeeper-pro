@@ -87,6 +87,15 @@ function FormationSlot({ position, player, team, isCaptain, onRemove, onSetCapta
     );
 }
 
+/* ── Score color helper ── */
+function scoreColor(score) {
+    if (!score) return '#9ca3af';
+    if (score >= 80) return '#16a34a';
+    if (score >= 60) return '#ca8a04';
+    if (score >= 40) return '#2563eb';
+    return '#9ca3af';
+}
+
 /* ── Player pool row ── */
 function PoolPlayer({ player, team, onAdd, disabled, alreadyIn, cantAfford }) {
     const ps = POS_STYLE[player.position];
@@ -95,16 +104,37 @@ function PoolPlayer({ player, team, onAdd, disabled, alreadyIn, cantAfford }) {
     return (
         <div className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors"
              style={{ borderBottom: '1px solid #f3f4f6', opacity: isDisabled ? 0.4 : 1 }}>
-            <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+            {/* Photo or position badge */}
+            {player.photo_url ? (
+                <img src={player.photo_url} alt={player.full_name}
+                     className="w-8 h-8 rounded-full object-cover shrink-0 bg-gray-100"
+                     onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+            ) : null}
+            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${player.photo_url ? 'hidden' : ''}`}
                   style={{ background: ps.bg, color: ps.color, fontFamily: "'Raleway', sans-serif" }}>{ps.label}</span>
             <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate" style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>
-                    {player.full_name}
+                <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium truncate" style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>
+                        {player.full_name}
+                    </span>
+                    {!player.photo_url && (
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                              style={{ background: ps.bg, color: ps.color, fontSize: '9px' }}>{ps.label}</span>
+                    )}
                 </div>
                 <div className="text-xs truncate" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
+                    {team?.logo_url && <img src={team.logo_url} alt="" className="inline w-3 h-3 mr-1 object-contain" />}
                     {team?.name || '—'}
+                    {player.age ? ` · age ${player.age}` : ''}
                 </div>
             </div>
+            {/* Score badge */}
+            {player.player_score ? (
+                <span className="text-xs font-bold shrink-0 px-1.5 py-0.5 rounded"
+                      style={{ background: scoreColor(player.player_score) + '15', color: scoreColor(player.player_score), fontFamily: "'Raleway', sans-serif" }}>
+                    {player.player_score}
+                </span>
+            ) : null}
             <span className="text-sm font-semibold shrink-0" style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>
                 ${player.price}M
             </span>
@@ -310,7 +340,7 @@ export default function SquadBuilder() {
             );
         }
 
-        pool.sort((a, b) => (b.price || 0) - (a.price || 0));
+        pool.sort((a, b) => (b.player_score || b.price || 0) - (a.player_score || a.price || 0));
         return pool;
     }, [allPlayers, posFilter, teamFilter, searchQuery, teamsMap]);
 

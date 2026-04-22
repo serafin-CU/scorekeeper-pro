@@ -1,0 +1,68 @@
+{
+  "name": "Player",
+  "type": "object",
+  "description": "Individual players in World Cup squads",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Player's full name"
+    },
+    "team_id": {
+      "type": "string",
+      "description": "FK reference to teams.id"
+    },
+    "nationality": {
+      "type": "string",
+      "description": "Player nationality / national team"
+    },
+    "position": {
+      "type": "string",
+      "enum": [
+        "GK",
+        "DEF",
+        "MID",
+        "FWD"
+      ],
+      "description": "Player position"
+    },
+    "age": {
+      "type": "integer",
+      "description": "Player age"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "URL to player photo from API-Football"
+    },
+    "api_player_id": {
+      "type": "integer",
+      "description": "API-Football player ID for future stat fetches"
+    },
+    "player_score": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Player quality score 1-100 (based on stats, age, position)"
+    },
+    "price": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 18,
+      "description": "Fantasy draft price (1-18), derived from player_score"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether player is available for fantasy selection"
+    },
+    "inactive_reason": {
+      "type": "string",
+      "description": "Reason if player is inactive (injury, suspension, etc.)"
+    }
+  },
+  "required": [
+    "full_name",
+    "team_id",
+    "position",
+    "price"
+  ]
+}

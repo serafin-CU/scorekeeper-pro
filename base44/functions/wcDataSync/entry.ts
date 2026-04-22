@@ -73,10 +73,50 @@ function mapPosition(pos) {
     return 'MID';
 }
 
-// Default price by position
-function defaultPrice(position) {
-    const prices = { GK: 6, DEF: 7, MID: 8, FWD: 9 };
-    return prices[position] || 8;
+// Compute player_score (1-100) from API stats object
+// Uses: rating, goals, assists, appearances, age
+function computePlayerScore(stats, position, age) {
+    let score = 40; // baseline
+
+    // Rating (0-10 scale from API)
+    const rating = parseFloat(stats?.games?.rating) || 0;
+    if (rating > 0) score += Math.round((rating / 10) * 35); // up to +35
+
+    // Goals (weighted by position)
+    const goals = stats?.goals?.total || 0;
+    const posGoalWeight = { GK: 5, DEF: 4, MID: 3, FWD: 2 };
+    score += Math.min(goals * (posGoalWeight[position] || 3), 15);
+
+    // Assists
+    const assists = stats?.goals?.assists || 0;
+    score += Math.min(assists * 2, 8);
+
+    // Appearances
+    const apps = stats?.games?.appearences || 0;
+    if (apps >= 30) score += 5;
+    else if (apps >= 20) score += 3;
+    else if (apps >= 10) score += 1;
+
+    // Age penalty/bonus (peak 24-30)
+    if (age >= 24 && age <= 30) score += 3;
+    else if (age > 35) score -= 5;
+    else if (age < 22) score -= 3;
+
+    return Math.max(1, Math.min(100, score));
+}
+
+// Derive fantasy price from player_score (1-18 scale)
+function scoreToPrice(score, position) {
+    // Base range by position: GK 4-10, DEF 5-12, MID 5-14, FWD 5-18
+    const ranges = {
+        GK:  { min: 4, max: 10 },
+        DEF: { min: 5, max: 12 },
+        MID: { min: 5, max: 14 },
+        FWD: { min: 5, max: 18 }
+    };
+    const r = ranges[position] || { min: 5, max: 14 };
+    const price = Math.round(r.min + ((score - 1) / 99) * (r.max - r.min));
+    return Math.max(r.min, Math.min(r.max, price));
 }
 
 Deno.serve(async (req) => {
@@ -225,12 +265,13 @@ Deno.serve(async (req) => {
         const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
         // ── SYNC PLAYERS ─────────────────────────────────────────────────────
-        // Processes teams in batches of 10 to avoid timeouts.
-        // Call repeatedly with offset=0, 10, 20, 30, 40 to cover all 48 teams.
+        // Fetches squad + season stats for each team.
+        // Stats endpoint: /players?team=X&season=SEASON  (gives rating, goals, assists, etc.)
+        // Call repeatedly with offset=0, 5, 10, ... to cover all teams (5 per batch to stay under timeout).
         // Pass clear_first=true only on the first batch (offset=0).
         if (action === 'sync_players') {
             const offset = body.offset || 0;
-            const batchSize = body.batch_size || 10;
+            const batchSize = body.batch_size || 5;
             const clearFirst = body.clear_first !== false && offset === 0;
 
             const ourTeams = await base44.asServiceRole.entities.Team.list();
@@ -238,18 +279,25 @@ Deno.serve(async (req) => {
                 return Response.json({ ok: false, error: 'No teams found — run sync_teams first' });
             }
 
-            // Get API team IDs
+            // Build API team ID lookup by name
             const apiTeams = await apiFetch(`/teams?league=${LEAGUE_ID}&season=${SEASON}`);
             const apiTeamByName = {};
             for (const item of apiTeams) {
-                apiTeamByName[item.team.name.toLowerCase()] = item.team.id;
+                apiTeamByName[item.team.name.toLowerCase()] = {
+                    id: item.team.id,
+                    name: item.team.name
+                };
             }
 
             // Clear existing players only on first batch
             if (clearFirst) {
-                const existingPlayers = await base44.asServiceRole.entities.Player.list();
-                for (const p of existingPlayers) {
-                    await base44.asServiceRole.entities.Player.delete(p.id);
+                console.log('[sync_players] Clearing existing players...');
+                let existingPlayers = await base44.asServiceRole.entities.Player.list('created_date', 200);
+                while (existingPlayers.length > 0) {
+                    for (const p of existingPlayers) {
+                        await base44.asServiceRole.entities.Player.delete(p.id);
+                    }
+                    existingPlayers = await base44.asServiceRole.entities.Player.list('created_date', 200);
                 }
             }
 
@@ -258,32 +306,81 @@ Deno.serve(async (req) => {
             const errors = [];
 
             for (const ourTeam of batch) {
-                const apiTeamId = apiTeamByName[ourTeam.name.toLowerCase()];
-                if (!apiTeamId) {
+                const apiEntry = apiTeamByName[ourTeam.name.toLowerCase()];
+                if (!apiEntry) {
                     errors.push(`No API team ID found for: ${ourTeam.name}`);
                     continue;
                 }
+                const apiTeamId = apiEntry.id;
 
                 try {
-                    await sleep(500);
-                    const squads = await apiFetch(`/players/squads?team=${apiTeamId}`);
-                    if (!squads || squads.length === 0) continue;
+                    await sleep(800);
 
-                    const squad = squads[0];
+                    // Fetch squad (for position, photo, age, nationality)
+                    const squads = await apiFetch(`/players/squads?team=${apiTeamId}`);
+                    if (!squads || squads.length === 0) {
+                        errors.push(`No squad data for: ${ourTeam.name}`);
+                        continue;
+                    }
+
+                    const squadPlayers = squads[0]?.players || [];
+
+                    // Fetch stats for all players in this team for WC season
+                    // API paginates, fetch page 1 (usually enough for a squad of ~26)
+                    await sleep(500);
+                    let statsMap = {};
+                    try {
+                        const statsResp = await apiFetch(`/players?team=${apiTeamId}&season=${SEASON}&page=1`);
+                        for (const entry of (statsResp || [])) {
+                            if (entry.player?.id) {
+                                statsMap[entry.player.id] = entry.statistics?.[0] || null;
+                            }
+                        }
+                        // If there's a page 2, fetch it too
+                        if (statsResp?.length === 20) {
+                            await sleep(500);
+                            const statsResp2 = await apiFetch(`/players?team=${apiTeamId}&season=${SEASON}&page=2`);
+                            for (const entry of (statsResp2 || [])) {
+                                if (entry.player?.id) {
+                                    statsMap[entry.player.id] = entry.statistics?.[0] || null;
+                                }
+                            }
+                        }
+                    } catch (statsErr) {
+                        console.log(`[sync_players] Stats fetch failed for ${ourTeam.name}: ${statsErr.message}, using squad-only data`);
+                    }
+
                     const playersBulk = [];
-                    for (const player of (squad.players || [])) {
+                    for (const player of squadPlayers) {
                         const position = mapPosition(player.position);
+                        const age = player.age || 0;
+                        const stats = statsMap[player.id] || null;
+                        const playerScore = computePlayerScore(stats, position, age);
+                        const price = scoreToPrice(playerScore, position);
+
                         playersBulk.push({
                             full_name: player.name,
                             team_id: ourTeam.id,
+                            nationality: ourTeam.name, // national team = team they represent
                             position,
-                            price: defaultPrice(position),
+                            age: age || null,
+                            photo_url: player.photo || null,
+                            api_player_id: player.id || null,
+                            player_score: playerScore,
+                            price,
                             is_active: true
                         });
                     }
+
                     if (playersBulk.length > 0) {
-                        const created = await base44.asServiceRole.entities.Player.bulkCreate(playersBulk);
-                        allCreated.push(...playersBulk.map(p => ({ name: p.full_name, team: ourTeam.name, position: p.position })));
+                        await base44.asServiceRole.entities.Player.bulkCreate(playersBulk);
+                        allCreated.push(...playersBulk.map(p => ({
+                            name: p.full_name,
+                            team: ourTeam.name,
+                            position: p.position,
+                            score: p.player_score,
+                            price: p.price
+                        })));
                     }
                 } catch (err) {
                     errors.push(`Failed: ${ourTeam.name}: ${err.message}`);
@@ -300,7 +397,8 @@ Deno.serve(async (req) => {
                 total_teams: ourTeams.length,
                 has_more: offset + batchSize < ourTeams.length,
                 next_offset: offset + batchSize,
-                errors
+                errors,
+                players: allCreated
             });
         }
 

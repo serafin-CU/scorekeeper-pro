@@ -222,12 +222,12 @@ export default function AdminWCDataSync() {
                     />
                     <SyncCard
                         title="3. Sync Players"
-                        description="Fetches squad rosters for all 48 teams (~700 players). Requires teams synced."
+                        description="Fetches squads + season stats for all 48 teams. Each player gets a score (1-100) and fantasy price based on rating, goals, assists & age. Call multiple times with auto-batching."
                         icon={Zap}
                         onSync={() => runAction('players', 'sync_players')}
                         loading={loadingMap['players']}
                         result={resultMap['players']}
-                        buttonLabel="Sync Player Squads"
+                        buttonLabel="Sync Player Squads + Stats"
                         destructive
                     />
                     <SyncCard
