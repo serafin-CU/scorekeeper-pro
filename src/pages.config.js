@@ -58,6 +58,7 @@ import AdminMatchValidation from './pages/AdminMatchValidation';
 import AdminSystemTestHarness from './pages/AdminSystemTestHarness';
 import SquadManagement from './pages/SquadManagement';
 import Dashboard from './pages/Dashboard';
+import AdminWipeData from './pages/AdminWipeData';
 import __Layout from './Layout.jsx';
 
 
@@ -73,6 +74,7 @@ export const PAGES = {
     "AdminSystemTestHarness": AdminSystemTestHarness,
     "SquadManagement": SquadManagement,
     "Dashboard": Dashboard,
+    "AdminWipeData": AdminWipeData,
 }
 
 export const pagesConfig = {

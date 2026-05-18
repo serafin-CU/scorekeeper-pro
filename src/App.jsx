@@ -14,6 +14,7 @@ import SquadBuilder from './pages/SquadBuilder';
 import Onboarding from './pages/Onboarding';
 import Profile from './pages/Profile';
 import Standings from './pages/Standings';
+import AdminWipeData from './pages/AdminWipeData';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -80,6 +81,7 @@ const AuthenticatedApp = () => {
       <Route path="/Profile" element={<LayoutWrapper currentPageName="Profile"><Profile /></LayoutWrapper>} />
       <Route path="/AdminWCDataSync" element={<LayoutWrapper currentPageName="AdminWCDataSync"><AdminWCDataSync /></LayoutWrapper>} />
       <Route path="/Standings" element={<LayoutWrapper currentPageName="Standings"><Standings /></LayoutWrapper>} />
+      <Route path="/WipeData" element={<LayoutWrapper currentPageName="AdminWipeData"><AdminWipeData /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
