@@ -27,10 +27,21 @@ const PHASE_LABELS = {
     ROUND_OF_16: 'Round of 16',
     QUARTERFINALS: 'Quarterfinals',
     SEMIFINALS: 'Semifinals',
+    THIRD_PLACE: '3rd Place',
     FINAL: 'Final'
 };
 
-const PHASE_ORDER = ['GROUP_MD1', 'GROUP_MD2', 'GROUP_MD3', 'ROUND_OF_32', 'ROUND_OF_16', 'QUARTERFINALS', 'SEMIFINALS', 'FINAL'];
+const PHASE_ORDER = ['GROUP_MD1', 'GROUP_MD2', 'GROUP_MD3', 'ROUND_OF_32', 'ROUND_OF_16', 'QUARTERFINALS', 'SEMIFINALS', 'THIRD_PLACE', 'FINAL'];
+
+// Knockout phases that always appear in the selector, with their expected slot counts
+const KNOCKOUT_SLOT_COUNT = {
+    ROUND_OF_32: 16,
+    ROUND_OF_16: 8,
+    QUARTERFINALS: 4,
+    SEMIFINALS: 2,
+    THIRD_PLACE: 1,
+    FINAL: 1,
+};
 
 /* ── Google Fonts loader ─────────────────────────────────── */
 function FontLoader() {
@@ -130,6 +141,41 @@ function ScoreStepper({ value, onChange, disabled }) {
             >
                 +
             </button>
+        </div>
+    );
+}
+
+/* ── TBD placeholder card ───────────────────────────────── */
+function TbdMatchCard() {
+    return (
+        <div
+            className="rounded-xl border"
+            style={{ borderColor: '#e5e7eb', background: '#fafafa', opacity: 0.7, pointerEvents: 'none' }}
+        >
+            <div className="px-4 pt-3 pb-1">
+                <span className="text-xs italic" style={{ fontFamily: "'Raleway', sans-serif", color: '#d1d5db' }}>
+                    Awaiting group stage results
+                </span>
+            </div>
+            <div className="flex items-center gap-2 px-4 pb-4 pt-1">
+                <div className="flex-1 flex flex-col items-end text-right pr-2 gap-1">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">?</div>
+                    <div className="text-lg font-bold" style={{ fontFamily: "'DM Serif Display', serif", color: '#d1d5db' }}>TBD</div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    <div className="w-8 h-10 rounded-l-lg bg-gray-100" />
+                    <div className="w-12 h-10 border-t border-b border-gray-200 flex items-center justify-center text-gray-300 text-xl font-bold"
+                         style={{ fontFamily: "'DM Serif Display', serif" }}>–</div>
+                    <div className="w-8 h-10 bg-gray-100" />
+                    <div className="w-12 h-10 border-t border-b border-gray-200 flex items-center justify-center text-gray-300 text-xl font-bold"
+                         style={{ fontFamily: "'DM Serif Display', serif" }}>–</div>
+                    <div className="w-8 h-10 rounded-r-lg bg-gray-100" />
+                </div>
+                <div className="flex-1 flex flex-col items-start pl-2 gap-1">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">?</div>
+                    <div className="text-lg font-bold" style={{ fontFamily: "'DM Serif Display', serif", color: '#d1d5db' }}>TBD</div>
+                </div>
+            </div>
         </div>
     );
 }
@@ -313,7 +359,10 @@ export default function ProdePredictions() {
         phases[phase].sort((a, b) => new Date(a.kickoff_at) - new Date(b.kickoff_at));
     }
 
-    const availablePhases = PHASE_ORDER.filter(p => phases[p]?.length > 0);
+    // Always show knockout phases even if no real fixtures yet
+    const availablePhases = PHASE_ORDER.filter(p =>
+        phases[p]?.length > 0 || p in KNOCKOUT_SLOT_COUNT
+    );
 
     // Auto-select first phase with upcoming matches
     useEffect(() => {
@@ -471,9 +520,14 @@ export default function ProdePredictions() {
                                 {availablePhases.map(phase => {
                                     const phaseMatches = phases[phase] || [];
                                     const predicted = phaseMatches.filter(m => predictionsMap[m.id]).length;
+                                    const expected = KNOCKOUT_SLOT_COUNT[phase];
+                                    const label = PHASE_LABELS[phase] || phase;
+                                    const countStr = expected != null
+                                        ? `${phaseMatches.length}/${expected} drawn`
+                                        : `${predicted}/${phaseMatches.length}`;
                                     return (
                                         <SelectItem key={phase} value={phase}>
-                                            {PHASE_LABELS[phase] || phase} ({predicted}/{phaseMatches.length})
+                                            {label} ({countStr})
                                         </SelectItem>
                                     );
                                 })}
@@ -496,7 +550,12 @@ export default function ProdePredictions() {
                                     />
                                 );
                             })}
-                            {currentMatches.length === 0 && (
+                            {/* TBD placeholders for knockout slots not yet drawn */}
+                            {KNOCKOUT_SLOT_COUNT[selectedPhase] != null &&
+                                Array.from({ length: Math.max(0, KNOCKOUT_SLOT_COUNT[selectedPhase] - currentMatches.length) })
+                                    .map((_, i) => <TbdMatchCard key={`tbd-${i}`} />)
+                            }
+                            {currentMatches.length === 0 && !KNOCKOUT_SLOT_COUNT[selectedPhase] && (
                                 <div className="text-center py-16" style={{ color: '#d1d5db' }}>
                                     No matches in this phase yet.
                                 </div>
