@@ -626,6 +626,34 @@ export default function AdminSystemTestHarness() {
         const testRunId = `test6_${Date.now()}`;
         
         try {
+            // PRE-CLEANUP: Remove orphan test data from previous failed runs
+            // This prevents accumulation that skews assertions (e.g., "Expected 1 AWARD" when orphans exist)
+            const allLedgerPre = await base44.entities.PointsLedger.list();
+            for (const entry of allLedgerPre) {
+                if (!entry.details_json) continue;
+                try {
+                    const d = typeof entry.details_json === 'string' ? JSON.parse(entry.details_json) : entry.details_json;
+                    if (d.is_test === true && d.test_run_id?.startsWith('test6_')) {
+                        await base44.entities.PointsLedger.delete(entry.id);
+                    }
+                } catch { /* not JSON, skip */ }
+            }
+            
+            // Also clean orphan squads in GROUP_MD1 phase from this user (prevents multiple squads being scored)
+            const allSquadsPre = await base44.entities.FantasySquad.filter({ phase: 'GROUP_MD1', status: 'FINAL' });
+            for (const sq of allSquadsPre) {
+                if (!sq.details_json) continue;
+                try {
+                    const d = typeof sq.details_json === 'string' ? JSON.parse(sq.details_json) : sq.details_json;
+                    if (d.is_test === true && d.test_run_id?.startsWith('test6_')) {
+                        // Delete squad players first
+                        const sps = await base44.entities.FantasySquadPlayer.filter({ squad_id: sq.id });
+                        for (const sp of sps) await base44.entities.FantasySquadPlayer.delete(sp.id);
+                        await base44.entities.FantasySquad.delete(sq.id);
+                    }
+                } catch { /* not JSON, skip */ }
+            }
+
             // SETUP: Create test teams
             const team1 = await base44.entities.Team.create({
                 name: `Test Team X ${testRunId}`,
