@@ -497,6 +497,8 @@ Deno.serve(async (req) => {
                 matches_updated: updated,
                 results_finalized: finalized,
                 matches_skipped: skipped,
+                results_skipped_manual: skippedManual,
+                skipped_manual: skippedManualIds,
                 results
             });
         }
