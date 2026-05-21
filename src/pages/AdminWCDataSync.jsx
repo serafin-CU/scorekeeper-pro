@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -62,6 +62,7 @@ function SyncCard({ title, description, icon: Icon, onSync, result, loading, but
 }
 
 export default function AdminWCDataSync() {
+    const queryClient = useQueryClient();
     const [loadingMap, setLoadingMap] = useState({});
     const [resultMap, setResultMap] = useState({});
     const [apiStatus, setApiStatus] = useState(null);
@@ -75,12 +76,23 @@ export default function AdminWCDataSync() {
     const setLoading = (key, val) => setLoadingMap(prev => ({ ...prev, [key]: val }));
     const setResult = (key, val) => setResultMap(prev => ({ ...prev, [key]: val }));
 
+    const SYNC_INVALIDATIONS = {
+        teams: ['teams'],
+        fixtures: ['matches'],
+        players: ['players'],
+        results: ['matchResults', 'matches'],
+    };
+
     const runAction = async (key, action, extra = {}) => {
         setLoading(key, true);
         setResult(key, null);
         try {
             const res = await base44.functions.invoke('wcDataSync', { action, ...extra });
             setResult(key, res.data);
+            const toInvalidate = SYNC_INVALIDATIONS[key];
+            if (toInvalidate && res.data?.ok !== false) {
+                toInvalidate.forEach(qk => queryClient.invalidateQueries({ queryKey: [qk] }));
+            }
         } catch (err) {
             setResult(key, { ok: false, error: err.message });
         }
