@@ -157,6 +157,15 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Invalid action. Use seed_wc2026, reseed_matches, reset_test_data, or purge_stale_ledger' }, { status: 400 });
         }
 
+        // DISABLED: seed_wc2026 and reseed_matches overwrite live API-Football data with stale hard-coded fixtures.
+        // These actions are locked until the hard-coded arrays are removed in the wcSeedService refactor (Step 2).
+        if (body.action === 'seed_wc2026' || body.action === 'reseed_matches') {
+            return Response.json({
+                error: 'DISABLED: seed_wc2026 and reseed_matches are locked to prevent overwriting live API-Football fixture data. Complete the wcSeedService refactor (Step 2) before re-enabling.',
+                ok: false,
+            }, { status: 403 });
+        }
+
         // ── purge_stale_ledger: delete all PointsLedger entries except those created in the last 30 minutes ──
         if (body.action === 'purge_stale_ledger') {
             console.log('Purging stale PointsLedger entries...');

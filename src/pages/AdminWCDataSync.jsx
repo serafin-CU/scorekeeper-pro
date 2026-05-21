@@ -30,9 +30,9 @@ function ResultCard({ result, loading }) {
     );
 }
 
-function SyncCard({ title, description, icon: Icon, onSync, result, loading, buttonLabel = 'Sync Now', destructive = false }) {
+function SyncCard({ title, description, icon: Icon, onSync, result, loading, buttonLabel = 'Sync Now', destructive = false, disabled = false }) {
     return (
-        <Card>
+        <Card className={disabled ? 'opacity-50' : ''}>
             <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: CU.orange + '20' }}>
@@ -47,13 +47,13 @@ function SyncCard({ title, description, icon: Icon, onSync, result, loading, but
             <CardContent>
                 <Button
                     onClick={onSync}
-                    disabled={loading}
+                    disabled={loading || disabled}
                     variant={destructive ? 'destructive' : 'default'}
                     className="w-full"
-                    style={!destructive ? { background: CU.charcoal } : {}}
+                    style={!destructive ? { background: disabled ? undefined : CU.charcoal } : {}}
                 >
                     {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-                    {loading ? 'Syncing...' : buttonLabel}
+                    {loading ? 'Syncing...' : disabled ? '🔒 Disabled' : buttonLabel}
                 </Button>
                 <ResultCard result={result} loading={loading} />
             </CardContent>
@@ -210,6 +210,13 @@ export default function AdminWCDataSync() {
                     </CardContent>
                 </Card>
 
+                {/* Danger Banner */}
+                <Card className="mb-6 border-red-400 bg-red-50">
+                    <CardContent className="pt-4 text-sm text-red-800">
+                        <strong>🔒 Teams &amp; Fixtures sync are disabled.</strong> The database already contains verified API-Football data. Re-syncing teams or fixtures would wipe and overwrite all 48 teams and 104 fixtures — including IDs referenced by predictions, squads, and results. Only re-enable these if you are doing a full data wipe &amp; reseed.
+                    </CardContent>
+                </Card>
+
                 {/* Sync Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <SyncCard
@@ -221,6 +228,7 @@ export default function AdminWCDataSync() {
                         result={resultMap['teams']}
                         buttonLabel="Sync 48 Teams"
                         destructive
+                        disabled
                     />
                     <SyncCard
                         title="2. Sync Fixtures"
@@ -231,6 +239,7 @@ export default function AdminWCDataSync() {
                         result={resultMap['fixtures']}
                         buttonLabel="Sync 104 Fixtures"
                         destructive
+                        disabled
                     />
                     <SyncCard
                         title="3. Sync Players"
