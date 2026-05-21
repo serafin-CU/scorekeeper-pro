@@ -61,7 +61,7 @@ export default function TestDataResetter() {
                         if (d.is_test === true) return true;
                     } catch { /* skip */ }
                 }
-                // Check breakdown_json for AWARD entries
+                // Check breakdown_json for AWARD entries (catches all AWARD entries for cleanup)
                 if (entry.breakdown_json && entry.mode === 'FANTASY') {
                     try {
                         const b = typeof entry.breakdown_json === 'string' ? JSON.parse(entry.breakdown_json) : entry.breakdown_json;
