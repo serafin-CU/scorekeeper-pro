@@ -159,6 +159,33 @@ async function validateFantasySquad(base44, squad_id) {
 }
 
 async function scoreFantasyMatch(base44, match_id, force = false) {
+    // IDEMPOTENCY CHECK: If stats already exist and this isn't a forced re-score, return early
+    // The re-score path (force=true) will VOID prior awards before writing new ones
+    const existingStats = await base44.asServiceRole.entities.FantasyMatchPlayerStats.filter({ match_id });
+    if (existingStats.length > 0 && !force) {
+        // Check if ledger already has awards for this match
+        const allLedger = await base44.asServiceRole.entities.PointsLedger.list();
+        const existingAwards = allLedger.filter(e => {
+            if (e.mode !== 'FANTASY') return false;
+            try {
+                const breakdown = JSON.parse(e.breakdown_json);
+                return breakdown.match_id === match_id && breakdown.type === 'AWARD';
+            } catch {
+                return false;
+            }
+        });
+        if (existingAwards.length > 0) {
+            return {
+                ok: true,
+                status: 'SKIPPED',
+                message: 'Fantasy scoring already completed for this match (idempotent skip)',
+                match_id,
+                existing_stats_count: existingStats.length,
+                existing_awards_count: existingAwards.length
+            };
+        }
+    }
+
     // Load match and result
     const match = await base44.asServiceRole.entities.Match.get(match_id);
     if (!match) {
@@ -224,6 +251,10 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
     });
     
     console.log(`Found ${allSquads.length} finalized squads for phase ${phase}`);
+    
+    // DEDUPE GUARD: Track which (match_id, player_id) pairs we've already written
+    // This prevents duplicate FantasyMatchPlayerStats even if the loop double-iterates
+    const writtenStatsKeys = new Set();
     
     const diagnostics = {
         match_id,

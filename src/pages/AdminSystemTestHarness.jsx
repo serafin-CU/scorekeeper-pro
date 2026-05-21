@@ -620,16 +620,225 @@ export default function AdminSystemTestHarness() {
         return test;
     };
 
-    // TEST 6 stub - TODO: Implement full E2E test
+    // TEST 6: FULL FANTASY E2E - Creates test data, scores, verifies, cleans up
     const runTest6 = async (runId) => {
         const test = { name: 'TEST 6: FULL FANTASY E2E', status: 'FAIL', details: '' };
+        const testRunId = `test6_${Date.now()}`;
+        
         try {
-            // Pre-cleanup already handled in runSingleTest
+            // SETUP: Create test teams
+            const team1 = await base44.entities.Team.create({
+                name: `Test Team X ${testRunId}`,
+                fifa_code: 'TX1',
+                details_json: JSON.stringify({ is_test: true, test_run_id: testRunId })
+            });
+            const team2 = await base44.entities.Team.create({
+                name: `Test Team Y ${testRunId}`,
+                fifa_code: 'TY1',
+                details_json: JSON.stringify({ is_test: true, test_run_id: testRunId })
+            });
+
+            // Create 22 players (11 per team for a full match)
+            const players = [];
+            const positions = ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'FWD'];
+            for (let i = 0; i < 11; i++) {
+                players.push(await base44.entities.Player.create({
+                    full_name: `Test Player T1-${i} ${testRunId}`,
+                    team_id: team1.id,
+                    position: positions[i],
+                    price: 8,
+                    details_json: JSON.stringify({ is_test: true, test_run_id: testRunId })
+                }));
+            }
+            for (let i = 0; i < 11; i++) {
+                players.push(await base44.entities.Player.create({
+                    full_name: `Test Player T2-${i} ${testRunId}`,
+                    team_id: team2.id,
+                    position: positions[i],
+                    price: 8,
+                    details_json: JSON.stringify({ is_test: true, test_run_id: testRunId })
+                }));
+            }
+
+            // Create finalized match (past kickoff)
+            const pastDate = new Date();
+            pastDate.setHours(pastDate.getHours() - 3);
+            const match = await base44.entities.Match.create({
+                phase: 'GROUP_MD1',
+                kickoff_at: pastDate.toISOString(),
+                home_team_id: team1.id,
+                away_team_id: team2.id,
+                status: 'FINAL',
+                details_json: JSON.stringify({ is_test: true, test_run_id: testRunId })
+            });
+
+            // Create MatchResultFinal
+            await base44.entities.MatchResultFinal.create({
+                match_id: match.id,
+                home_goals: 2,
+                away_goals: 1,
+                finalized_at: new Date().toISOString(),
+                details_json: JSON.stringify({ is_test: true, test_run_id: testRunId })
+            });
+
+            // Create FantasyMatchPlayerStats for all 22 players
+            for (let i = 0; i < players.length; i++) {
+                const player = players[i];
+                const isHomeTeam = player.team_id === team1.id;
+                await base44.entities.FantasyMatchPlayerStats.create({
+                    match_id: match.id,
+                    player_id: player.id,
+                    team_id: player.team_id,
+                    started: true,
+                    substituted_in: false,
+                    substituted_out: false,
+                    minute_in: 0,
+                    minute_out: 90,
+                    minutes_played: 90,
+                    goals: (i === 8) ? (isHomeTeam ? 2 : 1) : 0, // FWDs score
+                    yellow_cards: (i === 2 && isHomeTeam) ? 1 : 0,
+                    red_cards: 0,
+                    source: 'MANUAL',
+                    details_json: JSON.stringify({ is_test: true, test_run_id: testRunId })
+                });
+            }
+
+            // Create user and finalized squad (11 starters + 3 bench)
+            const currentUser = await base44.auth.me();
+            const squad = await base44.entities.FantasySquad.create({
+                user_id: currentUser.id,
+                phase: 'GROUP_MD1',
+                status: 'FINAL',
+                budget_cap: 150,
+                total_cost: 112,
+                finalized_at: new Date().toISOString(),
+                details_json: JSON.stringify({ is_test: true, test_run_id: testRunId })
+            });
+
+            // Add 11 starters with captain
+            for (let i = 0; i < 11; i++) {
+                await base44.entities.FantasySquadPlayer.create({
+                    squad_id: squad.id,
+                    player_id: players[i].id, // First 11 players (team1)
+                    slot_type: 'STARTER',
+                    starter_position: players[i].position,
+                    is_captain: (i === 0) // GK is captain
+                });
+            }
+            // Add 3 bench players from team2
+            for (let i = 0; i < 3; i++) {
+                await base44.entities.FantasySquadPlayer.create({
+                    squad_id: squad.id,
+                    player_id: players[11 + i].id,
+                    slot_type: 'BENCH',
+                    bench_order: i + 1
+                });
+            }
+
+            // ACTION: Run fantasy scoring
+            const scoreResult = await base44.functions.invoke('fantasyScoringService', {
+                action: 'score_fantasy_match',
+                match_id: match.id
+            });
+
+            // ASSERT 1: Verify scoring succeeded
+            if (!scoreResult.data || scoreResult.data.ok === false) {
+                test.details = `Scoring failed: ${JSON.stringify(scoreResult.data)}`;
+                return test;
+            }
+
+            // ASSERT 2: Verify exactly 22 FantasyMatchPlayerStats rows (one per player)
+            const statsAfter = await base44.entities.FantasyMatchPlayerStats.filter({ match_id: match.id });
+            if (statsAfter.length !== 22) {
+                // DIAGNOSTIC: Group by player_id to find duplicates
+                const byPlayer = {};
+                for (const s of statsAfter) {
+                    byPlayer[s.player_id] = (byPlayer[s.player_id] || 0) + 1;
+                }
+                const duplicates = Object.entries(byPlayer)
+                    .filter(([_, count]) => count > 1)
+                    .map(([playerId, count]) => `${playerId.slice(-8)}:${count}`);
+                test.details = `Expected 22 stats rows, got ${statsAfter.length}. Duplicates: ${duplicates.join(', ')}`;
+                return test;
+            }
+
+            // ASSERT 3: Verify 1 AWARD ledger entry
+            const ledgerAfter = await base44.entities.PointsLedger.filter({
+                mode: 'FANTASY',
+                user_id: currentUser.id
+            });
+            const awardEntries = ledgerAfter.filter(e => {
+                try {
+                    const b = JSON.parse(e.breakdown_json);
+                    return b.match_id === match.id && b.type === 'AWARD';
+                } catch { return false; }
+            });
+            if (awardEntries.length !== 1) {
+                test.details = `Expected 1 AWARD entry, got ${awardEntries.length}`;
+                return test;
+            }
+
+            // ASSERT 4: Verify per-player breakdown has 11 players
+            const breakdown = JSON.parse(awardEntries[0].breakdown_json);
+            if (!breakdown.per_player || breakdown.per_player.length !== 11) {
+                test.details = `Expected 11 players in breakdown, got ${breakdown.per_player?.length || 0}`;
+                return test;
+            }
+
+            // ASSERT 5: Verify captain 2x multiplier applied
+            const captainDetail = breakdown.per_player.find(p => p.is_captain);
+            if (!captainDetail || captainDetail.multiplier !== 2) {
+                test.details = 'Captain 2x multiplier not applied';
+                return test;
+            }
+
+            // ASSERT 6: Verify total points match sum of individual points
+            const sumFromBreakdown = breakdown.per_player.reduce((sum, p) => sum + p.points, 0);
+            if (sumFromBreakdown !== awardEntries[0].points) {
+                test.details = `Points mismatch: breakdown sum=${sumFromBreakdown}, ledger=${awardEntries[0].points}`;
+                return test;
+            }
+
+            // CLEANUP: Delete all test data
+            const cleanupMarker = (row) => {
+                if (!row.details_json) return false;
+                try {
+                    const d = typeof row.details_json === 'string' ? JSON.parse(row.details_json) : row.details_json;
+                    return d.is_test === true && d.test_run_id?.startsWith('test6_');
+                } catch { return false; }
+            };
+
+            const allLedger = await base44.entities.PointsLedger.list();
+            for (const e of allLedger) { if (cleanupMarker(e)) await base44.entities.PointsLedger.delete(e.id); }
+            
+            const allSquads = await base44.entities.FantasySquad.list();
+            for (const sq of allSquads) { if (cleanupMarker(sq)) await base44.entities.FantasySquad.delete(sq.id); }
+            
+            const allSquadPlayers = await base44.entities.FantasySquadPlayer.list();
+            for (const sp of allSquadPlayers) { if (cleanupMarker(sp)) await base44.entities.FantasySquadPlayer.delete(sp.id); }
+            
+            const allStats = await base44.entities.FantasyMatchPlayerStats.list();
+            for (const s of allStats) { if (cleanupMarker(s)) await base44.entities.FantasyMatchPlayerStats.delete(s.id); }
+            
+            const allMRF = await base44.entities.MatchResultFinal.list();
+            for (const mrf of allMRF) { if (cleanupMarker(mrf)) await base44.entities.MatchResultFinal.delete(mrf.id); }
+            
+            const allMatches = await base44.entities.Match.list();
+            for (const m of allMatches) { if (cleanupMarker(m)) await base44.entities.Match.delete(m.id); }
+            
+            const allPlayers = await base44.entities.Player.list();
+            for (const p of allPlayers) { if (cleanupMarker(p)) await base44.entities.Player.delete(p.id); }
+            
+            const allTeams = await base44.entities.Team.list();
+            for (const t of allTeams) { if (cleanupMarker(t)) await base44.entities.Team.delete(t.id); }
+
             test.status = 'PASS';
-            test.details = '✓ Test placeholder (implementation pending)';
+            test.details = `✓ 22 stats rows (no dupes), ✓ 1 AWARD, ✓ 11 players in breakdown, ✓ Captain 2× applied, ✓ Points sum matches (${sumFromBreakdown})`;
+
         } catch (error) {
             test.details = error.message;
         }
+
         return test;
     };
 

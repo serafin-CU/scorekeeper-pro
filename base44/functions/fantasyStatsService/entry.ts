@@ -252,7 +252,17 @@ async function buildFantasyStatsForMatch(base44, match_id, options = {}) {
     const existingStats = await base44.asServiceRole.entities.FantasyMatchPlayerStats.filter({ match_id });
     const existingMap = Object.fromEntries(existingStats.map(s => [s.player_id, s]));
 
+    // DEDUPE GUARD: Track which player_ids we've written in this run
+    const writtenPlayerIds = new Set();
+
     for (const playerId in statsMap) {
+        // Prevent duplicate writes within the same run
+        if (writtenPlayerIds.has(playerId)) {
+            console.warn(`⚠️ Skipping duplicate player_id ${playerId} in statsMap iteration`);
+            continue;
+        }
+        writtenPlayerIds.add(playerId);
+
         const stat = statsMap[playerId];
         const existing = existingMap[playerId];
 
@@ -273,7 +283,7 @@ async function buildFantasyStatsForMatch(base44, match_id, options = {}) {
         };
 
         if (existing) {
-            // Update only if new source has higher priority or manual fallback allowed
+            // Update only if new source has higher priority (lower index = higher priority) or manual fallback allowed
             const shouldUpdate = 
                 (source_preference_order.indexOf(chosenSourceName) < source_preference_order.indexOf(existing.source)) ||
                 (allow_manual_fallback && chosenSourceName === 'MANUAL');
