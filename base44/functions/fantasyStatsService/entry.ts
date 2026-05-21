@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 
 async function buildFantasyStatsForMatch(base44, match_id, options = {}) {
     const {
-        source_preference_order = ["PROMIEDOS", "WIKIPEDIA"],
+        source_preference_order = ["API_FOOTBALL"],
         allow_manual_fallback = true,
         dry_run = false
     } = options;

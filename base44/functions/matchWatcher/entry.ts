@@ -304,107 +304,14 @@ async function hashString(str) {
 }
 
 /**
- * Parse match data from different sources
+ * Parse match data — API-Football is the sole source
  */
 function parseMatchData(content, sourceName, matchId) {
-    const upperSource = sourceName.toUpperCase();
-    
-    if (upperSource.includes('PROMIEDOS')) {
-        return parsePromiedos(content, matchId);
-    } else if (upperSource.includes('WIKIPEDIA')) {
-        return parseWikipedia(content, matchId);
-    } else if (upperSource.includes('FIFA')) {
-        return parseFIFA(content, matchId);
-    }
-    
-    throw new Error('Unknown source: ' + sourceName);
+    return parseFIFA(content, matchId);
 }
 
 /**
- * Parse Promiedos HTML content
- */
-function parsePromiedos(html, matchId) {
-    const result = {
-        source: 'PROMIEDOS',
-        match_id: matchId,
-        status: 'SCHEDULED',
-        score: { home: null, away: null },
-        lineups: null,
-        events: [],
-        mvp_player: null
-    };
-
-    try {
-        // Extract status from common patterns
-        if (html.includes('Finalizado') || html.includes('Final')) {
-            result.status = 'FINAL';
-        } else if (html.includes('En Vivo') || html.includes('En Juego')) {
-            result.status = 'LIVE';
-        }
-
-        // Extract score using regex patterns
-        // Pattern: <score>2</score> - <score>1</score>
-        const scorePattern = /<span[^>]*class="[^"]*resultado[^"]*"[^>]*>(\d+)\s*-\s*(\d+)<\/span>/i;
-        const scoreMatch = html.match(scorePattern);
-        
-        if (!scoreMatch) {
-            // Alternative pattern: direct number extraction
-            const altPattern = /(\d+)\s*-\s*(\d+)/;
-            const altMatch = html.match(altPattern);
-            if (altMatch && result.status !== 'SCHEDULED') {
-                result.score.home = parseInt(altMatch[1]);
-                result.score.away = parseInt(altMatch[2]);
-            }
-        } else {
-            result.score.home = parseInt(scoreMatch[1]);
-            result.score.away = parseInt(scoreMatch[2]);
-        }
-
-        // Extract events (goals, cards, subs)
-        const eventPattern = /<div[^>]*class="[^"]*evento[^"]*"[^>]*>.*?(\d+)'.*?(GOL|TARJETA AMARILLA|TARJETA ROJA|CAMBIO|YC|RC|SUB).*?<\/div>/gi;
-        let eventMatch;
-        
-        while ((eventMatch = eventPattern.exec(html)) !== null) {
-            const minute = parseInt(eventMatch[1]);
-            let type = eventMatch[2].toUpperCase();
-            
-            // Normalize event types
-            if (type.includes('AMARILLA') || type === 'YC') type = 'YC';
-            else if (type.includes('ROJA') || type === 'RC') type = 'RC';
-            else if (type.includes('GOL')) type = 'GOAL';
-            else if (type.includes('CAMBIO') || type === 'SUB') type = 'SUB';
-            
-            result.events.push({
-                type,
-                minute,
-                team: null // Could be enhanced
-            });
-        }
-
-    } catch (e) {
-        console.error('Promiedos parse error:', e);
-    }
-
-    return result;
-}
-
-/**
- * Parse Wikipedia content (existing mock logic)
- */
-function parseWikipedia(content, matchId) {
-    return {
-        source: 'WIKIPEDIA',
-        match_id: matchId,
-        status: 'SCHEDULED',
-        score: { home: null, away: null },
-        lineups: null,
-        events: [],
-        mvp_player: null
-    };
-}
-
-/**
- * Parse FIFA content (existing mock logic)
+ * Parse FIFA/API-Football content
  */
 function parseFIFA(content, matchId) {
     return {
@@ -419,8 +326,8 @@ function parseFIFA(content, matchId) {
 }
 
 /**
- * Cross-check sources and update MatchValidation
- * Source priority: PRIMARY (PROMIEDOS) > FALLBACK (WIKIPEDIA)
+ * Cross-check source data and update MatchValidation
+ * API-Football is the sole source of truth.
  */
 async function crossCheckAndValidate(base44, matchId) {
     // Get recent events for this match
@@ -432,76 +339,31 @@ async function crossCheckAndValidate(base44, matchId) {
 
     if (events.length === 0) return false;
 
-    // Parse the latest successful events
     const successfulEvents = events.filter(e => e.parse_status === 'OK');
     if (successfulEvents.length === 0) return false;
 
     const parsedData = successfulEvents.map(e => {
-        try {
-            return JSON.parse(e.parsed_json);
-        } catch {
-            return null;
-        }
+        try { return JSON.parse(e.parsed_json); } catch { return null; }
     }).filter(d => d !== null);
 
     if (parsedData.length === 0) return false;
 
-    // Separate sources: PRIMARY (PROMIEDOS) and FALLBACK (WIKIPEDIA)
-    const primaryData = parsedData.find(d => d.source === 'PROMIEDOS');
-    const fallbackData = parsedData.find(d => d.source === 'WIKIPEDIA');
+    // Use the most recent successful parse as authoritative
+    const sourceData = parsedData[0];
+    if (!sourceData) return false;
 
-    // If no data from either source, skip
-    if (!primaryData && !fallbackData) return false;
-
-    // Determine status and score candidates
-    let statusCandidate = primaryData?.status || fallbackData?.status || 'SCHEDULED';
-    let scoreHomeCandidate = primaryData?.score?.home ?? fallbackData?.score?.home ?? null;
-    let scoreAwayCandidate = primaryData?.score?.away ?? fallbackData?.score?.away ?? null;
+    let statusCandidate = sourceData.status || 'SCHEDULED';
+    let scoreHomeCandidate = sourceData.score?.home ?? null;
+    let scoreAwayCandidate = sourceData.score?.away ?? null;
     let confidenceScore = 0;
     const reasons = [];
 
-    // Confidence rules based on PRIMARY/FALLBACK logic
-    if (primaryData && primaryData.status === 'FINAL' && primaryData.score.home !== null) {
-        // Rule 1: PRIMARY indicates FINAL with score
+    if (sourceData.status === 'FINAL' && scoreHomeCandidate !== null) {
         confidenceScore = 80;
-        reasons.push('PRIMARY (PROMIEDOS) reports FINAL status with score');
-
-        // Rule 2: PRIMARY FINAL + FALLBACK FINAL match
-        if (fallbackData && fallbackData.status === 'FINAL' && 
-            fallbackData.score.home === primaryData.score.home &&
-            fallbackData.score.away === primaryData.score.away) {
-            confidenceScore = 100;
-            reasons.push('PRIMARY and FALLBACK scores match');
-        }
-        // Rule 4: PRIMARY FINAL + FALLBACK conflict
-        else if (fallbackData && fallbackData.status === 'FINAL' &&
-                 fallbackData.score.home !== null &&
-                 (fallbackData.score.home !== primaryData.score.home ||
-                  fallbackData.score.away !== primaryData.score.away)) {
-            confidenceScore = 0;
-            reasons.push('CONFLICT: PRIMARY and FALLBACK final scores differ');
-            reasons.push(`PRIMARY: ${primaryData.score.home}-${primaryData.score.away}`);
-            reasons.push(`FALLBACK: ${fallbackData.score.home}-${fallbackData.score.away}`);
-        }
-        // Rule 3: PRIMARY FINAL but FALLBACK missing (already handled by default 80)
-    } 
-    // Rule 5: Only FALLBACK available and FINAL
-    else if (!primaryData && fallbackData && fallbackData.status === 'FINAL' && fallbackData.score.home !== null) {
-        confidenceScore = 70;
-        statusCandidate = fallbackData.status;
-        scoreHomeCandidate = fallbackData.score.home;
-        scoreAwayCandidate = fallbackData.score.away;
-        reasons.push('Only FALLBACK (WIKIPEDIA) available with FINAL status');
-    }
-    // Rule 6: Not FINAL - keep as LIVE/SCHEDULED
-    else {
-        if (primaryData) {
-            confidenceScore = 50;
-            reasons.push(`PRIMARY status: ${primaryData.status}`);
-        } else if (fallbackData) {
-            confidenceScore = 40;
-            reasons.push(`FALLBACK status: ${fallbackData.status}`);
-        }
+        reasons.push('API-Football reports FINAL status with score');
+    } else {
+        confidenceScore = 50;
+        reasons.push(`API-Football status: ${sourceData.status}`);
     }
 
     // Check if validation already exists

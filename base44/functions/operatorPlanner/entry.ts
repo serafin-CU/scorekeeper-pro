@@ -68,7 +68,6 @@ Deno.serve(async (req) => {
         // Get all enabled data sources
         const dataSources = await base44.asServiceRole.entities.DataSource.filter({ enabled: true });
         const fifaSource = dataSources.find(ds => ds.name.toUpperCase().includes('FIFA'));
-        const wikiSource = dataSources.find(ds => ds.name.toUpperCase().includes('WIKIPEDIA'));
 
         let linksCreated = 0;
         let linksMissing = 0;
@@ -113,37 +112,6 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // Check Wikipedia source
-            if (wikiSource) {
-                const wikiLink = existingLinks.find(el => el.source_id === wikiSource.id);
-                if (!wikiLink) {
-                    // Create placeholder
-                    await base44.asServiceRole.entities.MatchSourceLink.create({
-                        match_id: match.id,
-                        source_id: wikiSource.id,
-                        url: null,
-                        is_primary: false
-                    });
-                    linksCreated++;
-                    linksMissing++;
-                    missingLinks.push({
-                        match_id: match.id,
-                        source: 'WIKIPEDIA',
-                        phase: match.phase,
-                        kickoff_at: match.kickoff_at
-                    });
-                } else if (!wikiLink.url) {
-                    linksMissing++;
-                    missingLinks.push({
-                        match_id: match.id,
-                        source: 'WIKIPEDIA',
-                        phase: match.phase,
-                        kickoff_at: match.kickoff_at
-                    });
-                } else {
-                    linksOk++;
-                }
-            }
         }
 
         // Step 3: Create IngestionRun record
@@ -159,8 +127,7 @@ Deno.serve(async (req) => {
             links_missing: linksMissing,
             links_ok: linksOk,
             missing_links_details: missingLinks,
-            fifa_source_exists: !!fifaSource,
-            wiki_source_exists: !!wikiSource
+            fifa_source_exists: !!fifaSource
         });
 
         const ingestionRun = await base44.asServiceRole.entities.IngestionRun.create({

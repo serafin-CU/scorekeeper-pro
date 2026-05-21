@@ -211,62 +211,6 @@ export default function AdminMatchSourceLinks() {
         }
     });
 
-    const bulkAddPromiedosMutation = useMutation({
-        mutationFn: async () => {
-            const user = await base44.auth.me();
-            const promiedosSource = allSources.find(s => s.name === 'PROMIEDOS' && s.enabled);
-            
-            if (!promiedosSource) {
-                throw new Error('PROMIEDOS data source not found or disabled');
-            }
-
-            let added = 0;
-            let skipped = 0;
-
-            for (const match of matches) {
-                const matchLinks = links.filter(l => l.match_id === match.id);
-                const hasPrimary = matchLinks.some(l => l.role === 'PRIMARY');
-                const hasPromiedos = matchLinks.some(l => l.source_id === promiedosSource.id);
-
-                if (!hasPrimary && !hasPromiedos) {
-                    await base44.entities.MatchSourceLink.create({
-                        match_id: match.id,
-                        source_id: promiedosSource.id,
-                        role: 'PRIMARY',
-                        url: null,
-                        is_primary: true
-                    });
-                    added++;
-                } else {
-                    skipped++;
-                }
-            }
-
-            // Log bulk action
-            await base44.entities.AdminAuditLog.create({
-                admin_user_id: user.id,
-                actor_type: 'ADMIN',
-                action: 'BULK_ADD_PROMIEDOS_PRIMARY',
-                entity_type: 'MatchSourceLink',
-                entity_id: 'BULK',
-                reason: 'Bulk added PROMIEDOS as PRIMARY to matches missing primary source',
-                details_json: JSON.stringify({ added, skipped })
-            });
-
-            return { added, skipped };
-        },
-        onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ['matchSourceLinks'] });
-            setAlert({ 
-                type: 'success', 
-                message: `Bulk add complete: ${data.added} PROMIEDOS PRIMARY links added, ${data.skipped} skipped`
-            });
-        },
-        onError: (error) => {
-            setAlert({ type: 'error', message: error.message });
-        }
-    });
-
     const cleanupOrphanedMutation = useMutation({
         mutationFn: async () => {
             const user = await base44.auth.me();
@@ -365,17 +309,6 @@ export default function AdminMatchSourceLinks() {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button 
-                        variant="outline"
-                        onClick={() => {
-                            if (confirm('Add PROMIEDOS as PRIMARY to all matches that are missing a primary source?')) {
-                                bulkAddPromiedosMutation.mutate();
-                            }
-                        }}
-                        disabled={bulkAddPromiedosMutation.isPending}
-                    >
-                        Bulk: Add PROMIEDOS Primary
-                    </Button>
                     {orphanedCount > 0 && (
                         <Button 
                             variant="destructive" 

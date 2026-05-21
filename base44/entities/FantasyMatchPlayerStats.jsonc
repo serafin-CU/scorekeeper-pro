@@ -1,0 +1,107 @@
+{
+  "description": "Player statistics per match for fantasy scoring (immutable once written)",
+  "indexes": [
+    [
+      "match_id"
+    ],
+    [
+      "player_id"
+    ],
+    [
+      "match_id",
+      "team_id"
+    ]
+  ],
+  "name": "FantasyMatchPlayerStats",
+  "properties": {
+    "goals": {
+      "default": 0,
+      "description": "Goals scored by player",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "match_id": {
+      "description": "FK reference to matches.id",
+      "index": true,
+      "type": "string"
+    },
+    "minute_in": {
+      "description": "Minute player entered (null if started)",
+      "maximum": 120,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "minute_out": {
+      "description": "Minute player exited (null if played full time)",
+      "maximum": 120,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "minutes_played": {
+      "description": "Derived total minutes played (never user-entered)",
+      "maximum": 120,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "player_id": {
+      "description": "FK reference to players.id",
+      "index": true,
+      "type": "string"
+    },
+    "red_cards": {
+      "default": 0,
+      "description": "Red cards received (max 1)",
+      "maximum": 1,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "source": {
+      "description": "Data source for these stats. API_FOOTBALL is the primary source for v1 (UnityCup WC 2026).",
+      "enum": [
+        "API_FOOTBALL",
+        "MANUAL"
+      ],
+      "type": "string"
+    },
+    "started": {
+      "description": "Whether player started the match",
+      "type": "boolean"
+    },
+    "substituted_in": {
+      "description": "Whether player was substituted in",
+      "type": "boolean"
+    },
+    "substituted_out": {
+      "description": "Whether player was substituted out",
+      "type": "boolean"
+    },
+    "team_id": {
+      "description": "FK reference to teams.id",
+      "index": true,
+      "type": "string"
+    },
+    "yellow_cards": {
+      "default": 0,
+      "description": "Yellow cards received",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "match_id",
+    "player_id",
+    "team_id",
+    "started",
+    "substituted_in",
+    "substituted_out",
+    "minutes_played",
+    "source"
+  ],
+  "type": "object",
+  "unique": [
+    [
+      "match_id",
+      "player_id"
+    ]
+  ]
+}
