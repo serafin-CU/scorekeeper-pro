@@ -1,0 +1,1 @@
+export const formatMillions = (n) => `$${Number(n) || 0}M`;

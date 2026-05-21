@@ -127,10 +127,10 @@ export default function TestDataResetter() {
                 }
             }
 
-            // 7. Player
+            // 7. Player (test rows + orphan "Test Player " prefix rows)
             const allPlayers = await base44.entities.Player.list();
             for (const p of allPlayers) {
-                if (isTestRow(p)) {
+                if (isTestRow(p) || (p.full_name && p.full_name.startsWith('Test Player '))) {
                     await base44.entities.Player.delete(p.id);
                     counts.Player++;
                 }

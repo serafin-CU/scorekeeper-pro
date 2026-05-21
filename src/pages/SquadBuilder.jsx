@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Plus, X, Shield, Users, Loader2, Check, AlertCircle, ChevronDown, Star, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatMillions } from '@/utils/formatMillions';
 
 const CU = {
     orange: '#FFB81C', charcoal: '#2C2B2B', magenta: '#AA0061',
@@ -68,7 +69,7 @@ function FormationSlot({ position, player, team, isCaptain, onRemove, onSetCapta
                     {player.full_name}
                 </div>
                 <div className="text-xs truncate" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
-                    {team?.name || '—'} · ${player.price}M
+                    {team?.name || '—'} · {formatMillions(player.price)}
                 </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -136,7 +137,7 @@ function PoolPlayer({ player, team, onAdd, disabled, alreadyIn, cantAfford }) {
                 </span>
             ) : null}
             <span className="text-sm font-semibold shrink-0" style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>
-                ${player.price}M
+                {formatMillions(player.price)}
             </span>
             <button
                 onClick={() => onAdd(player)}
@@ -503,7 +504,7 @@ export default function SquadBuilder() {
                             🏟️ Squad Builder
                         </h1>
                         <p style={{ fontFamily: "'Raleway', sans-serif", color: '#6b7280', marginTop: '4px' }}>
-                            Build your UnityCup XI · 11 starters + 3 bench · Budget: ${BUDGET_CAP}M · Formation: 4-3-3
+                            Build your UnityCup XI · 11 starters + 3 bench · Budget: {formatMillions(BUDGET_CAP)} · Formation: 4-3-3
                         </p>
                         {/* Transfer window countdown — only show when not locked */}
                         {phaseLock && !phaseLock.is_locked && lockCountdown && (
@@ -558,7 +559,7 @@ export default function SquadBuilder() {
                     <div className="rounded-xl p-3" style={{ background: 'white', border: '1px solid #e5e7eb', borderTop: `3px solid ${remainingBudget < 10 ? CU.orangeRed : CU.orange}` }}>
                         <div className="text-xs" style={{ fontFamily: "'Raleway', sans-serif", color: '#6b7280' }}>Budget</div>
                         <div className="text-lg font-bold" style={{ fontFamily: "'DM Serif Display', serif", color: CU.charcoal }}>
-                            ${totalCost}M <span className="text-sm font-normal" style={{ color: '#9ca3af' }}>/ ${BUDGET_CAP}M</span>
+                            {formatMillions(totalCost)} <span className="text-sm font-normal" style={{ color: '#9ca3af' }}>/ {formatMillions(BUDGET_CAP)}</span>
                         </div>
                         <div className="mt-1.5 h-1.5 rounded-full bg-gray-100 overflow-hidden">
                             <div className="h-full rounded-full transition-all" style={{
@@ -665,7 +666,7 @@ export default function SquadBuilder() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-sm font-medium truncate" style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>{player.full_name}</div>
                                             </div>
-                                            <span className="text-xs" style={{ color: '#9ca3af' }}>${player.price}M</span>
+                                            <span className="text-xs" style={{ color: '#9ca3af' }}>{formatMillions(player.price)}</span>
                                             {!isFinalized && (
                                                 <button onClick={() => handleRemovePlayer(playerId)} className="p-1 rounded hover:bg-red-50">
                                                     <X className="w-4 h-4" style={{ color: '#ef4444' }} />
@@ -791,7 +792,7 @@ export default function SquadBuilder() {
                             {!startersComplete && <span>⚽ {starters.length}/{TOTAL_STARTERS} starters</span>}
                             {startersComplete && !benchComplete && <span>📋 {benchPlayers.length}/{BENCH_SIZE} bench</span>}
                             {startersComplete && benchComplete && !hasCaptain && <span>⭐ Select a captain</span>}
-                            <span style={{ color: CU.orange }}>· ${remainingBudget}M remaining</span>
+                            <span style={{ color: CU.orange }}>· {formatMillions(remainingBudget)} remaining</span>
                         </div>
                     </div>
                 </div>
@@ -812,7 +813,7 @@ export default function SquadBuilder() {
                         <div className="grid grid-cols-2 gap-2 text-xs">
                             <div className="p-2 rounded bg-gray-50"><strong>Starters:</strong> {starters.length}/11</div>
                             <div className="p-2 rounded bg-gray-50"><strong>Bench:</strong> {benchPlayers.length}/3</div>
-                            <div className="p-2 rounded bg-gray-50"><strong>Budget:</strong> ${totalCost}M / ${BUDGET_CAP}M</div>
+                            <div className="p-2 rounded bg-gray-50"><strong>Budget:</strong> {formatMillions(totalCost)} / {formatMillions(BUDGET_CAP)}</div>
                             <div className="p-2 rounded" style={{ background: CU.orange + '10' }}>
                                 <strong>Captain:</strong> {playersMap[captainId]?.full_name || '—'}
                             </div>
