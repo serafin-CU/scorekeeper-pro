@@ -586,7 +586,7 @@ export default function AdminSystemTestHarness() {
             const voidEntries = matchEntriesAfterRescore.filter(e => {
                 try {
                     const breakdown = JSON.parse(e.breakdown_json);
-                    return breakdown.type === 'VOID' && breakdown.squad_id === squad.id;
+                    return breakdown.type === 'VOID' && breakdown.match_id === match.id;
                 } catch {
                     return false;
                 }
@@ -602,7 +602,7 @@ export default function AdminSystemTestHarness() {
             });
 
             if (voidEntries.length !== 1) {
-                test.details = `Expected 1 VOID entry for test squad, got ${voidEntries.length}`;
+                test.details = `Expected 1 VOID entry for user/match, got ${voidEntries.length}`;
                 return test;
             }
 
