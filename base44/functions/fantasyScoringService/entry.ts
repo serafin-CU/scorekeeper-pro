@@ -294,10 +294,22 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
     const ledgerVoids = [];
     const ledgerAwards = [];
 
-    // Always VOID prior awards before re-scoring.
+    // IDEMPOTENCY CHECK #2: If awards already exist and this is NOT a forced re-score, skip
+    // This prevents duplicate AWARD entries when the function is called multiple times
+    if (priorAwardsForMatch.length > 0 && !force) {
+        return {
+            ok: true,
+            status: 'SKIPPED',
+            message: `Fantasy scoring already completed for this match (${priorAwardsForMatch.length} award(s) exist)`,
+            match_id,
+            existing_awards_count: priorAwardsForMatch.length
+        };
+    }
+
+    // Always VOID prior awards before re-scoring (only when force=true).
     // This is idempotent: VOID cancels the prior AWARD exactly, so running N times
     // yields the same net total as running once (latest AWARD only).
-    if (priorAwardsForMatch.length > 0) {
+    if (priorAwardsForMatch.length > 0 && force) {
         const voidsByUser = {};
         for (const entry of priorAwardsForMatch) {
             voidsByUser[entry.user_id] = (voidsByUser[entry.user_id] || 0) + entry.points;
