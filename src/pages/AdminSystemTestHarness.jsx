@@ -611,6 +611,23 @@ export default function AdminSystemTestHarness() {
             echo('--- SETUP PHASE ---');
             
             try {
+                // CLEANUP: Remove any leftover test stats from previous runs (CAUSE B fix)
+                const allExistingStats = await base44.entities.FantasyMatchPlayerStats.list();
+                let cleanedCount = 0;
+                for (const s of allExistingStats) {
+                    if (!s.details_json) continue;
+                    try {
+                        const d = typeof s.details_json === 'string' ? JSON.parse(s.details_json) : s.details_json;
+                        if (d.is_test === true) {
+                            await base44.entities.FantasyMatchPlayerStats.delete(s.id);
+                            cleanedCount++;
+                        }
+                    } catch { /* not JSON, skip */ }
+                }
+                if (cleanedCount > 0) {
+                    echo(`✓ Cleaned up ${cleanedCount} leftover test stats from previous runs`);
+                }
+                
                 // Create 2 dummy teams
                 const team1 = await base44.entities.Team.create({
                     name: `Test Team I ${runId}`,
