@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Trophy, Users, Target, TrendingUp, Loader2, ChevronRight, Award } from 'lucide-react';
+import { FANTASY_ENABLED } from '@/config/features';
 
 const CU = {
     orange: '#FFB81C',
@@ -223,6 +224,9 @@ export default function Dashboard() {
         enabled: !!currentUser
     });
 
+    const isAdmin = currentUser?.role === 'admin';
+    const showFantasy = FANTASY_ENABLED || isAdmin;
+
     const prodePoints = ledger.filter(e => e.mode === 'PRODE').reduce((sum, e) => sum + (e.points || 0), 0);
     const fantasyPoints = ledger.filter(e => e.mode === 'FANTASY').reduce((sum, e) => sum + (e.points || 0), 0);
     const totalPoints = prodePoints + fantasyPoints;
@@ -253,10 +257,10 @@ export default function Dashboard() {
             </div>
 
             {/* Stats grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <StatCard icon={TrendingUp} label="Total Points" value={totalPoints} sublabel="Prode + Fantasy" accentColor={CU.orange} />
+            <div className={`grid gap-3 ${showFantasy ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'}`}>
+                <StatCard icon={TrendingUp} label="Total Points" value={showFantasy ? totalPoints : prodePoints} sublabel={showFantasy ? "Prode + Fantasy" : undefined} accentColor={CU.orange} />
                 <StatCard icon={Trophy} label="Prode Points" value={prodePoints} sublabel={`${predictions.length} predictions`} accentColor={CU.green} />
-                <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} />
+                {showFantasy && <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} />}
                 <StatCard icon={Award} label="Badges" value={badges.length} sublabel={badges.length > 0 ? badges.map(b => {
                     const names = { UNBREAKABLE_XI: '🛡️ Unbreakable XI', THE_ORIGINALS: '👑 The Originals', PERFECT_MATCHDAY: '🎯 Perfect Matchday' };
                     return names[b.badge_type] || b.badge_type;
@@ -268,9 +272,20 @@ export default function Dashboard() {
                 <SectionCard title="Recent Predictions" icon={Target} iconColor={CU.orange} linkTo="/ProdePredictions" linkLabel="All">
                     <RecentPredictions predictions={predictions} matches={matches} teams={teams} />
                 </SectionCard>
-                <SectionCard title="My Squad" icon={Users} iconColor={CU.blue} linkTo="/SquadManagement" linkLabel="Manage">
-                    <SquadSummary currentUser={currentUser} teams={teams} />
-                </SectionCard>
+                {showFantasy ? (
+                    <SectionCard title="My Squad" icon={Users} iconColor={CU.blue} linkTo="/SquadManagement" linkLabel="Manage">
+                        <SquadSummary currentUser={currentUser} teams={teams} />
+                    </SectionCard>
+                ) : (
+                    <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
+                        <div style={{ height: '3px', background: CU.blue }} />
+                        <div className="p-6 text-center space-y-2">
+                            <div style={{ fontSize: '2rem' }}>🏟️</div>
+                            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.1rem', color: CU.charcoal }}>Fantasy Game</div>
+                            <div style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.875rem', color: '#6b7280' }}>Coming soon — squads open before tournament kickoff.</div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {upcomingMatches > 0 && (

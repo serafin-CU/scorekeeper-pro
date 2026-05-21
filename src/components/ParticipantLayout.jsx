@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Users, LogOut, Shield, MessageSquare, Trophy, Target, LayoutDashboard, User } from 'lucide-react';
 import AlbaChatWidget from '@/components/AlbaChatWidget';
+import { FANTASY_ENABLED } from '@/config/features';
 
 const CU = {
     orange: '#FFB81C',
@@ -11,11 +12,11 @@ const CU = {
     magenta: '#AA0061',
 };
 
-const navItems = [
+const ALL_NAV_ITEMS = [
     { name: 'Dashboard', label: 'Home', icon: LayoutDashboard },
     { name: 'ProdePredictions', label: 'Prode', icon: Target },
-    { name: 'SquadManagement', label: 'My Squad', icon: Users },
-    { name: 'SquadBuilder', label: 'Build Squad', icon: Shield },
+    { name: 'SquadManagement', label: 'My Squad', icon: Users, fantasyOnly: true },
+    { name: 'SquadBuilder', label: 'Build Squad', icon: Shield, fantasyOnly: true },
     { name: 'Leaderboard', label: 'Standings', icon: Trophy },
     { name: 'AlbaChat', label: 'Alba 🤖', icon: MessageSquare },
     { name: 'Profile', label: 'Profile', icon: User }
@@ -28,6 +29,7 @@ export default function ParticipantLayout({ children, currentPageName }) {
     });
 
     const isAdmin = currentUser?.role === 'admin';
+    const navItems = ALL_NAV_ITEMS.filter(item => !item.fantasyOnly || FANTASY_ENABLED || isAdmin);
 
     const handleLogout = () => {
         base44.auth.logout();

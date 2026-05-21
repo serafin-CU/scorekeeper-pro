@@ -3,6 +3,7 @@ import WorldCupBanner from '@/components/WorldCupBanner';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Trophy, Medal, TrendingUp, Loader2, Crown } from 'lucide-react';
+import { FANTASY_ENABLED } from '@/config/features';
 
 const CU = {
     orange: '#FFB81C',
@@ -74,7 +75,7 @@ function LeaderboardTable({ entries, currentUserId, mode }) {
                         {mode === 'ALL' && (
                             <div className="flex gap-3 text-xs" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
                                 <span title="Prode">P: {entry.prode_points}</span>
-                                <span title="Fantasy">F: {entry.fantasy_points}</span>
+                                {FANTASY_ENABLED && <span title="Fantasy">F: {entry.fantasy_points}</span>}
                             </div>
                         )}
                         <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.2rem', color: CU.charcoal }}>
@@ -90,7 +91,7 @@ function LeaderboardTable({ entries, currentUserId, mode }) {
 const TAB_CONFIG = [
     { value: 'ALL', label: 'Overall', icon: TrendingUp },
     { value: 'PRODE', label: 'Prode', icon: Medal },
-    { value: 'FANTASY', label: 'Fantasy', icon: Crown },
+    ...(FANTASY_ENABLED ? [{ value: 'FANTASY', label: 'Fantasy', icon: Crown }] : []),
 ];
 
 export default function Leaderboard() {
