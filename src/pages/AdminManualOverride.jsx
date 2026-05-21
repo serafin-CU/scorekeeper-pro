@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertCircle, Lock } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function AdminManualOverride() {
     const [selectedMatch, setSelectedMatch] = useState(null);
@@ -39,7 +40,7 @@ export default function AdminManualOverride() {
             const existing = resultsMap[matchId];
             if (!existing) return;
             await base44.entities.MatchResultFinal.update(existing.id, {
-                manual_override: false,
+                manually_overridden: false,
                 manual_edited_at: null,
                 override_reason: null
             });
@@ -67,7 +68,7 @@ export default function AdminManualOverride() {
                     home_goals: parseInt(homeGoals),
                     away_goals: parseInt(awayGoals),
                     finalized_at: now,
-                    manual_override: true,
+                    manually_overridden: true,
                     manual_edited_at: now,
                     override_reason: reason
                 });
@@ -78,7 +79,7 @@ export default function AdminManualOverride() {
                     home_goals: parseInt(homeGoals),
                     away_goals: parseInt(awayGoals),
                     finalized_at: now,
-                    manual_override: true,
+                    manually_overridden: true,
                     manual_edited_at: now,
                     override_reason: reason
                 });
@@ -197,9 +198,14 @@ export default function AdminManualOverride() {
                                                     ) : (
                                                         <span className="text-gray-400">Not set</span>
                                                     )}
-                                                    {result?.manual_override && (
+                                                    {result?.manually_overridden && (
                                                         <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
                                                             <Lock className="w-3 h-3" /> Manual
+                                                            {result.manual_edited_at && (
+                                                                <span className="text-amber-500 font-normal">
+                                                                    · overridden {formatDistanceToNow(new Date(result.manual_edited_at), { addSuffix: true })}
+                                                                </span>
+                                                            )}
                                                         </span>
                                                     )}
                                                 </div>
@@ -268,7 +274,7 @@ export default function AdminManualOverride() {
                                 <Button onClick={handleOverride}>
                                     Save Override
                                 </Button>
-                                {resultsMap[selectedMatch]?.manual_override && (
+                                {resultsMap[selectedMatch]?.manually_overridden && (
                                     <Button
                                         variant="outline"
                                         className="border-amber-400 text-amber-700 hover:bg-amber-50"

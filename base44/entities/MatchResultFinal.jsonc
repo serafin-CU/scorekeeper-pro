@@ -28,19 +28,19 @@
       "format": "date-time",
       "description": "When result was finalized"
     },
-    "manual_override": {
+    "manually_overridden": {
       "type": "boolean",
       "default": false,
-      "description": "When true, sync_results must not overwrite this record"
+      "description": "Set to true by admin manual override. Prevents API syncs and the Finalizer from overwriting this result."
+    },
+    "override_reason": {
+      "type": "string",
+      "description": "Reason provided by admin when manually overriding this result"
     },
     "manual_edited_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When the manual override was last applied"
-    },
-    "override_reason": {
-      "type": "string",
-      "description": "Audit reason for the manual override"
+      "description": "Timestamp when manual override was last applied"
     }
   },
   "required": [
