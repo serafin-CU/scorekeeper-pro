@@ -513,7 +513,7 @@ export default function AdminSystemTestHarness() {
                 match_id: match.id
             });
 
-            // Verify: 1 AWARD after first run
+            // Verify: 1 AWARD after first run (for this squad only)
             const ledgerAfterFirst = await base44.entities.PointsLedger.filter({
                 mode: 'FANTASY',
                 user_id: currentUser.id
@@ -522,14 +522,21 @@ export default function AdminSystemTestHarness() {
             const matchLedgerEntries = ledgerAfterFirst.filter(e => {
                 try {
                     const breakdown = JSON.parse(e.breakdown_json);
-                    return breakdown.match_id === match.id && breakdown.type === 'AWARD';
+                    return breakdown.match_id === match.id && breakdown.type === 'AWARD' && breakdown.squad_id === squad.id;
                 } catch {
                     return false;
                 }
             });
 
             if (matchLedgerEntries.length !== 1) {
-                test.details = `Expected 1 AWARD entry after first run, got ${matchLedgerEntries.length}`;
+                const allMatchAwards = ledgerAfterFirst.filter(e => {
+                    try {
+                        const b = JSON.parse(e.breakdown_json);
+                        return b.match_id === match.id && b.type === 'AWARD';
+                    } catch { return false; }
+                });
+                const squadIds = allMatchAwards.map(a => { try { return JSON.parse(a.breakdown_json).squad_id?.slice(-8) || '???'; } catch { return '???'; } });
+                test.details = `Expected 1 AWARD for test squad, got ${matchLedgerEntries.length}. All AWARDs for match: ${allMatchAwards.length}. Squad IDs: ${[...new Set(squadIds)].join(', ')}`;
                 return test;
             }
 
@@ -579,7 +586,7 @@ export default function AdminSystemTestHarness() {
             const voidEntries = matchEntriesAfterRescore.filter(e => {
                 try {
                     const breakdown = JSON.parse(e.breakdown_json);
-                    return breakdown.type === 'VOID';
+                    return breakdown.type === 'VOID' && breakdown.squad_id === squad.id;
                 } catch {
                     return false;
                 }
@@ -588,19 +595,19 @@ export default function AdminSystemTestHarness() {
             const awardEntries = matchEntriesAfterRescore.filter(e => {
                 try {
                     const breakdown = JSON.parse(e.breakdown_json);
-                    return breakdown.type === 'AWARD';
+                    return breakdown.type === 'AWARD' && breakdown.squad_id === squad.id;
                 } catch {
                     return false;
                 }
             });
 
             if (voidEntries.length !== 1) {
-                test.details = `Expected 1 VOID entry, got ${voidEntries.length}`;
+                test.details = `Expected 1 VOID entry for test squad, got ${voidEntries.length}`;
                 return test;
             }
 
             if (awardEntries.length !== 2) {
-                test.details = `Expected 2 AWARD entries (original + re-score), got ${awardEntries.length}`;
+                test.details = `Expected 2 AWARD entries for test squad (original + re-score), got ${awardEntries.length}`;
                 return test;
             }
 
