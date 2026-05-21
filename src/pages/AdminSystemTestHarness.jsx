@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle, XCircle, Loader2, AlertCircle, Copy, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { runTest6 } from './test6FantasyE2E';
+import { runTest6 } from './test6FantasyE2E.jsx';
 
 export default function AdminSystemTestHarness() {
     const [running, setRunning] = useState(false);
