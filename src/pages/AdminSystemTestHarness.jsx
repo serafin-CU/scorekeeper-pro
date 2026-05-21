@@ -626,32 +626,113 @@ export default function AdminSystemTestHarness() {
         const testRunId = `test6_${Date.now()}`;
         
         try {
-            // PRE-CLEANUP: Remove orphan test data from previous failed runs
-            // This prevents accumulation that skews assertions (e.g., "Expected 1 AWARD" when orphans exist)
-            const allLedgerPre = await base44.entities.PointsLedger.list();
-            for (const entry of allLedgerPre) {
-                if (!entry.details_json) continue;
+            // PRE-CLEANUP: Remove ALL orphan test data from previous failed runs
+            // CRITICAL: AWARD entries use breakdown_json, not details_json - must check both
+            
+            // Step 1: Find all test matches from previous runs (these have details_json markers)
+            const allMatchesPre = await base44.entities.Match.list();
+            const testMatchIds = new Set();
+            for (const m of allMatchesPre) {
+                if (!m.details_json) continue;
                 try {
-                    const d = typeof entry.details_json === 'string' ? JSON.parse(entry.details_json) : entry.details_json;
+                    const d = typeof m.details_json === 'string' ? JSON.parse(m.details_json) : m.details_json;
                     if (d.is_test === true && d.test_run_id?.startsWith('test6_')) {
-                        await base44.entities.PointsLedger.delete(entry.id);
+                        testMatchIds.add(m.id);
                     }
-                } catch { /* not JSON, skip */ }
+                } catch { /* skip */ }
             }
             
-            // Also clean orphan squads in GROUP_MD1 phase from this user (prevents multiple squads being scored)
+            // Step 2: Delete AWARD ledger entries for test matches (check breakdown_json)
+            const allLedgerPre = await base44.entities.PointsLedger.list();
+            for (const entry of allLedgerPre) {
+                // Check details_json first
+                if (entry.details_json) {
+                    try {
+                        const d = typeof entry.details_json === 'string' ? JSON.parse(entry.details_json) : entry.details_json;
+                        if (d.is_test === true && d.test_run_id?.startsWith('test6_')) {
+                            await base44.entities.PointsLedger.delete(entry.id);
+                            continue;
+                        }
+                    } catch { /* skip */ }
+                }
+                // Also check breakdown_json for AWARD entries referencing test matches
+                if (entry.breakdown_json && entry.mode === 'FANTASY') {
+                    try {
+                        const b = typeof entry.breakdown_json === 'string' ? JSON.parse(entry.breakdown_json) : entry.breakdown_json;
+                        if (b.type === 'AWARD' && testMatchIds.has(b.match_id)) {
+                            await base44.entities.PointsLedger.delete(entry.id);
+                        }
+                    } catch { /* skip */ }
+                }
+            }
+            
+            // Step 3: Clean orphan squads in GROUP_MD1 phase with test markers
             const allSquadsPre = await base44.entities.FantasySquad.filter({ phase: 'GROUP_MD1', status: 'FINAL' });
             for (const sq of allSquadsPre) {
                 if (!sq.details_json) continue;
                 try {
                     const d = typeof sq.details_json === 'string' ? JSON.parse(sq.details_json) : sq.details_json;
                     if (d.is_test === true && d.test_run_id?.startsWith('test6_')) {
-                        // Delete squad players first
                         const sps = await base44.entities.FantasySquadPlayer.filter({ squad_id: sq.id });
                         for (const sp of sps) await base44.entities.FantasySquadPlayer.delete(sp.id);
                         await base44.entities.FantasySquad.delete(sq.id);
                     }
-                } catch { /* not JSON, skip */ }
+                } catch { /* skip */ }
+            }
+            
+            // Step 4: Clean other test entities (stats, players, teams, etc.)
+            const allStatsPre = await base44.entities.FantasyMatchPlayerStats.list();
+            for (const s of allStatsPre) {
+                if (!s.details_json) continue;
+                try {
+                    const d = typeof s.details_json === 'string' ? JSON.parse(s.details_json) : s.details_json;
+                    if (d.is_test === true && d.test_run_id?.startsWith('test6_')) {
+                        await base44.entities.FantasyMatchPlayerStats.delete(s.id);
+                    }
+                } catch { /* skip */ }
+            }
+            
+            const allPlayersPre = await base44.entities.Player.list();
+            for (const p of allPlayersPre) {
+                if (!p.details_json) continue;
+                try {
+                    const d = typeof p.details_json === 'string' ? JSON.parse(p.details_json) : p.details_json;
+                    if (d.is_test === true && d.test_run_id?.startsWith('test6_')) {
+                        await base44.entities.Player.delete(p.id);
+                    }
+                } catch { /* skip */ }
+            }
+            
+            const allTeamsPre = await base44.entities.Team.list();
+            for (const t of allTeamsPre) {
+                if (!t.details_json) continue;
+                try {
+                    const d = typeof t.details_json === 'string' ? JSON.parse(t.details_json) : t.details_json;
+                    if (d.is_test === true && d.test_run_id?.startsWith('test6_')) {
+                        await base44.entities.Team.delete(t.id);
+                    }
+                } catch { /* skip */ }
+            }
+            
+            const allMRFPre = await base44.entities.MatchResultFinal.list();
+            for (const mrf of allMRFPre) {
+                if (!mrf.details_json) continue;
+                try {
+                    const d = typeof mrf.details_json === 'string' ? JSON.parse(mrf.details_json) : mrf.details_json;
+                    if (d.is_test === true && d.test_run_id?.startsWith('test6_')) {
+                        await base44.entities.MatchResultFinal.delete(mrf.id);
+                    }
+                } catch { /* skip */ }
+            }
+            
+            for (const m of allMatchesPre) {
+                if (!m.details_json) continue;
+                try {
+                    const d = typeof m.details_json === 'string' ? JSON.parse(m.details_json) : m.details_json;
+                    if (d.is_test === true && d.test_run_id?.startsWith('test6_')) {
+                        await base44.entities.Match.delete(m.id);
+                    }
+                } catch { /* skip */ }
             }
 
             // SETUP: Create test teams
@@ -802,7 +883,14 @@ export default function AdminSystemTestHarness() {
                 } catch { return false; }
             });
             if (awardEntries.length !== 1) {
-                test.details = `Expected 1 AWARD entry, got ${awardEntries.length}`;
+                // DIAGNOSTIC: Show what was found
+                const allAwards = ledgerAfter.filter(e => {
+                    try {
+                        const b = JSON.parse(e.breakdown_json);
+                        return b.type === 'AWARD';
+                    } catch { return false; }
+                });
+                test.details = `Expected 1 AWARD entry, got ${awardEntries.length}. All AWARDs for user: ${allAwards.length}. Match IDs: ${allAwards.map(a => { try { return JSON.parse(a.breakdown_json).match_id.slice(-8); } catch { return '???'; } }).join(', ')}`;
                 return test;
             }
 
