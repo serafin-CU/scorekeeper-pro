@@ -71,7 +71,20 @@ Deno.serve(async (req) => {
             });
 
             if (existingResults.length > 0) {
-                // Already finalized, just ensure validation is locked
+                // If admin manually overrode this result, lock the validation and preserve the admin score
+                if (existingResults[0].manually_overridden) {
+                    console.log(`[Finalizer] Skipping match ${validation.match_id} — manually overridden by admin`);
+                    if (!validation.locked_final) {
+                        await base44.asServiceRole.entities.MatchValidation.update(validation.id, {
+                            locked_final: true,
+                            finalized_at: now
+                        });
+                    }
+                    matchesSkipped++;
+                    skippedReasons.push({ match_id: validation.match_id, reason: 'Manually overridden by admin — preserved' });
+                    continue;
+                }
+                // Already finalized (not overridden), just ensure validation is locked
                 if (!validation.locked_final) {
                     await base44.asServiceRole.entities.MatchValidation.update(validation.id, {
                         locked_final: true,

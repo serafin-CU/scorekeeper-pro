@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Lock } from 'lucide-react';
 
 export default function AdminManualOverride() {
     const [selectedMatch, setSelectedMatch] = useState(null);
@@ -34,6 +34,25 @@ export default function AdminManualOverride() {
     const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]));
     const resultsMap = Object.fromEntries(results.map(r => [r.match_id, r]));
 
+    const unlockMutation = useMutation({
+        mutationFn: async (matchId) => {
+            const existing = resultsMap[matchId];
+            if (!existing) return;
+            await base44.entities.MatchResultFinal.update(existing.id, {
+                manual_override: false,
+                manual_edited_at: null,
+                override_reason: null
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['matchResults'] });
+            setSelectedMatch(null);
+        },
+        onError: (error) => {
+            alert('Unlock failed: ' + error.message);
+        }
+    });
+
     const overrideMutation = useMutation({
         mutationFn: async ({ matchId, homeGoals, awayGoals, reason }) => {
             const user = await base44.auth.me();
@@ -42,11 +61,15 @@ export default function AdminManualOverride() {
             const existing = resultsMap[matchId];
             let resultId;
 
+            const now = new Date().toISOString();
             if (existing) {
                 await base44.entities.MatchResultFinal.update(existing.id, {
                     home_goals: parseInt(homeGoals),
                     away_goals: parseInt(awayGoals),
-                    finalized_at: new Date().toISOString()
+                    finalized_at: now,
+                    manual_override: true,
+                    manual_edited_at: now,
+                    override_reason: reason
                 });
                 resultId = existing.id;
             } else {
@@ -54,7 +77,10 @@ export default function AdminManualOverride() {
                     match_id: matchId,
                     home_goals: parseInt(homeGoals),
                     away_goals: parseInt(awayGoals),
-                    finalized_at: new Date().toISOString()
+                    finalized_at: now,
+                    manual_override: true,
+                    manual_edited_at: now,
+                    override_reason: reason
                 });
                 resultId = result.id;
             }
@@ -165,11 +191,18 @@ export default function AdminManualOverride() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                {result ? (
-                                                    <span className="font-mono">{result.home_goals}-{result.away_goals}</span>
-                                                ) : (
-                                                    <span className="text-gray-400">Not set</span>
-                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    {result ? (
+                                                        <span className="font-mono">{result.home_goals}-{result.away_goals}</span>
+                                                    ) : (
+                                                        <span className="text-gray-400">Not set</span>
+                                                    )}
+                                                    {result?.manual_override && (
+                                                        <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                                                            <Lock className="w-3 h-3" /> Manual
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <Button 
@@ -231,10 +264,21 @@ export default function AdminManualOverride() {
                                     rows={4}
                                 />
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                                 <Button onClick={handleOverride}>
                                     Save Override
                                 </Button>
+                                {resultsMap[selectedMatch]?.manual_override && (
+                                    <Button
+                                        variant="outline"
+                                        className="border-amber-400 text-amber-700 hover:bg-amber-50"
+                                        onClick={() => unlockMutation.mutate(selectedMatch)}
+                                        disabled={unlockMutation.isPending}
+                                    >
+                                        <Lock className="w-4 h-4 mr-1" />
+                                        Unlock from API
+                                    </Button>
+                                )}
                                 <Button variant="outline" onClick={() => setSelectedMatch(null)}>
                                     Cancel
                                 </Button>

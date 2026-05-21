@@ -100,8 +100,12 @@ Deno.serve(async (req) => {
                     updated++;
                 }
 
-                // Create/update MatchResultFinal
+                // Create/update MatchResultFinal — skip if an admin has manually overridden this result
                 const existing = await base44.entities.MatchResultFinal.filter({ match_id: ourMatch.id });
+                if (existing.length > 0 && existing[0].manually_overridden) {
+                    console.log(`[wcFixtureResultsSync] Skipping ${fixture.teams.home.name} vs ${fixture.teams.away.name} — manually overridden by admin`);
+                    continue;
+                }
                 if (existing.length === 0) {
                     // Try to find MVP player if available
                     let mvpPlayerId = null;
