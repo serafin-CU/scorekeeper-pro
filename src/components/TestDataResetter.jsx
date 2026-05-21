@@ -7,11 +7,26 @@ import { Loader2, Trash2 } from 'lucide-react';
 export default function TestDataResetter() {
     const [resetRunning, setResetRunning] = useState(false);
     const [resetCounts, setResetCounts] = useState(null);
+    const [confirmClick, setConfirmClick] = useState(null); // { timestamp, timerId }
+
+    const handleResetClick = () => {
+        if (confirmClick) {
+            // Second click within window - execute reset
+            if (confirmClick.timerId) {
+                clearTimeout(confirmClick.timerId);
+            }
+            setConfirmClick(null);
+            resetAllTestData();
+        } else {
+            // First click - set confirmation window
+            const timerId = setTimeout(() => {
+                setConfirmClick(null);
+            }, 5000);
+            setConfirmClick({ timestamp: Date.now(), timerId });
+        }
+    };
 
     const resetAllTestData = async () => {
-        if (!confirm('⚠️ This will delete ALL test data (where details_json.is_test=true) across ALL entities. This cannot be undone. Continue?')) {
-            return;
-        }
 
         setResetRunning(true);
         setResetCounts(null);
@@ -169,7 +184,7 @@ export default function TestDataResetter() {
                 </p>
                 
                 <Button
-                    onClick={resetAllTestData}
+                    onClick={handleResetClick}
                     disabled={resetRunning}
                     variant="destructive"
                     className="w-full"
@@ -178,6 +193,11 @@ export default function TestDataResetter() {
                         <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                             Deleting test data...
+                        </>
+                    ) : confirmClick ? (
+                        <>
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Click again within 5s to CONFIRM
                         </>
                     ) : (
                         <>

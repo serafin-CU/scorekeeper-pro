@@ -667,7 +667,8 @@ Deno.serve(async (req) => {
                                 reason: 'Force re-score from devFantasyTestSetup',
                                 voided_points: totalPoints,
                                 timestamp: new Date().toISOString()
-                            })
+                            }),
+                            details_json: JSON.stringify({ is_test: true, test_run_id: testRunId })
                         });
                     }
                 }
@@ -732,7 +733,7 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // Write ledger entry
+            // Write ledger entry (tagged as test data)
             await base44.asServiceRole.entities.PointsLedger.create({
                 user_id: testUser.id,
                 mode: 'FANTASY',
@@ -751,7 +752,8 @@ Deno.serve(async (req) => {
                         starters_count: squadPlayers.length
                     },
                     timestamp: new Date().toISOString()
-                })
+                }),
+                details_json: JSON.stringify({ is_test: true, test_run_id: testRunId })
             });
 
             scoringResult = {

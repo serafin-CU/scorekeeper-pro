@@ -18,10 +18,10 @@ Deno.serve(async (req) => {
             }, { status: 401 });
         }
 
-        const { action, match_id, force } = await req.json();
+        const { action, match_id, force, is_test } = await req.json();
 
         if (action === 'score_fantasy_match') {
-            const result = await scoreFantasyMatch(base44, match_id, force || false);
+            const result = await scoreFantasyMatch(base44, match_id, force || false, is_test || false);
             return Response.json(result);
         }
 
@@ -158,7 +158,7 @@ async function validateFantasySquad(base44, squad_id) {
     return { ok: true, positionCounts };
 }
 
-async function scoreFantasyMatch(base44, match_id, force = false) {
+async function scoreFantasyMatch(base44, match_id, force = false, is_test = false) {
     // IDEMPOTENCY CHECK: If stats already exist and this isn't a forced re-score, return early
     // The re-score path (force=true) will VOID prior awards before writing new ones
     const existingStats = await base44.asServiceRole.entities.FantasyMatchPlayerStats.filter({ match_id });
@@ -330,7 +330,8 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
                     reason: 'Re-score',
                     voided_points: totalPoints,
                     timestamp: new Date().toISOString()
-                })
+                }),
+                details_json: is_test ? JSON.stringify({ is_test: true }) : null
             });
             ledgerVoids.push(voidEntry);
         }
@@ -614,7 +615,8 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
                     resolved_xi_count: resolvedXI.length
                 },
                 timestamp: new Date().toISOString()
-            })
+            }),
+            details_json: is_test ? JSON.stringify({ is_test: true }) : null
         });
 
         ledgerAwards.push(ledgerEntry);
