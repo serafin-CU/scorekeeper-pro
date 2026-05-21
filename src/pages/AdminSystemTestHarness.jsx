@@ -565,7 +565,8 @@ export default function AdminSystemTestHarness() {
             // Action 3: Run fantasy scoring again (re-score)
             const score3 = await base44.functions.invoke('fantasyScoringService', {
                 action: 'score_fantasy_match',
-                match_id: match.id
+                match_id: match.id,
+                force: true
             });
 
             // Verify: VOID + new AWARD entries created
