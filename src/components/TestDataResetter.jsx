@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Trash2 } from 'lucide-react';
+import { safeDelete } from '@/utils/safeDelete';
 
 export default function TestDataResetter() {
     const [resetRunning, setResetRunning] = useState(false);
@@ -77,7 +78,7 @@ export default function TestDataResetter() {
             const allSP = await base44.entities.FantasySquadPlayer.list();
             for (const sp of allSP) {
                 if (isTestRow(sp)) {
-                    await base44.entities.FantasySquadPlayer.delete(sp.id);
+                    await safeDelete('FantasySquadPlayer', () => base44.entities.FantasySquadPlayer.delete(sp.id), { id: sp.id }, 'FantasySquadPlayer row');
                     counts.FantasySquadPlayer++;
                 }
             }
@@ -86,7 +87,7 @@ export default function TestDataResetter() {
             const allSQ = await base44.entities.FantasySquad.list();
             for (const sq of allSQ) {
                 if (isTestRow(sq)) {
-                    await base44.entities.FantasySquad.delete(sq.id);
+                    await safeDelete('FantasySquad', () => base44.entities.FantasySquad.delete(sq.id), { id: sq.id }, 'FantasySquad row');
                     counts.FantasySquad++;
                 }
             }
@@ -95,7 +96,7 @@ export default function TestDataResetter() {
             const allLedger = await base44.entities.PointsLedger.list();
             for (const entry of allLedger) {
                 if (isTestLedgerEntry(entry)) {
-                    await base44.entities.PointsLedger.delete(entry.id);
+                    await safeDelete('PointsLedger', () => base44.entities.PointsLedger.delete(entry.id), { id: entry.id }, 'PointsLedger row');
                     counts.PointsLedger++;
                 }
             }
@@ -104,7 +105,7 @@ export default function TestDataResetter() {
             const allStats = await base44.entities.FantasyMatchPlayerStats.list();
             for (const s of allStats) {
                 if (isTestRow(s)) {
-                    await base44.entities.FantasyMatchPlayerStats.delete(s.id);
+                    await safeDelete('FantasyMatchPlayerStats', () => base44.entities.FantasyMatchPlayerStats.delete(s.id), { id: s.id }, 'FantasyMatchPlayerStats row');
                     counts.FantasyMatchPlayerStats++;
                 }
             }
@@ -113,7 +114,7 @@ export default function TestDataResetter() {
             const allMRF = await base44.entities.MatchResultFinal.list();
             for (const mrf of allMRF) {
                 if (isTestRow(mrf)) {
-                    await base44.entities.MatchResultFinal.delete(mrf.id);
+                    await safeDelete('MatchResultFinal', () => base44.entities.MatchResultFinal.delete(mrf.id), { id: mrf.id }, 'MatchResultFinal row');
                     counts.MatchResultFinal++;
                 }
             }
@@ -122,7 +123,7 @@ export default function TestDataResetter() {
             const allMatches = await base44.entities.Match.list();
             for (const m of allMatches) {
                 if (isTestRow(m)) {
-                    await base44.entities.Match.delete(m.id);
+                    await safeDelete('Match', () => base44.entities.Match.delete(m.id), { id: m.id }, 'Match row');
                     counts.Match++;
                 }
             }
@@ -131,7 +132,7 @@ export default function TestDataResetter() {
             const allPlayers = await base44.entities.Player.list();
             for (const p of allPlayers) {
                 if (isTestRow(p) || (p.full_name && (p.full_name.startsWith('Test Player ') || p.full_name.startsWith('Test DAW ')))) {
-                    await base44.entities.Player.delete(p.id);
+                    await safeDelete('Player', () => base44.entities.Player.delete(p.id), { id: p.id }, 'Player row');
                     counts.Player++;
                 }
             }
@@ -140,7 +141,7 @@ export default function TestDataResetter() {
             const allTeams = await base44.entities.Team.list();
             for (const t of allTeams) {
                 if (isTestRow(t)) {
-                    await base44.entities.Team.delete(t.id);
+                    await safeDelete('Team', () => base44.entities.Team.delete(t.id), { id: t.id }, 'Team row');
                     counts.Team++;
                 }
             }
@@ -152,7 +153,7 @@ export default function TestDataResetter() {
                 try {
                     const d = typeof source.notes === 'string' ? JSON.parse(source.notes) : source.notes;
                     if (d.is_test === true) {
-                        await base44.entities.DataSource.delete(source.id);
+                        await safeDelete('DataSource', () => base44.entities.DataSource.delete(source.id), { id: source.id }, 'DataSource row');
                         counts.DataSource++;
                     }
                 } catch { /* skip */ }
