@@ -874,7 +874,7 @@ export default function AdminSystemTestHarness() {
                 return test;
             }
 
-            // ASSERT 3: Verify 1 AWARD ledger entry
+            // ASSERT 3: Verify 1 AWARD ledger entry for THIS squad (not all squads in phase)
             const ledgerAfter = await base44.entities.PointsLedger.filter({
                 mode: 'FANTASY',
                 user_id: currentUser.id
@@ -882,7 +882,8 @@ export default function AdminSystemTestHarness() {
             const awardEntries = ledgerAfter.filter(e => {
                 try {
                     const b = JSON.parse(e.breakdown_json);
-                    return b.match_id === match.id && b.type === 'AWARD';
+                    // Filter to AWARDs for this specific match AND this specific squad
+                    return b.match_id === match.id && b.type === 'AWARD' && b.squad_id === squad.id;
                 } catch { return false; }
             });
             if (awardEntries.length !== 1) {
@@ -890,10 +891,11 @@ export default function AdminSystemTestHarness() {
                 const allAwards = ledgerAfter.filter(e => {
                     try {
                         const b = JSON.parse(e.breakdown_json);
-                        return b.type === 'AWARD';
+                        return b.match_id === match.id && b.type === 'AWARD';
                     } catch { return false; }
                 });
-                test.details = `Expected 1 AWARD entry, got ${awardEntries.length}. All AWARDs for user: ${allAwards.length}. Match IDs: ${allAwards.map(a => { try { return JSON.parse(a.breakdown_json).match_id.slice(-8); } catch { return '???'; } }).join(', ')}`;
+                const squadIds = allAwards.map(a => { try { return JSON.parse(a.breakdown_json).squad_id?.slice(-8) || '???'; } catch { return '???'; } });
+                test.details = `Expected 1 AWARD for test squad, got ${awardEntries.length}. All AWARDs for this match: ${allAwards.length}. Squad IDs: ${[...new Set(squadIds)].join(', ')}`;
                 return test;
             }
 
