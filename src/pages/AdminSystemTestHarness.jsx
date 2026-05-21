@@ -614,7 +614,7 @@ export default function AdminSystemTestHarness() {
 
             // Verify net total (should be higher due to extra goal)
             const netTotal = matchEntriesAfterRescore.reduce((sum, e) => sum + e.points, 0);
-            const expectedIncrease = 5; // 1 extra goal by FWD = 5 points
+            const expectedIncrease = 4; // 1 extra goal by FWD = 4 points (FWD goal value)
 
             if (netTotal !== firstPoints + expectedIncrease) {
                 test.details = `Expected net total ${firstPoints + expectedIncrease}, got ${netTotal}`;
