@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -68,6 +68,11 @@ export default function AdminWCDataSync() {
     const [apiStatus, setApiStatus] = useState(null);
     const [apiStatusLoading, setApiStatusLoading] = useState(false);
 
+    // Player sync loop state
+    const [playerSyncing, setPlayerSyncing] = useState(false);
+    const [playerProgress, setPlayerProgress] = useState(null); // { done, total, playersCreated, batchLog[], errors[] }
+    const playerAbort = useRef(false);
+
     const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
     const { data: matches = [] } = useQuery({ queryKey: ['matches'], queryFn: () => base44.entities.Match.list() });
     const { data: players = [] } = useQuery({ queryKey: ['players'], queryFn: () => base44.entities.Player.list() });
@@ -112,6 +117,69 @@ export default function AdminWCDataSync() {
 
     const finalizedCount = matches.filter(m => m.status === 'FINAL').length;
     const scheduledCount = matches.filter(m => m.status === 'SCHEDULED').length;
+
+    const syncAllPlayers = async () => {
+        playerAbort.current = false;
+        setPlayerSyncing(true);
+        setPlayerProgress({ done: 0, total: 0, playersCreated: 0, batchLog: [], errors: [] });
+
+        let offset = 0;
+        let totalTeams = 0;
+        let totalPlayersCreated = 0;
+        const allErrors = [];
+        const batchLog = [];
+        const BATCH_SIZE = 5;
+
+        try {
+            while (true) {
+                if (playerAbort.current) break;
+
+                const res = await base44.functions.invoke('wcDataSync', {
+                    action: 'sync_players',
+                    offset,
+                    batch_size: BATCH_SIZE,
+                });
+                const data = res.data;
+
+                if (!data?.ok) {
+                    allErrors.push(data?.error || 'Unknown error');
+                    break;
+                }
+
+                totalTeams = data.total_teams || totalTeams;
+                totalPlayersCreated += data.players_created || 0;
+                if (data.errors?.length) allErrors.push(...data.errors);
+
+                batchLog.push({
+                    offset,
+                    teams: data.teams_in_batch,
+                    players: data.players_created,
+                    errors: data.errors?.length || 0,
+                });
+
+                setPlayerProgress({
+                    done: offset + (data.teams_in_batch || BATCH_SIZE),
+                    total: totalTeams,
+                    playersCreated: totalPlayersCreated,
+                    batchLog: [...batchLog],
+                    errors: [...allErrors],
+                });
+
+                if (!data.has_more) break;
+
+                offset = data.next_offset;
+                // Brief pause between batches to avoid API rate limits
+                await new Promise(r => setTimeout(r, 1200));
+            }
+
+            queryClient.invalidateQueries({ queryKey: ['players'] });
+        } catch (err) {
+            allErrors.push(err.message);
+            setPlayerProgress(prev => ({ ...prev, errors: [...(prev?.errors || []), err.message] }));
+        }
+
+        setPlayerSyncing(false);
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
@@ -232,16 +300,79 @@ export default function AdminWCDataSync() {
                         buttonLabel="Sync 104 Fixtures"
                         destructive
                     />
-                    <SyncCard
-                        title="3. Sync Players"
-                        description="Fetches squads + season stats for all 48 teams. Each player gets a score (1-100) and fantasy price based on rating, goals, assists & age. Call multiple times with auto-batching."
-                        icon={Zap}
-                        onSync={() => runAction('players', 'sync_players')}
-                        loading={loadingMap['players']}
-                        result={resultMap['players']}
-                        buttonLabel="Sync Player Squads + Stats"
-                        destructive
-                    />
+                    {/* Player Sync — auto-looping */}
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: CU.orange + '20' }}>
+                                    <Zap className="w-5 h-5" style={{ color: CU.orange }} />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-base">3. Sync Players</CardTitle>
+                                    <p className="text-xs text-gray-500 mt-0.5">Fetches squads + stats for all 48 teams in batches of 5. Runs automatically to completion.</p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <Button
+                                onClick={playerSyncing ? () => { playerAbort.current = true; } : syncAllPlayers}
+                                variant={playerSyncing ? 'outline' : 'destructive'}
+                                className="w-full"
+                            >
+                                {playerSyncing
+                                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Stop Sync</>
+                                    : <><RefreshCw className="w-4 h-4 mr-2" />Sync All Player Squads + Stats</>
+                                }
+                            </Button>
+
+                            {playerProgress && (
+                                <div className="mt-4 space-y-3">
+                                    {/* Progress bar */}
+                                    <div>
+                                        <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                            <span>Teams processed: {Math.min(playerProgress.done, playerProgress.total || playerProgress.done)} / {playerProgress.total || '?'}</span>
+                                            <span>{playerProgress.playersCreated} players created</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2">
+                                            <div
+                                                className="h-2 rounded-full transition-all duration-500"
+                                                style={{
+                                                    width: playerProgress.total ? `${Math.min(100, (playerProgress.done / playerProgress.total) * 100)}%` : '0%',
+                                                    background: CU.orange
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Completion badge */}
+                                    {!playerSyncing && playerProgress.done >= playerProgress.total && playerProgress.total > 0 && (
+                                        <div className="flex items-center gap-2 text-green-700 text-sm font-medium">
+                                            <CheckCircle className="w-4 h-4" /> All {playerProgress.total} teams synced — {playerProgress.playersCreated} players created
+                                        </div>
+                                    )}
+
+                                    {/* Batch log */}
+                                    {playerProgress.batchLog.length > 0 && (
+                                        <div className="text-xs bg-gray-50 border rounded p-2 max-h-36 overflow-y-auto space-y-0.5">
+                                            {playerProgress.batchLog.map((b, i) => (
+                                                <div key={i} className="flex justify-between text-gray-600">
+                                                    <span>Batch {i + 1} (teams {b.offset + 1}–{b.offset + b.teams})</span>
+                                                    <span>{b.players} players{b.errors > 0 ? ` · ⚠️ ${b.errors} err` : ''}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Errors */}
+                                    {playerProgress.errors.length > 0 && (
+                                        <div className="text-xs bg-red-50 border border-red-200 rounded p-2 max-h-24 overflow-y-auto">
+                                            {playerProgress.errors.map((e, i) => <div key={i} className="text-red-700">{e}</div>)}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                     <SyncCard
                         title="4. Sync Results"
                         description="Fetches final scores for completed matches and creates MatchResultFinal records."
