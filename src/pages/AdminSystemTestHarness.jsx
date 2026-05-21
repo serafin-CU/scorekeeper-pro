@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle, XCircle, Loader2, AlertCircle, Copy, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import TestDataResetter from '@/components/TestDataResetter';
 
 export default function AdminSystemTestHarness() {
     const [running, setRunning] = useState(false);
@@ -25,6 +26,8 @@ export default function AdminSystemTestHarness() {
     const [transferTestResult, setTransferTestResult] = useState(null);
     const [baselineRunning, setBaselineRunning] = useState(false);
     const [baselineResult, setBaselineResult] = useState(null);
+    const [resetRunning, setResetRunning] = useState(false);
+    const [resetCounts, setResetCounts] = useState(null);
 
     const { data: matches = [] } = useQuery({
         queryKey: ['matches'],
@@ -1093,84 +1096,6 @@ export default function AdminSystemTestHarness() {
         setBuildingStats(false);
     };
 
-    const resetTestData = async () => {
-        if (!testRunId) {
-            alert('No test run to clean up');
-            return;
-        }
-
-        if (!confirm('Delete all test data for run ' + testRunId + '?')) {
-            return;
-        }
-
-        // Marker-based filter — ONLY matches rows explicitly stamped by this test run.
-        // Never matches API-sourced rows whose details_json is null or lacks is_test.
-        const isTestRow = (row) => {
-            if (!row.details_json) return false;
-            try {
-                const d = typeof row.details_json === 'string' ? JSON.parse(row.details_json) : row.details_json;
-                return d.is_test === true && d.test_run_id === testRunId;
-            } catch { return false; }
-        };
-
-        try {
-            // Delete test Teams (marker only — never by name substring)
-            const allTeams = await base44.entities.Team.list();
-            for (const team of allTeams) {
-                if (isTestRow(team)) await base44.entities.Team.delete(team.id);
-            }
-
-            // Delete test Matches
-            const allMatches = await base44.entities.Match.list();
-            for (const m of allMatches) {
-                if (isTestRow(m)) await base44.entities.Match.delete(m.id);
-            }
-
-            // Delete test MatchResultFinals
-            const allMRF = await base44.entities.MatchResultFinal.list();
-            for (const mrf of allMRF) {
-                if (isTestRow(mrf)) await base44.entities.MatchResultFinal.delete(mrf.id);
-            }
-
-            // Delete test FantasyMatchPlayerStats
-            const allStats = await base44.entities.FantasyMatchPlayerStats.list();
-            for (const s of allStats) {
-                if (isTestRow(s)) await base44.entities.FantasyMatchPlayerStats.delete(s.id);
-            }
-
-            // Delete test FantasySquads
-            const allSquads = await base44.entities.FantasySquad.list();
-            for (const sq of allSquads) {
-                if (isTestRow(sq)) await base44.entities.FantasySquad.delete(sq.id);
-            }
-
-            // Delete test DataSources (notes field used as marker)
-            const allSources = await base44.entities.DataSource.list();
-            for (const source of allSources) {
-                if (!source.notes) continue;
-                try {
-                    const d = typeof source.notes === 'string' ? JSON.parse(source.notes) : source.notes;
-                    if (d.is_test === true && d.test_run_id === testRunId) {
-                        await base44.entities.DataSource.delete(source.id);
-                    }
-                } catch { /* not JSON, skip */ }
-            }
-
-            // Delete test PointsLedger entries
-            const allLedger = await base44.entities.PointsLedger.list();
-            for (const entry of allLedger) {
-                if (isTestRow(entry)) await base44.entities.PointsLedger.delete(entry.id);
-            }
-
-            alert('Test data cleaned up successfully');
-            setTestRunId(null);
-            setResults([]);
-
-        } catch (error) {
-            alert('Cleanup error: ' + error.message);
-        }
-    };
-
     return (
         <div className="p-8 max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">
@@ -1186,13 +1111,10 @@ export default function AdminSystemTestHarness() {
                             'Run Dev Fantasy Setup'
                         )}
                     </Button>
-                    {testRunId && (
-                        <Button variant="outline" onClick={resetTestData}>
-                            Reset Test Data
-                        </Button>
-                    )}
                 </div>
             </div>
+
+            <TestDataResetter />
 
             <Card className="mb-6">
                 <CardHeader>
