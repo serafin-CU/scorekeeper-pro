@@ -416,6 +416,8 @@ Deno.serve(async (req) => {
             let updated = 0;
             let finalized = 0;
             let skipped = 0;
+            let skippedManual = 0;
+            const skippedManualIds = [];
             const results = [];
 
             for (const item of fixtures) {
@@ -462,6 +464,15 @@ Deno.serve(async (req) => {
                 // Create/update MatchResultFinal
                 if (item.goals.home !== null && item.goals.away !== null) {
                     const existingResult = await base44.asServiceRole.entities.MatchResultFinal.filter({ match_id: ourMatch.id });
+
+                    // Guardrail: skip if manually overridden by admin
+                    if (existingResult.length > 0 && existingResult[0].manually_overridden === true) {
+                        skippedManual++;
+                        skippedManualIds.push(ourMatch.id);
+                        console.log(`[sync_results] Skipping match ${ourMatch.id} — manually overridden`);
+                        continue;
+                    }
+
                     if (existingResult.length === 0) {
                         await base44.asServiceRole.entities.MatchResultFinal.create({
                             match_id: ourMatch.id,
