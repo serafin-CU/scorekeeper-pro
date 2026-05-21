@@ -369,7 +369,7 @@ export default function ProdePredictions() {
         if (!selectedPhase && availablePhases.length > 0) {
             const now = new Date();
             const upcoming = availablePhases.find(p =>
-                phases[p].some(m => new Date(m.kickoff_at) > now)
+                (phases[p] || []).some(m => new Date(m.kickoff_at) > now)
             );
             setSelectedPhase(upcoming || availablePhases[0]);
         }
