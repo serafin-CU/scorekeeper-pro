@@ -33,7 +33,7 @@ function RankBadge({ rank }) {
     );
 }
 
-function LeaderboardTable({ entries, currentUserId, mode }) {
+function LeaderboardTable({ entries, currentUserId, mode, showFantasyCol }) {
     if (entries.length === 0) {
         return (
             <div className="text-center py-12" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
@@ -76,7 +76,7 @@ function LeaderboardTable({ entries, currentUserId, mode }) {
                         {mode === 'ALL' && (
                             <div className="flex gap-3 text-xs" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
                                 <span title="Prode">P: {entry.prode_points}</span>
-                                {showFantasyTab && <span title="Fantasy">F: {entry.fantasy_points}</span>}
+                                {showFantasyCol && <span title="Fantasy">F: {entry.fantasy_points}</span>}
                             </div>
                         )}
                         <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.2rem', color: CU.charcoal }}>
@@ -237,7 +237,7 @@ export default function Leaderboard() {
             </div>
 
             {/* Table */}
-            <LeaderboardTable entries={entries} currentUserId={currentUser?.id} mode={tab} />
+            <LeaderboardTable entries={entries} currentUserId={currentUser?.id} mode={tab} showFantasyCol={showFantasyTab} />
         </div>
     );
 }

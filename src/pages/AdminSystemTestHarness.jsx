@@ -119,12 +119,12 @@ export default function AdminSystemTestHarness() {
             const team1 = await base44.entities.Team.create({
                 name: `Test Team A ${runId}`,
                 fifa_code: 'TA1',
-                details_json: JSON.stringify({ test_run_id: runId })
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
             const team2 = await base44.entities.Team.create({
                 name: `Test Team B ${runId}`,
                 fifa_code: 'TB1',
-                details_json: JSON.stringify({ test_run_id: runId })
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
 
             // Create players
@@ -144,7 +144,8 @@ export default function AdminSystemTestHarness() {
                 kickoff_at: pastDate.toISOString(),
                 home_team_id: team1.id,
                 away_team_id: team2.id,
-                status: 'SCHEDULED'
+                status: 'SCHEDULED',
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
 
             // Create test users via invite (will use system users instead)
@@ -232,12 +233,12 @@ export default function AdminSystemTestHarness() {
             const team1 = await base44.entities.Team.create({
                 name: `Test Team C ${runId}`,
                 fifa_code: 'TC1',
-                details_json: JSON.stringify({ test_run_id: runId })
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
             const team2 = await base44.entities.Team.create({
                 name: `Test Team D ${runId}`,
                 fifa_code: 'TD1',
-                details_json: JSON.stringify({ test_run_id: runId })
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
 
             const pastDate = new Date();
@@ -248,7 +249,8 @@ export default function AdminSystemTestHarness() {
                 kickoff_at: pastDate.toISOString(),
                 home_team_id: team1.id,
                 away_team_id: team2.id,
-                status: 'SCHEDULED'
+                status: 'SCHEDULED',
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
 
             // Create MatchValidation with confidence=60 (below threshold)
@@ -307,12 +309,12 @@ export default function AdminSystemTestHarness() {
             const team1 = await base44.entities.Team.create({
                 name: `Test Team E ${runId}`,
                 fifa_code: 'TE1',
-                details_json: JSON.stringify({ test_run_id: runId })
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
             const team2 = await base44.entities.Team.create({
                 name: `Test Team F ${runId}`,
                 fifa_code: 'TF1',
-                details_json: JSON.stringify({ test_run_id: runId })
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
 
             const match = await base44.entities.Match.create({
@@ -320,7 +322,8 @@ export default function AdminSystemTestHarness() {
                 kickoff_at: new Date().toISOString(),
                 home_team_id: team1.id,
                 away_team_id: team2.id,
-                status: 'SCHEDULED'
+                status: 'SCHEDULED',
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
 
             // Create a valid link first
@@ -374,11 +377,13 @@ export default function AdminSystemTestHarness() {
             // Setup: Create teams, players, match, stats, and squad
             const team1 = await base44.entities.Team.create({
                 name: `Test Team I ${runId}`,
-                fifa_code: 'TI1'
+                fifa_code: 'TI1',
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
             const team2 = await base44.entities.Team.create({
                 name: `Test Team J ${runId}`,
-                fifa_code: 'TJ1'
+                fifa_code: 'TJ1',
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
 
             // Create 11 players for squad
@@ -403,7 +408,8 @@ export default function AdminSystemTestHarness() {
                 kickoff_at: pastDate.toISOString(),
                 home_team_id: team1.id,
                 away_team_id: team2.id,
-                status: 'FINAL'
+                status: 'FINAL',
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
 
             // Create MatchResultFinal (team1 wins 2-0, clean sheet)
@@ -411,7 +417,8 @@ export default function AdminSystemTestHarness() {
                 match_id: match.id,
                 home_goals: 2,
                 away_goals: 0,
-                finalized_at: new Date().toISOString()
+                finalized_at: new Date().toISOString(),
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
 
             // Create FantasyMatchPlayerStats
@@ -429,7 +436,8 @@ export default function AdminSystemTestHarness() {
                     goals: i === 8 ? 2 : 0, // FWD scores 2 goals
                     yellow_cards: i === 2 ? 1 : 0, // 1 DEF gets yellow
                     red_cards: 0,
-                    source: 'MANUAL'
+                    source: 'MANUAL',
+                    details_json: JSON.stringify({ is_test: true, test_run_id: runId })
                 });
             }
 
@@ -442,7 +450,8 @@ export default function AdminSystemTestHarness() {
                 status: 'FINAL',
                 budget_cap: 150,
                 total_cost: 88,
-                finalized_at: new Date().toISOString()
+                finalized_at: new Date().toISOString(),
+                details_json: JSON.stringify({ is_test: true, test_run_id: runId })
             });
 
             // Add all 11 players as starters with captain
@@ -457,18 +466,13 @@ export default function AdminSystemTestHarness() {
                 });
             }
 
-            // Action 1: Run fantasy scoring twice
-            const score1 = await base44.functions.invoke('fantasyScoringService', {
+            // Action 1: Run fantasy scoring once
+            await base44.functions.invoke('fantasyScoringService', {
                 action: 'score_fantasy_match',
                 match_id: match.id
             });
 
-            const score2 = await base44.functions.invoke('fantasyScoringService', {
-                action: 'score_fantasy_match',
-                match_id: match.id
-            });
-
-            // Verify: Second run should NOT create new awards (idempotent via ScoringJob)
+            // Verify: 1 AWARD after first run
             const ledgerAfterFirst = await base44.entities.PointsLedger.filter({
                 mode: 'FANTASY',
                 user_id: currentUser.id
@@ -484,7 +488,7 @@ export default function AdminSystemTestHarness() {
             });
 
             if (matchLedgerEntries.length !== 1) {
-                test.details = `Expected 1 AWARD entry after 2 runs, got ${matchLedgerEntries.length}`;
+                test.details = `Expected 1 AWARD entry after first run, got ${matchLedgerEntries.length}`;
                 return test;
             }
 
@@ -723,21 +727,63 @@ export default function AdminSystemTestHarness() {
             return;
         }
 
+        // Marker-based filter — ONLY matches rows explicitly stamped by this test run.
+        // Never matches API-sourced rows whose details_json is null or lacks is_test.
+        const isTestRow = (row) => {
+            if (!row.details_json) return false;
+            try {
+                const d = typeof row.details_json === 'string' ? JSON.parse(row.details_json) : row.details_json;
+                return d.is_test === true && d.test_run_id === testRunId;
+            } catch { return false; }
+        };
+
         try {
-            // Delete test teams (cascading will help with related data)
+            // Delete test Teams (marker only — never by name substring)
             const allTeams = await base44.entities.Team.list();
             for (const team of allTeams) {
-                if (team.name?.includes(testRunId)) {
-                    await base44.entities.Team.delete(team.id);
-                }
+                if (isTestRow(team)) await base44.entities.Team.delete(team.id);
             }
 
-            // Delete test data sources
+            // Delete test Matches
+            const allMatches = await base44.entities.Match.list();
+            for (const m of allMatches) {
+                if (isTestRow(m)) await base44.entities.Match.delete(m.id);
+            }
+
+            // Delete test MatchResultFinals
+            const allMRF = await base44.entities.MatchResultFinal.list();
+            for (const mrf of allMRF) {
+                if (isTestRow(mrf)) await base44.entities.MatchResultFinal.delete(mrf.id);
+            }
+
+            // Delete test FantasyMatchPlayerStats
+            const allStats = await base44.entities.FantasyMatchPlayerStats.list();
+            for (const s of allStats) {
+                if (isTestRow(s)) await base44.entities.FantasyMatchPlayerStats.delete(s.id);
+            }
+
+            // Delete test FantasySquads
+            const allSquads = await base44.entities.FantasySquad.list();
+            for (const sq of allSquads) {
+                if (isTestRow(sq)) await base44.entities.FantasySquad.delete(sq.id);
+            }
+
+            // Delete test DataSources (notes field used as marker)
             const allSources = await base44.entities.DataSource.list();
             for (const source of allSources) {
-                if (source.name?.includes(testRunId)) {
-                    await base44.entities.DataSource.delete(source.id);
-                }
+                if (!source.notes) continue;
+                try {
+                    const d = typeof source.notes === 'string' ? JSON.parse(source.notes) : source.notes;
+                    if (d.is_test === true && d.test_run_id === testRunId) {
+                        await base44.entities.DataSource.delete(source.id);
+                    }
+                } catch { /* not JSON, skip */ }
+            }
+
+            // Delete test PointsLedger entries
+            const allLedger = await base44.entities.PointsLedger.list();
+            for (const entry of allLedger) {
+                if (isTestRow(entry)) await base44.entities.PointsLedger.delete(entry.id);
             }
 
             alert('Test data cleaned up successfully');

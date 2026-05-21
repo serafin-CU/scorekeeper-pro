@@ -248,9 +248,9 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
         };
     }
 
-    // Check for prior scoring (re-score detection)
+    // Load all prior AWARD ledger entries for this match
     const allLedger = await base44.asServiceRole.entities.PointsLedger.list();
-    const priorEntriesForMatch = allLedger.filter(e => {
+    const priorAwardsForMatch = allLedger.filter(e => {
         if (e.mode !== 'FANTASY') return false;
         try {
             const breakdown = JSON.parse(e.breakdown_json);
@@ -263,45 +263,33 @@ async function scoreFantasyMatch(base44, match_id, force = false) {
     const ledgerVoids = [];
     const ledgerAwards = [];
 
-    // If force=false and prior entries exist, skip scoring
-    if (!force && priorEntriesForMatch.length > 0) {
-        return {
-            ok: false,
-            code: 'SCORING_ALREADY_DONE',
-            message: 'Match already scored',
-            hint: 'Use force=true to re-score (will void previous entries and create new ones).',
-            details: { match_id, phase, existing_awards: priorEntriesForMatch.length }
-        };
-    }
-
-    // If force=true and prior entries exist, create void entries (only if points > 0)
-    if (force && priorEntriesForMatch.length > 0) {
+    // Always VOID prior awards before re-scoring.
+    // This is idempotent: VOID cancels the prior AWARD exactly, so running N times
+    // yields the same net total as running once (latest AWARD only).
+    if (priorAwardsForMatch.length > 0) {
         const voidsByUser = {};
-        for (const entry of priorEntriesForMatch) {
+        for (const entry of priorAwardsForMatch) {
             voidsByUser[entry.user_id] = (voidsByUser[entry.user_id] || 0) + entry.points;
         }
 
         for (const [user_id, totalPoints] of Object.entries(voidsByUser)) {
-            // Only void if there were actual points
-            if (totalPoints > 0) {
-                const voidEntry = await base44.asServiceRole.entities.PointsLedger.create({
-                    user_id,
-                    mode: 'FANTASY',
-                    source_type: 'FANTASY_MATCH',
-                    source_id: match_id,
-                    points: -totalPoints,
-                    breakdown_json: JSON.stringify({
-                        type: 'VOID',
-                        match_id,
-                        phase,
-                        scoring_version: rules.fantasy_scoring_version,
-                        reason: 'Force re-score',
-                        voided_points: totalPoints,
-                        timestamp: new Date().toISOString()
-                    })
-                });
-                ledgerVoids.push(voidEntry);
-            }
+            const voidEntry = await base44.asServiceRole.entities.PointsLedger.create({
+                user_id,
+                mode: 'FANTASY',
+                source_type: 'FANTASY_MATCH',
+                source_id: match_id,
+                points: -totalPoints,
+                breakdown_json: JSON.stringify({
+                    type: 'VOID',
+                    match_id,
+                    phase,
+                    scoring_version: rules.fantasy_scoring_version,
+                    reason: 'Re-score',
+                    voided_points: totalPoints,
+                    timestamp: new Date().toISOString()
+                })
+            });
+            ledgerVoids.push(voidEntry);
         }
     }
 
