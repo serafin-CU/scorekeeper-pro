@@ -135,7 +135,13 @@ Deno.serve(async (req) => {
         if (action === 'status') {
             const res = await fetch(`${API_BASE}/status`, { headers: apiHeaders() });
             const data = await res.json();
-            return Response.json({ ok: true, data: data.response });
+            const info = data.response || {};
+            return Response.json({
+                ok: true,
+                subscription: info.subscription || null,
+                requests: info.requests || null,
+                account: info.account || null
+            });
         }
 
         // ── SYNC TEAMS ───────────────────────────────────────────────────────
