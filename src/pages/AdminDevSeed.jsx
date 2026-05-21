@@ -27,6 +27,8 @@ export default function AdminDevSeed() {
     };
 
     const seedDevData = async () => {
+        alert('DISABLED: seed_wc2026 is locked to prevent overwriting live API-Football fixture data. Complete the wcSeedService refactor (Step 2) first.');
+        return;
         setSeeding(true);
         setSummary(null);
         
@@ -127,6 +129,10 @@ export default function AdminDevSeed() {
         <div className="p-8 max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold mb-6">Dev Seed Data</h1>
 
+            <div className="mb-6 p-4 rounded-lg border-2 border-red-400 bg-red-50 text-red-800 text-sm font-medium">
+                🔒 <strong>seed_wc2026</strong> and <strong>reseed_matches</strong> are <strong>DISABLED</strong> — these actions would overwrite live API-Football fixture data with stale hard-coded seed data. Pending wcSeedService refactor (Step 2).
+            </div>
+
             <Card className="mb-6 border-red-200 bg-red-50">
                 <CardHeader>
                     <CardTitle className="text-red-800 flex items-center gap-2">
@@ -172,8 +178,9 @@ export default function AdminDevSeed() {
                         <div>
                             <Button 
                                 onClick={seedDevData} 
-                                disabled={seeding}
-                                className="w-full"
+                                disabled={true}
+                                className="w-full opacity-50 cursor-not-allowed"
+                                title="DISABLED — pending wcSeedService refactor"
                             >
                                 {seeding ? (
                                     <>Seeding...</>
