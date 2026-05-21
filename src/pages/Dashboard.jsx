@@ -3,7 +3,7 @@ import WorldCupBanner from '@/components/WorldCupBanner';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Trophy, Users, Target, TrendingUp, Loader2, ChevronRight, Award } from 'lucide-react';
 import { FANTASY_ENABLED } from '@/config/features';
 
@@ -181,10 +181,13 @@ function SectionCard({ title, icon: Icon, iconColor, linkTo, linkLabel, children
 }
 
 export default function Dashboard() {
+    const [searchParams] = useSearchParams();
     const { data: currentUser, isLoading: userLoading } = useQuery({
         queryKey: ['currentUser'],
         queryFn: () => base44.auth.me()
     });
+    const isAdmin = currentUser?.role === 'admin';
+    const previewAsParticipant = isAdmin && searchParams.get('preview_as') === 'participant';
 
     const { data: matches = [] } = useQuery({
         queryKey: ['matches'],
@@ -224,8 +227,7 @@ export default function Dashboard() {
         enabled: !!currentUser
     });
 
-    const isAdmin = currentUser?.role === 'admin';
-    const showFantasy = FANTASY_ENABLED || isAdmin;
+    const showFantasy = (FANTASY_ENABLED || isAdmin) && !previewAsParticipant;
 
     const prodePoints = ledger.filter(e => e.mode === 'PRODE').reduce((sum, e) => sum + (e.points || 0), 0);
     const fantasyPoints = ledger.filter(e => e.mode === 'FANTASY').reduce((sum, e) => sum + (e.points || 0), 0);

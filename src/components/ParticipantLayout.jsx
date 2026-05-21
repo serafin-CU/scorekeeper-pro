@@ -1,8 +1,8 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, LogOut, Shield, MessageSquare, Trophy, Target, LayoutDashboard, User } from 'lucide-react';
+import { Users, LogOut, Shield, MessageSquare, Trophy, Target, LayoutDashboard, User, Eye, EyeOff } from 'lucide-react';
 import AlbaChatWidget from '@/components/AlbaChatWidget';
 import { FANTASY_ENABLED } from '@/config/features';
 
@@ -28,8 +28,10 @@ export default function ParticipantLayout({ children, currentPageName }) {
         queryFn: () => base44.auth.me()
     });
 
+    const [searchParams] = useSearchParams();
     const isAdmin = currentUser?.role === 'admin';
-    const navItems = ALL_NAV_ITEMS.filter(item => !item.fantasyOnly || FANTASY_ENABLED || isAdmin);
+    const previewAsParticipant = isAdmin && searchParams.get('preview_as') === 'participant';
+    const navItems = ALL_NAV_ITEMS.filter(item => !item.fantasyOnly || FANTASY_ENABLED || (isAdmin && !previewAsParticipant));
 
     const handleLogout = () => {
         base44.auth.logout();
@@ -76,7 +78,7 @@ export default function ParticipantLayout({ children, currentPageName }) {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            {isAdmin && (
+                            {isAdmin && !previewAsParticipant && (
                                 <Link to="/AdminSystemTestHarness">
                                     <button
                                         style={{
@@ -96,6 +98,29 @@ export default function ParticipantLayout({ children, currentPageName }) {
                                     >
                                         <Shield className="w-3.5 h-3.5" />
                                         Admin
+                                    </button>
+                                </Link>
+                            )}
+                            {isAdmin && (
+                                <Link to={previewAsParticipant ? window.location.pathname : `${window.location.pathname}?preview_as=participant`}>
+                                    <button
+                                        style={{
+                                            fontFamily: "'Raleway', sans-serif",
+                                            fontWeight: 600,
+                                            fontSize: '0.75rem',
+                                            color: previewAsParticipant ? CU.orange : 'white',
+                                            border: `1px solid ${previewAsParticipant ? CU.orange : 'rgba(255,255,255,0.5)'}`,
+                                            borderRadius: '6px',
+                                            padding: '5px 10px',
+                                            background: previewAsParticipant ? 'rgba(255,184,28,0.1)' : 'transparent',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        {previewAsParticipant ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                        {previewAsParticipant ? '← Admin View' : '👁 Preview as User'}
                                     </button>
                                 </Link>
                             )}

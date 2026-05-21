@@ -3,6 +3,7 @@ import WorldCupBanner from '@/components/WorldCupBanner';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Trophy, Medal, TrendingUp, Loader2, Crown } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { FANTASY_ENABLED } from '@/config/features';
 
 const CU = {
@@ -75,7 +76,7 @@ function LeaderboardTable({ entries, currentUserId, mode }) {
                         {mode === 'ALL' && (
                             <div className="flex gap-3 text-xs" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
                                 <span title="Prode">P: {entry.prode_points}</span>
-                                {FANTASY_ENABLED && <span title="Fantasy">F: {entry.fantasy_points}</span>}
+                                {showFantasyTab && <span title="Fantasy">F: {entry.fantasy_points}</span>}
                             </div>
                         )}
                         <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.2rem', color: CU.charcoal }}>
@@ -88,19 +89,26 @@ function LeaderboardTable({ entries, currentUserId, mode }) {
     );
 }
 
-const TAB_CONFIG = [
+const TAB_CONFIG_BASE = [
     { value: 'ALL', label: 'Overall', icon: TrendingUp },
     { value: 'PRODE', label: 'Prode', icon: Medal },
-    ...(FANTASY_ENABLED ? [{ value: 'FANTASY', label: 'Fantasy', icon: Crown }] : []),
 ];
 
 export default function Leaderboard() {
+    const [searchParams] = useSearchParams();
     const [tab, setTab] = useState('ALL');
 
     const { data: currentUser } = useQuery({
         queryKey: ['currentUser'],
         queryFn: () => base44.auth.me()
     });
+    const isAdmin = currentUser?.role === 'admin';
+    const previewAsParticipant = isAdmin && searchParams.get('preview_as') === 'participant';
+    const showFantasyTab = FANTASY_ENABLED && !previewAsParticipant;
+    const TAB_CONFIG = [
+        ...TAB_CONFIG_BASE,
+        ...(showFantasyTab ? [{ value: 'FANTASY', label: 'Fantasy', icon: Crown }] : []),
+    ];
 
     const { data: ledger = [], isLoading: ledgerLoading } = useQuery({
         queryKey: ['leaderboardLedger'],
