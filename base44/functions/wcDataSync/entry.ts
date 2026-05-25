@@ -278,7 +278,12 @@ Deno.serve(async (req) => {
             let page = await base44.asServiceRole.entities.Player.list('created_date', 200);
             let total = 0;
             while (page.length > 0) {
-                await Promise.all(page.map(p => base44.asServiceRole.entities.Player.delete(p.id)));
+                // Delete in chunks of 10 to avoid Base44 rate limits
+                for (let i = 0; i < page.length; i += 10) {
+                    const chunk = page.slice(i, i + 10);
+                    await Promise.all(chunk.map(p => base44.asServiceRole.entities.Player.delete(p.id)));
+                    if (i + 10 < page.length) await sleep(200);
+                }
                 total += page.length;
                 page = await base44.asServiceRole.entities.Player.list('created_date', 200);
             }
