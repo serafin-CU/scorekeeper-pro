@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Shield, Users, AlertCircle, Loader2, Award } from 'lucide-react';
+import { FANTASY_ENABLED } from '@/config/features';
 import { toast } from 'sonner';
 
 const CU = {
@@ -305,6 +306,29 @@ export default function SquadManagement() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <Loader2 className="w-8 h-8 animate-spin" style={{ color: CU.orange }} />
+            </div>
+        );
+    }
+
+    const isAdmin = currentUser?.role === 'admin';
+
+    if (!FANTASY_ENABLED && !isAdmin) {
+        return (
+            <div className="p-8 max-w-4xl mx-auto">
+                <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: '2rem', color: CU.charcoal, marginBottom: '24px' }}>
+                    My Squad
+                </h1>
+                <div className="rounded-xl p-10 text-center space-y-4"
+                     style={{ border: '1px solid #e5e7eb', background: 'white' }}>
+                    <div style={{ fontSize: '2.5rem' }}>🏟️</div>
+                    <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.4rem', color: CU.charcoal }}>
+                        Fantasy Game launches before kickoff
+                    </div>
+                    <div style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.875rem', color: '#6b7280', maxWidth: '320px', margin: '0 auto' }}>
+                        Squad builder coming soon — stay tuned.
+                    </div>
+                </div>
+                <BadgesSection userId={currentUser?.id} currentPhase={null} />
             </div>
         );
     }

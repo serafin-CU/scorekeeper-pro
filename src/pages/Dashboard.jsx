@@ -261,6 +261,7 @@ export default function Dashboard() {
             {/* Stats grid */}
             <div className={`grid gap-3 ${showFantasy ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'}`}>
                 <StatCard icon={TrendingUp} label="Total Points" value={showFantasy ? totalPoints : prodePoints} sublabel={showFantasy ? "Prode + Fantasy" : undefined} accentColor={CU.orange} />
+                {/* Note: when !showFantasy, value=prodePoints and sublabel=undefined — no fantasy leak */}
                 <StatCard icon={Trophy} label="Prode Points" value={prodePoints} sublabel={`${predictions.length} predictions`} accentColor={CU.green} />
                 {showFantasy && <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} />}
                 <StatCard icon={Award} label="Badges" value={badges.length} sublabel={badges.length > 0 ? badges.map(b => {

@@ -66,15 +66,19 @@ Deno.serve(async (req) => {
             let deletedSquadPlayers = 0, deletedSquads = 0, deletedLedger = 0;
             const errors = [];
 
-            // Step 1: delete FantasySquadPlayer rows (sequential, try/catch per record)
+            const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+            // Step 1: delete FantasySquadPlayer rows (sequential, 120ms pause, try/catch per record)
             for (const sp of allSquadPlayers) {
                 try {
                     await base44.asServiceRole.entities.FantasySquadPlayer.delete(sp.id);
                     deletedSquadPlayers++;
+                    await sleep(120);
                 } catch (err) {
                     const msg = `FantasySquadPlayer ${sp.id}: ${err.message}`;
                     console.error(`[purge] ${msg}`);
                     errors.push(msg);
+                    await sleep(300); // longer pause on rate limit
                 }
             }
 
@@ -83,10 +87,12 @@ Deno.serve(async (req) => {
                 try {
                     await base44.asServiceRole.entities.FantasySquad.delete(sq.id);
                     deletedSquads++;
+                    await sleep(120);
                 } catch (err) {
                     const msg = `FantasySquad ${sq.id}: ${err.message}`;
                     console.error(`[purge] ${msg}`);
                     errors.push(msg);
+                    await sleep(300);
                 }
             }
 
@@ -95,10 +101,12 @@ Deno.serve(async (req) => {
                 try {
                     await base44.asServiceRole.entities.PointsLedger.delete(e.id);
                     deletedLedger++;
+                    await sleep(120);
                 } catch (err) {
                     const msg = `PointsLedger ${e.id}: ${err.message}`;
                     console.error(`[purge] ${msg}`);
                     errors.push(msg);
+                    await sleep(300);
                 }
             }
 

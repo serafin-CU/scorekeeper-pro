@@ -151,7 +151,12 @@ export default function Leaderboard() {
     const allEntries = Object.values(aggregated);
 
     const getEntries = (mode) => {
-        if (mode === 'ALL') return [...allEntries].sort((a, b) => b.total_points - a.total_points);
+        if (mode === 'ALL') {
+            const base = showFantasyTab
+                ? [...allEntries]
+                : [...allEntries].map(e => ({ ...e, total_points: e.prode_points }));
+            return base.sort((a, b) => b.total_points - a.total_points);
+        }
         if (mode === 'PRODE') return [...allEntries].map(e => ({ ...e, total_points: e.prode_points })).filter(e => e.total_points !== 0).sort((a, b) => b.total_points - a.total_points);
         return [...allEntries].map(e => ({ ...e, total_points: e.fantasy_points })).filter(e => e.total_points !== 0).sort((a, b) => b.total_points - a.total_points);
     };
@@ -202,7 +207,9 @@ export default function Leaderboard() {
                             <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 700, fontSize: '0.875rem', color: CU.charcoal }}>Your Position</div>
                             <div style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.75rem', color: '#6b7280' }}>
                                 {tab === 'ALL'
-                                    ? `${entries[myRank - 1]?.prode_points || 0} Prode + ${entries[myRank - 1]?.fantasy_points || 0} Fantasy`
+                                    ? showFantasyTab
+                                        ? `${entries[myRank - 1]?.prode_points || 0} Prode + ${entries[myRank - 1]?.fantasy_points || 0} Fantasy`
+                                        : `${entries[myRank - 1]?.prode_points || 0} Prode points`
                                     : `${entries[myRank - 1]?.total_points || 0} points`}
                             </div>
                         </div>
