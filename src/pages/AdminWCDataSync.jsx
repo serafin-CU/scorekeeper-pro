@@ -129,7 +129,7 @@ export default function AdminWCDataSync() {
         const allErrors = [];
         const batchLog = [];
         const BATCH_SIZE = 8;
-        let apiTeamMap = {}; // cached after first batch to avoid redundant /teams API call
+        let apiTeamMap = {}; // cache from first batch to skip redundant /teams calls
 
         try {
             while (true) {
@@ -139,9 +139,14 @@ export default function AdminWCDataSync() {
                     action: 'sync_players',
                     offset,
                     batch_size: BATCH_SIZE,
-                    ...(Object.keys(apiTeamMap).length > 0 ? { api_team_map: apiTeamMap } : {}),
+                    api_team_map: apiTeamMap,
                 });
                 const data = res.data;
+
+                // Cache the team map returned by the first batch
+                if (data?.api_team_map && Object.keys(data.api_team_map).length > 0) {
+                    apiTeamMap = data.api_team_map;
+                }
 
                 if (!data?.ok) {
                     allErrors.push(data?.error || 'Unknown error');
@@ -150,9 +155,6 @@ export default function AdminWCDataSync() {
 
                 totalTeams = data.total_teams || totalTeams;
                 totalPlayersCreated += data.players_created || 0;
-                if (data.api_team_map && Object.keys(data.api_team_map).length > 0) {
-                    apiTeamMap = data.api_team_map; // cache for next batch
-                }
                 if (data.errors?.length) allErrors.push(...data.errors);
 
                 batchLog.push({
@@ -314,7 +316,7 @@ export default function AdminWCDataSync() {
                                 </div>
                                 <div>
                                     <CardTitle className="text-base">3. Sync Players</CardTitle>
-                                    <p className="text-xs text-gray-500 mt-0.5">Fetches squads + stats for all 48 teams in batches of 5. Runs automatically to completion.</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">Fetches squads for all 48 WC teams in batches of 8. Runs automatically to completion.</p>
                                 </div>
                             </div>
                         </CardHeader>

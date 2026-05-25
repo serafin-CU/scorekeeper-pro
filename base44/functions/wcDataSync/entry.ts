@@ -311,7 +311,9 @@ Deno.serve(async (req) => {
                 console.log('[sync_players] Players cleared.');
             }
 
-            const batch = ourTeams.slice(offset, offset + batchSize);
+            // Filter to only teams that exist in the API map (excludes test/seed teams)
+            const realTeams = ourTeams.filter(t => apiTeamByName[t.name.toLowerCase()] !== undefined);
+            const batch = realTeams.slice(offset, offset + batchSize);
             const allCreated = [];
             const errors = [];
 
@@ -380,8 +382,8 @@ Deno.serve(async (req) => {
                 batch_size: batchSize,
                 teams_in_batch: batch.length,
                 players_created: allCreated.length,
-                total_teams: ourTeams.length,
-                has_more: offset + batchSize < ourTeams.length,
+                total_teams: realTeams.length,
+                has_more: offset + batchSize < realTeams.length,
                 next_offset: offset + batchSize,
                 api_team_map: apiTeamByName, // pass back to avoid redundant /teams call on next batch
                 errors,
