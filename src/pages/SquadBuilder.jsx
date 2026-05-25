@@ -40,9 +40,21 @@ const PHASE_OPTIONS = [
 ];
 
 /* ── Slot component (empty or filled) ── */
-function FormationSlot({ position, player, team, isCaptain, onRemove, onSetCaptain, disabled }) {
+function FormationSlot({ position, player, team, isCaptain, onRemove, onSetCaptain, disabled, isStale }) {
     const ps = POS_STYLE[position];
     if (!player) {
+        if (isStale) {
+            return (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed"
+                     style={{ borderColor: '#f97316', background: '#fff7ed', minHeight: 48 }}>
+                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                          style={{ background: '#fed7aa', color: '#ea580c', fontFamily: "'Raleway', sans-serif" }}>{ps.label}</span>
+                    <span className="text-xs" style={{ color: '#ea580c', fontFamily: "'Raleway', sans-serif" }}>
+                        ⚠ Player data missing — rebuild squad
+                    </span>
+                </div>
+            );
+        }
         return (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed"
                  style={{ borderColor: ps.color + '40', background: ps.bg, minHeight: 48 }}>
@@ -610,19 +622,21 @@ export default function SquadBuilder() {
                                     const slots = [];
                                     for (let i = 0; i < FORMATION[pos]; i++) {
                                         const starter = posStarters[i];
-                                        const player = starter ? playersMap[starter.player_id] : null;
-                                        const team = player ? teamsMap[player.team_id] : null;
-                                        slots.push(
-                                            <FormationSlot
-                                                key={`${pos}-${i}`}
-                                                position={pos}
-                                                player={player}
-                                                team={team}
-                                                isCaptain={player && captainId === player.id}
-                                                onRemove={handleRemovePlayer}
-                                                onSetCaptain={handleSetCaptain}
-                                                disabled={isFinalized}
-                                            />
+                                                                const player = starter ? (playersMap[starter.player_id] ?? null) : null;
+                                                                const isStaleSlot = !!starter && !player;
+                                                                const team = player ? teamsMap[player.team_id] : null;
+                                                                slots.push(
+                                                                    <FormationSlot
+                                                                        key={`${pos}-${i}`}
+                                                                        position={pos}
+                                                                        player={player}
+                                                                        isStale={isStaleSlot}
+                                                                        team={team}
+                                                                        isCaptain={player && captainId === player.id}
+                                                                        onRemove={handleRemovePlayer}
+                                                                        onSetCaptain={handleSetCaptain}
+                                                                        disabled={isFinalized}
+                                                                    />
                                         );
                                     }
                                     return <div key={pos} className="space-y-1.5">{slots}</div>;

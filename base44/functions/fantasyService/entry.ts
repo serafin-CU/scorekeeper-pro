@@ -60,17 +60,20 @@ async function createSquad(base44, user, body) {
         return Response.json({ error: 'phase is required' }, { status: 400 });
     }
 
-    // Check for existing DRAFT squad
-    const existingDrafts = await base44.asServiceRole.entities.FantasySquad.filter({
+    // Check for any existing squad (DRAFT or FINAL) for this user+phase
+    const existingSquads = await base44.asServiceRole.entities.FantasySquad.filter({
         user_id: user.id,
-        phase,
-        status: 'DRAFT'
+        phase
     });
 
-    if (existingDrafts.length > 0) {
+    if (existingSquads.length > 0) {
+        // Return the most recent one so the caller can reuse it
+        const mostRecent = existingSquads.sort((a, b) =>
+            new Date(b.created_date) - new Date(a.created_date)
+        )[0];
         return Response.json({ 
-            error: 'You already have a draft squad for this phase',
-            existing_squad: existingDrafts[0]
+            error: 'You already have a squad for this phase',
+            existing_squad: mostRecent
         }, { status: 409 });
     }
 
@@ -173,7 +176,8 @@ async function addPlayerToSquad(base44, user, body) {
         squad_id,
         player_id,
         slot_type,
-        starter_position: starter_position || null
+        starter_position: starter_position || null,
+        api_player_id: player.api_player_id || null
     });
 
     // Update squad total_cost and autosave timestamp
