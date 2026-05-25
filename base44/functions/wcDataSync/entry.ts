@@ -271,13 +271,13 @@ Deno.serve(async (req) => {
         const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
         // ── SYNC PLAYERS ─────────────────────────────────────────────────────
-        // Fetches squad + season stats for each team.
-        // Stats endpoint: /players?team=X&season=SEASON  (gives rating, goals, assists, etc.)
-        // Call repeatedly with offset=0, 5, 10, ... to cover all teams (5 per batch to stay under timeout).
+        // Uses /players/squads?team=X only (stats not available pre-tournament).
+        // Scores are derived from age + position baseline only.
+        // Call repeatedly with offset=0, 8, 16, ... to cover all 48 teams.
         // Pass clear_first=true only on the first batch (offset=0).
         if (action === 'sync_players') {
             const offset = body.offset || 0;
-            const batchSize = body.batch_size || 5;
+            const batchSize = body.batch_size || 8;
             const clearFirst = body.clear_first !== false && offset === 0;
 
             const ourTeams = await base44.asServiceRole.entities.Team.list();
@@ -320,9 +320,9 @@ Deno.serve(async (req) => {
                 const apiTeamId = apiEntry.id;
 
                 try {
-                    await sleep(800);
+                    await sleep(500);
 
-                    // Fetch squad (for position, photo, age, nationality)
+                    // Fetch squad only — stats endpoint returns empty data pre-tournament
                     const squads = await apiFetch(`/players/squads?team=${apiTeamId}`);
                     if (!squads || squads.length === 0) {
                         errors.push(`No squad data for: ${ourTeam.name}`);
@@ -330,44 +330,19 @@ Deno.serve(async (req) => {
                     }
 
                     const squadPlayers = squads[0]?.players || [];
-
-                    // Fetch stats for all players in this team for WC season
-                    // API paginates, fetch page 1 (usually enough for a squad of ~26)
-                    await sleep(500);
-                    let statsMap = {};
-                    try {
-                        const statsResp = await apiFetch(`/players?team=${apiTeamId}&season=${SEASON}&page=1`);
-                        for (const entry of (statsResp || [])) {
-                            if (entry.player?.id) {
-                                statsMap[entry.player.id] = entry.statistics?.[0] || null;
-                            }
-                        }
-                        // If there's a page 2, fetch it too
-                        if (statsResp?.length === 20) {
-                            await sleep(500);
-                            const statsResp2 = await apiFetch(`/players?team=${apiTeamId}&season=${SEASON}&page=2`);
-                            for (const entry of (statsResp2 || [])) {
-                                if (entry.player?.id) {
-                                    statsMap[entry.player.id] = entry.statistics?.[0] || null;
-                                }
-                            }
-                        }
-                    } catch (statsErr) {
-                        console.log(`[sync_players] Stats fetch failed for ${ourTeam.name}: ${statsErr.message}, using squad-only data`);
-                    }
-
                     const playersBulk = [];
+
                     for (const player of squadPlayers) {
                         const position = mapPosition(player.position);
                         const age = player.age || 0;
-                        const stats = statsMap[player.id] || null;
-                        const playerScore = computePlayerScore(stats, position, age);
+                        // No stats available pre-tournament — score from age+position only
+                        const playerScore = computePlayerScore(null, position, age);
                         const price = scoreToPrice(playerScore, position);
 
                         playersBulk.push({
                             full_name: player.name,
                             team_id: ourTeam.id,
-                            nationality: ourTeam.name, // national team = team they represent
+                            nationality: ourTeam.name,
                             position,
                             age: age || null,
                             photo_url: player.photo || null,

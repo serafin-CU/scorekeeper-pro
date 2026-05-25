@@ -128,7 +128,7 @@ export default function AdminWCDataSync() {
         let totalPlayersCreated = 0;
         const allErrors = [];
         const batchLog = [];
-        const BATCH_SIZE = 5;
+        const BATCH_SIZE = 8;
 
         try {
             while (true) {
