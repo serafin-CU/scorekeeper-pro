@@ -383,6 +383,7 @@ Deno.serve(async (req) => {
                 total_teams: ourTeams.length,
                 has_more: offset + batchSize < ourTeams.length,
                 next_offset: offset + batchSize,
+                api_team_map: apiTeamByName, // pass back to avoid redundant /teams call on next batch
                 errors,
                 players: allCreated
             });
