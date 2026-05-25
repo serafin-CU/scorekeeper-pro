@@ -121,7 +121,7 @@ export default function AdminWCDataSync() {
     const syncAllPlayers = async () => {
         playerAbort.current = false;
         setPlayerSyncing(true);
-        setPlayerProgress({ done: 0, total: 0, playersCreated: 0, batchLog: [], errors: [] });
+        setPlayerProgress({ done: 0, total: 0, playersCreated: 0, batchLog: [], errors: [], phase: 'clearing' });
 
         let offset = 0;
         let totalTeams = 0;
@@ -129,9 +129,20 @@ export default function AdminWCDataSync() {
         const allErrors = [];
         const batchLog = [];
         const BATCH_SIZE = 8;
-        let apiTeamMap = {}; // cache from first batch to skip redundant /teams calls
+        let apiTeamMap = {};
 
         try {
+            // Step 1: Clear all existing players in one dedicated call
+            const clearRes = await base44.functions.invoke('wcDataSync', { action: 'clear_players' });
+            if (!clearRes.data?.ok) {
+                allErrors.push(clearRes.data?.error || 'clear_players failed');
+                setPlayerProgress(prev => ({ ...prev, errors: [...allErrors], phase: 'done' }));
+                setPlayerSyncing(false);
+                return;
+            }
+            setPlayerProgress(prev => ({ ...prev, phase: 'syncing' }));
+
+            // Step 2: Loop through all WC teams in batches
             while (true) {
                 if (playerAbort.current) break;
 
@@ -139,14 +150,9 @@ export default function AdminWCDataSync() {
                     action: 'sync_players',
                     offset,
                     batch_size: BATCH_SIZE,
-                    api_team_map: apiTeamMap,
+                    ...(Object.keys(apiTeamMap).length > 0 ? { api_team_map: apiTeamMap } : {}),
                 });
                 const data = res.data;
-
-                // Cache the team map returned by the first batch
-                if (data?.api_team_map && Object.keys(data.api_team_map).length > 0) {
-                    apiTeamMap = data.api_team_map;
-                }
 
                 if (!data?.ok) {
                     allErrors.push(data?.error || 'Unknown error');
@@ -155,6 +161,9 @@ export default function AdminWCDataSync() {
 
                 totalTeams = data.total_teams || totalTeams;
                 totalPlayersCreated += data.players_created || 0;
+                if (data.api_team_map && Object.keys(data.api_team_map).length > 0) {
+                    apiTeamMap = data.api_team_map;
+                }
                 if (data.errors?.length) allErrors.push(...data.errors);
 
                 batchLog.push({
@@ -170,13 +179,13 @@ export default function AdminWCDataSync() {
                     playersCreated: totalPlayersCreated,
                     batchLog: [...batchLog],
                     errors: [...allErrors],
+                    phase: 'syncing',
                 });
 
                 if (!data.has_more) break;
 
                 offset = data.next_offset;
-                // Brief pause between batches to avoid API rate limits
-                await new Promise(r => setTimeout(r, 1200));
+                await new Promise(r => setTimeout(r, 500));
             }
 
             queryClient.invalidateQueries({ queryKey: ['players'] });
@@ -185,6 +194,7 @@ export default function AdminWCDataSync() {
             setPlayerProgress(prev => ({ ...prev, errors: [...(prev?.errors || []), err.message] }));
         }
 
+        setPlayerProgress(prev => ({ ...prev, phase: 'done' }));
         setPlayerSyncing(false);
     };
 
@@ -316,7 +326,7 @@ export default function AdminWCDataSync() {
                                 </div>
                                 <div>
                                     <CardTitle className="text-base">3. Sync Players</CardTitle>
-                                    <p className="text-xs text-gray-500 mt-0.5">Fetches squads for all 48 WC teams in batches of 8. Runs automatically to completion.</p>
+                                                                        <p className="text-xs text-gray-500 mt-0.5">Clears existing players then fetches squads for all 48 WC teams in batches of 8.</p>
                                 </div>
                             </div>
                         </CardHeader>
@@ -334,6 +344,12 @@ export default function AdminWCDataSync() {
 
                             {playerProgress && (
                                 <div className="mt-4 space-y-3">
+                                    {/* Clearing phase indicator */}
+                                    {playerProgress.phase === 'clearing' && (
+                                        <div className="flex items-center gap-2 text-amber-700 text-xs font-medium">
+                                            <Loader2 className="w-3 h-3 animate-spin" /> Clearing existing players…
+                                        </div>
+                                    )}
                                     {/* Progress bar */}
                                     <div>
                                         <div className="flex justify-between text-xs text-gray-500 mb-1">

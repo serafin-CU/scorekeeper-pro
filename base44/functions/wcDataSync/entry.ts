@@ -270,26 +270,40 @@ Deno.serve(async (req) => {
         // Helper: sleep ms
         const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+        // ── CLEAR PLAYERS ────────────────────────────────────────────────────
+        // Separate action to wipe all Player records before a fresh sync.
+        // Call this ONCE before starting the sync_players loop (offset=0).
+        if (action === 'clear_players') {
+            console.log('[clear_players] Deleting all players...');
+            let page = await base44.asServiceRole.entities.Player.list('created_date', 200);
+            let total = 0;
+            while (page.length > 0) {
+                await Promise.all(page.map(p => base44.asServiceRole.entities.Player.delete(p.id)));
+                total += page.length;
+                page = await base44.asServiceRole.entities.Player.list('created_date', 200);
+            }
+            console.log(`[clear_players] Deleted ${total} players.`);
+            return Response.json({ ok: true, action: 'clear_players', deleted: total });
+        }
+
         // ── SYNC PLAYERS ─────────────────────────────────────────────────────
         // Uses /players/squads?team=X for squad roster (position, age, photo).
-        // Stats endpoint is SKIPPED — coverage.statistics_players=false until
-        // tournament starts (2026-06-11). Scores are computed from age+position only.
+        // Stats endpoint is SKIPPED — coverage.statistics_players=false until WC starts 2026-06-11.
+        // Scores computed from age+position baseline only.
         //
-        // Pagination: call with offset=0,10,20,... (batch_size default 10).
-        // Pass clear_first=true (or omit) only on offset=0 to wipe old players.
+        // Flow: call clear_players once, then loop sync_players with offset=0,8,16,24,32,40.
+        // Pass api_team_map returned by batch 0 into all subsequent calls to skip the /teams fetch.
         if (action === 'sync_players') {
             const offset = body.offset || 0;
             const batchSize = body.batch_size || 8;
-            const clearFirst = body.clear_first !== false && offset === 0;
 
             const ourTeams = await base44.asServiceRole.entities.Team.list();
             if (ourTeams.length === 0) {
                 return Response.json({ ok: false, error: 'No teams found — run sync_teams first' });
             }
 
-            // Build API team ID lookup by name.
-            // Caller may pass api_team_map (name→apiId) from the first batch to avoid
-            // a redundant /teams API call on every subsequent batch.
+            // Build API team ID lookup (lowercase name → apiId).
+            // Caller passes api_team_map from batch 0 response to avoid redundant /teams API call.
             const apiTeamByName = {};
             if (body.api_team_map && Object.keys(body.api_team_map).length > 0) {
                 Object.assign(apiTeamByName, body.api_team_map);
@@ -300,34 +314,18 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // Clear ALL existing players only on the first batch
-            if (clearFirst) {
-                console.log('[sync_players] Clearing existing players...');
-                let page = await base44.asServiceRole.entities.Player.list('created_date', 200);
-                while (page.length > 0) {
-                    await Promise.all(page.map(p => base44.asServiceRole.entities.Player.delete(p.id)));
-                    page = await base44.asServiceRole.entities.Player.list('created_date', 200);
-                }
-                console.log('[sync_players] Players cleared.');
-            }
-
-            // Filter to only teams that exist in the API map (excludes test/seed teams)
-            const realTeams = ourTeams.filter(t => apiTeamByName[t.name.toLowerCase()] !== undefined);
-            const batch = realTeams.slice(offset, offset + batchSize);
+            // Only process real WC teams (those that have an API match)
+            const wcTeams = ourTeams.filter(t => !!apiTeamByName[t.name.toLowerCase()]);
+            const batch = wcTeams.slice(offset, offset + batchSize);
             const allCreated = [];
             const errors = [];
 
             for (const ourTeam of batch) {
                 const apiTeamId = apiTeamByName[ourTeam.name.toLowerCase()];
-                if (!apiTeamId) {
-                    errors.push(`No API team ID found for: ${ourTeam.name}`);
-                    continue;
-                }
 
                 try {
-                    await sleep(1200); // polite rate-limit: stay well under 10 req/min free tier
+                    await sleep(400); // Pro plan allows ~30 req/min; 400ms keeps us safe
 
-                    // Fetch squad roster (position, age, photo, nationality)
                     const squads = await apiFetch(`/players/squads?team=${apiTeamId}`);
                     if (!squads || squads.length === 0) {
                         errors.push(`No squad data for: ${ourTeam.name}`);
@@ -341,7 +339,6 @@ Deno.serve(async (req) => {
                     for (const player of squadPlayers) {
                         const position = mapPosition(player.position);
                         const age = player.age || 0;
-                        // No WC match stats yet — score from age+position baseline only
                         const playerScore = computePlayerScore(null, position, age);
                         const price = scoreToPrice(playerScore, position);
 
@@ -382,10 +379,10 @@ Deno.serve(async (req) => {
                 batch_size: batchSize,
                 teams_in_batch: batch.length,
                 players_created: allCreated.length,
-                total_teams: realTeams.length,
-                has_more: offset + batchSize < realTeams.length,
+                total_teams: wcTeams.length, // only real WC teams count
+                has_more: offset + batchSize < wcTeams.length,
                 next_offset: offset + batchSize,
-                api_team_map: apiTeamByName, // pass back to avoid redundant /teams call on next batch
+                api_team_map: apiTeamByName, // return for caller to cache and pass back
                 errors,
                 players: allCreated
             });
