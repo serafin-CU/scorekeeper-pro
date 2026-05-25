@@ -271,10 +271,12 @@ Deno.serve(async (req) => {
         const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
         // ── SYNC PLAYERS ─────────────────────────────────────────────────────
-        // Uses /players/squads?team=X only (stats not available pre-tournament).
-        // Scores are derived from age + position baseline only.
-        // Call repeatedly with offset=0, 8, 16, ... to cover all 48 teams.
-        // Pass clear_first=true only on the first batch (offset=0).
+        // Uses /players/squads?team=X for squad roster (position, age, photo).
+        // Stats endpoint is SKIPPED — coverage.statistics_players=false until
+        // tournament starts (2026-06-11). Scores are computed from age+position only.
+        //
+        // Pagination: call with offset=0,10,20,... (batch_size default 10).
+        // Pass clear_first=true (or omit) only on offset=0 to wipe old players.
         if (action === 'sync_players') {
             const offset = body.offset || 0;
             const batchSize = body.batch_size || 8;
@@ -285,26 +287,28 @@ Deno.serve(async (req) => {
                 return Response.json({ ok: false, error: 'No teams found — run sync_teams first' });
             }
 
-            // Build API team ID lookup by name
-            const apiTeams = await apiFetch(`/teams?league=${LEAGUE_ID}&season=${SEASON}`);
+            // Build API team ID lookup by name.
+            // Caller may pass api_team_map (name→apiId) from the first batch to avoid
+            // a redundant /teams API call on every subsequent batch.
             const apiTeamByName = {};
-            for (const item of apiTeams) {
-                apiTeamByName[item.team.name.toLowerCase()] = {
-                    id: item.team.id,
-                    name: item.team.name
-                };
+            if (body.api_team_map && Object.keys(body.api_team_map).length > 0) {
+                Object.assign(apiTeamByName, body.api_team_map);
+            } else {
+                const apiTeams = await apiFetch(`/teams?league=${LEAGUE_ID}&season=${SEASON}`);
+                for (const item of apiTeams) {
+                    apiTeamByName[item.team.name.toLowerCase()] = item.team.id;
+                }
             }
 
-            // Clear existing players only on first batch
+            // Clear ALL existing players only on the first batch
             if (clearFirst) {
                 console.log('[sync_players] Clearing existing players...');
-                let existingPlayers = await base44.asServiceRole.entities.Player.list('created_date', 200);
-                while (existingPlayers.length > 0) {
-                    for (const p of existingPlayers) {
-                        await base44.asServiceRole.entities.Player.delete(p.id);
-                    }
-                    existingPlayers = await base44.asServiceRole.entities.Player.list('created_date', 200);
+                let page = await base44.asServiceRole.entities.Player.list('created_date', 200);
+                while (page.length > 0) {
+                    await Promise.all(page.map(p => base44.asServiceRole.entities.Player.delete(p.id)));
+                    page = await base44.asServiceRole.entities.Player.list('created_date', 200);
                 }
+                console.log('[sync_players] Players cleared.');
             }
 
             const batch = ourTeams.slice(offset, offset + batchSize);
@@ -312,17 +316,16 @@ Deno.serve(async (req) => {
             const errors = [];
 
             for (const ourTeam of batch) {
-                const apiEntry = apiTeamByName[ourTeam.name.toLowerCase()];
-                if (!apiEntry) {
+                const apiTeamId = apiTeamByName[ourTeam.name.toLowerCase()];
+                if (!apiTeamId) {
                     errors.push(`No API team ID found for: ${ourTeam.name}`);
                     continue;
                 }
-                const apiTeamId = apiEntry.id;
 
                 try {
-                    await sleep(500);
+                    await sleep(1200); // polite rate-limit: stay well under 10 req/min free tier
 
-                    // Fetch squad only — stats endpoint returns empty data pre-tournament
+                    // Fetch squad roster (position, age, photo, nationality)
                     const squads = await apiFetch(`/players/squads?team=${apiTeamId}`);
                     if (!squads || squads.length === 0) {
                         errors.push(`No squad data for: ${ourTeam.name}`);
@@ -330,12 +333,13 @@ Deno.serve(async (req) => {
                     }
 
                     const squadPlayers = squads[0]?.players || [];
-                    const playersBulk = [];
+                    console.log(`[sync_players] ${ourTeam.name}: ${squadPlayers.length} players`);
 
+                    const playersBulk = [];
                     for (const player of squadPlayers) {
                         const position = mapPosition(player.position);
                         const age = player.age || 0;
-                        // No stats available pre-tournament — score from age+position only
+                        // No WC match stats yet — score from age+position baseline only
                         const playerScore = computePlayerScore(null, position, age);
                         const price = scoreToPrice(playerScore, position);
 
@@ -364,7 +368,8 @@ Deno.serve(async (req) => {
                         })));
                     }
                 } catch (err) {
-                    errors.push(`Failed: ${ourTeam.name}: ${err.message}`);
+                    errors.push(`Failed ${ourTeam.name}: ${err.message}`);
+                    console.error(`[sync_players] Error for ${ourTeam.name}:`, err.message);
                 }
             }
 

@@ -129,6 +129,7 @@ export default function AdminWCDataSync() {
         const allErrors = [];
         const batchLog = [];
         const BATCH_SIZE = 8;
+        let apiTeamMap = {}; // cached after first batch to avoid redundant /teams API call
 
         try {
             while (true) {
@@ -138,6 +139,7 @@ export default function AdminWCDataSync() {
                     action: 'sync_players',
                     offset,
                     batch_size: BATCH_SIZE,
+                    ...(Object.keys(apiTeamMap).length > 0 ? { api_team_map: apiTeamMap } : {}),
                 });
                 const data = res.data;
 
@@ -148,6 +150,9 @@ export default function AdminWCDataSync() {
 
                 totalTeams = data.total_teams || totalTeams;
                 totalPlayersCreated += data.players_created || 0;
+                if (data.api_team_map && Object.keys(data.api_team_map).length > 0) {
+                    apiTeamMap = data.api_team_map; // cache for next batch
+                }
                 if (data.errors?.length) allErrors.push(...data.errors);
 
                 batchLog.push({
