@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -146,7 +146,7 @@ function DayRow({ group, onToggle }) {
 
 export default function TriviaAdmin() {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, isLoadingAuth } = useAuth();
     const queryClient = useQueryClient();
 
     const { data: questions = [], isLoading } = useQuery({
@@ -156,10 +156,9 @@ export default function TriviaAdmin() {
     });
 
     // Admin gate — after all hooks
-    if (user && user.role !== 'admin') {
-        toast.error('Admin access required');
-        navigate('/');
-        return null;
+    if (isLoadingAuth) return null;
+    if (!user || user.role !== 'admin') {
+        return <Navigate to="/" replace />;
     }
 
     const groups = groupQuestionsByDay(questions);
