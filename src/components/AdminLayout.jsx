@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { 
     LayoutGrid, FileText, Database, Settings, LogOut, 
-    Home, Play, Link2, Eye, FileEdit, Archive, Award, RefreshCw
+    Home, Play, Link2, Eye, FileEdit, Archive, Award, RefreshCw, Brain
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -26,7 +26,8 @@ export default function AdminLayout({ children, currentPageName }) {
         { name: 'AdminManualOverride', label: 'Manual Override', icon: FileEdit },
         { name: 'AdminDevSeed', label: 'Dev Seed', icon: Settings },
         { name: 'AdminBadgesViewer', label: 'Badges', icon: Award },
-        { name: 'AdminWCDataSync', label: '⚽ WC Sync', icon: RefreshCw }
+        { name: 'AdminWCDataSync', label: '⚽ WC Sync', icon: RefreshCw },
+        { name: 'TriviaAdmin', label: 'Trivia Admin', icon: Brain }
     ];
 
     const handleLogout = () => {
