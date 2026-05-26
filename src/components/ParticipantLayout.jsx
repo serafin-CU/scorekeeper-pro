@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, LogOut, Shield, MessageSquare, Trophy, Target, LayoutDashboard, User, Eye, EyeOff } from 'lucide-react';
+import { Users, LogOut, Shield, MessageSquare, Trophy, Target, LayoutDashboard, User, Eye, EyeOff, Brain } from 'lucide-react';
 import AlbaChatWidget from '@/components/AlbaChatWidget';
 import { FANTASY_ENABLED } from '@/config/features';
 
@@ -18,6 +18,7 @@ const ALL_NAV_ITEMS = [
     { name: 'SquadManagement', label: 'My Squad', icon: Users, fantasyOnly: true },
     { name: 'SquadBuilder', label: 'Build Squad', icon: Shield, fantasyOnly: true },
     { name: 'Leaderboard', label: 'Standings', icon: Trophy },
+    { name: 'Trivia', label: 'Trivia', icon: Brain },
     { name: 'AlbaChat', label: 'Alba 🤖', icon: MessageSquare },
     { name: 'Profile', label: 'Profile', icon: User }
 ];

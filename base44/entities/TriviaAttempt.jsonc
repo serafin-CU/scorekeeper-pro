@@ -1,0 +1,69 @@
+{
+  "name": "TriviaAttempt",
+  "type": "object",
+  "description": "A user's single graded attempt at a daily trivia set",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "FK reference to users.id"
+    },
+    "daily_set_date": {
+      "type": "string",
+      "description": "YYYY-MM-DD \u2014 the date of the daily set attempted"
+    },
+    "answers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question_id": {
+            "type": "string"
+          },
+          "selected_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "response_time_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "is_correct": {
+            "type": "boolean"
+          },
+          "points_earned": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "minItems": 5,
+      "maxItems": 5,
+      "description": "Graded answer breakdown, one entry per question"
+    },
+    "total_points": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Sum of points_earned across all 5 answers"
+    },
+    "correct_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "Number of correct answers"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp when attempt was graded"
+    }
+  },
+  "required": [
+    "user_id",
+    "daily_set_date",
+    "answers",
+    "total_points",
+    "correct_count",
+    "completed_at"
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "name": "TriviaQuestion",
+  "type": "object",
+  "description": "World Cup trivia question pool for daily sets",
+  "properties": {
+    "question_text": {
+      "type": "string",
+      "description": "The trivia question"
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 4,
+      "maxItems": 4,
+      "description": "Exactly 4 answer options"
+    },
+    "correct_answer_index": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "description": "0-based index of the correct option"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "GROUP_STAGE",
+        "KNOCKOUT_HISTORY",
+        "PLAYERS_RECORDS",
+        "HOST_2026",
+        "RULES_FORMAT"
+      ],
+      "description": "Question category"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "EASY",
+        "MEDIUM",
+        "HARD"
+      ],
+      "description": "Difficulty tier"
+    },
+    "source_note": {
+      "type": "string",
+      "description": "Optional short citation or editorial context"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this question may appear in daily sets"
+    },
+    "times_used": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of times this question has appeared in a daily set"
+    }
+  },
+  "required": [
+    "question_text",
+    "options",
+    "correct_answer_index",
+    "category",
+    "difficulty",
+    "is_active"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "TriviaDailySet",
+  "type": "object",
+  "description": "The 5-question set assembled for a given calendar date",
+  "properties": {
+    "date": {
+      "type": "string",
+      "description": "Calendar date YYYY-MM-DD \u2014 business-unique key enforced at function level"
+    },
+    "question_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 5,
+      "maxItems": 5,
+      "description": "Ordered list of exactly 5 TriviaQuestion.id references"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp when this set was assembled"
+    }
+  },
+  "required": [
+    "date",
+    "question_ids",
+    "generated_at"
+  ]
+}
