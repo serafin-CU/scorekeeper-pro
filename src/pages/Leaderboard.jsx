@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import WorldCupBanner from '@/components/WorldCupBanner';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, Medal, TrendingUp, Loader2, Crown } from 'lucide-react';
+import { Trophy, Medal, TrendingUp, Loader2, Crown, Brain } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { FANTASY_ENABLED } from '@/config/features';
 
@@ -92,6 +92,7 @@ function LeaderboardTable({ entries, currentUserId, mode, showFantasyCol }) {
 const TAB_CONFIG_BASE = [
     { value: 'ALL', label: 'Overall', icon: TrendingUp },
     { value: 'PRODE', label: 'Prode', icon: Medal },
+    { value: 'TRIVIA', label: 'Trivia', icon: Brain },
 ];
 
 export default function Leaderboard() {
@@ -160,6 +161,14 @@ export default function Leaderboard() {
         if (mode === 'PRODE') return [...allEntries].map(e => ({ ...e, total_points: e.prode_points })).filter(e => e.total_points !== 0).sort((a, b) => b.total_points - a.total_points);
         return [...allEntries].map(e => ({ ...e, total_points: e.fantasy_points })).filter(e => e.total_points !== 0).sort((a, b) => b.total_points - a.total_points);
     };
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    const { data: triviaAttempts = [] } = useQuery({
+        queryKey: ['triviaAttemptsToday', today],
+        queryFn: () => base44.entities.TriviaAttempt.filter({ daily_set_date: today }),
+        enabled: tab === 'TRIVIA'
+    });
 
     const entries = getEntries(tab);
     const myRank = entries.findIndex(e => e.user_id === currentUser?.id) + 1;
@@ -243,8 +252,109 @@ export default function Leaderboard() {
                 ))}
             </div>
 
-            {/* Table */}
-            <LeaderboardTable entries={entries} currentUserId={currentUser?.id} mode={tab} showFantasyCol={showFantasyTab} />
+            {/* Table — Trivia tab gets its own renderer */}
+            {tab === 'TRIVIA' ? (
+                <TriviaLeaderboard
+                    todayAttempts={triviaAttempts}
+                    users={users}
+                    currentUserId={currentUser?.id}
+                />
+            ) : (
+                <LeaderboardTable entries={entries} currentUserId={currentUser?.id} mode={tab} showFantasyCol={showFantasyTab} />
+            )}
+        </div>
+    );
+}
+
+function TriviaLeaderboard({ todayAttempts, users, currentUserId }) {
+    const [view, setView] = useState('TODAY');
+    const usersMap = Object.fromEntries(users.map(u => [u.id, u]));
+
+    const todayRanked = [...todayAttempts]
+        .map(a => {
+            const u = usersMap[a.user_id];
+            return {
+                user_id: a.user_id,
+                display_name: u?.full_name || u?.display_name || u?.name || a.user_id.slice(-6),
+                department: u?.department || '—',
+                points: a.total_points,
+                correct: a.correct_count
+            };
+        })
+        .sort((a, b) => b.points - a.points);
+
+    const allTimeRanked = [...users]
+        .filter(u => (u.engagement_points ?? 0) > 0)
+        .map(u => ({
+            user_id: u.id,
+            display_name: u.full_name || u.display_name || u.name || u.id.slice(-6),
+            department: u.department || '—',
+            points: u.engagement_points ?? 0
+        }))
+        .sort((a, b) => b.points - a.points);
+
+    const rows = view === 'TODAY' ? todayRanked : allTimeRanked;
+
+    return (
+        <div className="space-y-4">
+            <div className="flex gap-2">
+                {['TODAY', 'ALL_TIME'].map(v => (
+                    <button
+                        key={v}
+                        onClick={() => setView(v)}
+                        className="px-4 py-1.5 rounded-full text-sm transition-colors"
+                        style={{
+                            fontFamily: "'Raleway', sans-serif",
+                            fontWeight: 600,
+                            background: view === v ? CU.charcoal : '#f3f4f6',
+                            color: view === v ? 'white' : '#6b7280',
+                            border: 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {v === 'TODAY' ? 'Today' : 'All-time'}
+                    </button>
+                ))}
+            </div>
+
+            {rows.length === 0 ? (
+                <div className="text-center py-12" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
+                    {view === 'TODAY' ? 'No trivia scores yet today.' : 'No engagement points yet.'}
+                </div>
+            ) : (
+                <div className="space-y-1.5">
+                    {rows.map((row, i) => {
+                        const rank = i + 1;
+                        const isMe = row.user_id === currentUserId;
+                        return (
+                            <div
+                                key={row.user_id}
+                                className="flex items-center gap-3 py-2.5 px-3 rounded-xl"
+                                style={{
+                                    background: isMe ? CU.orange + '18' : 'white',
+                                    border: isMe ? `1px solid ${CU.orange}50` : '1px solid transparent',
+                                }}
+                            >
+                                <RankBadge rank={rank} />
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm truncate" style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, color: CU.charcoal }}>
+                                        {rank === 1 && <span className="mr-1">🏆</span>}
+                                        {row.display_name}
+                                        {isMe && (
+                                            <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
+                                                  style={{ background: CU.orange + '30', color: CU.charcoal, fontWeight: 700 }}>you</span>
+                                        )}
+                                    </div>
+                                    <div className="text-xs" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>{row.department}</div>
+                                </div>
+                                <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.2rem', color: CU.charcoal }}>
+                                    {row.points}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

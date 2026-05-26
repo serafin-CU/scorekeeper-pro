@@ -16,6 +16,7 @@ import Onboarding from './pages/Onboarding';
 import Profile from './pages/Profile';
 import Standings from './pages/Standings';
 import AdminWipeData from './pages/AdminWipeData';
+import Trivia from './pages/Trivia';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { FANTASY_ENABLED } from '@/config/features';
@@ -102,6 +103,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminWCDataSync" element={<LayoutWrapper currentPageName="AdminWCDataSync"><AdminWCDataSync /></LayoutWrapper>} />
       <Route path="/Standings" element={<LayoutWrapper currentPageName="Standings"><Standings /></LayoutWrapper>} />
       <Route path="/WipeData" element={<LayoutWrapper currentPageName="AdminWipeData"><AdminWipeData /></LayoutWrapper>} />
+      <Route path="/Trivia" element={<LayoutWrapper currentPageName="Trivia"><Trivia /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
