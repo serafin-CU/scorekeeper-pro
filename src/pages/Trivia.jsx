@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Brain, CheckCircle2, XCircle, Clock, Loader2, ChevronRight, Trophy } from 'lucide-react';
+import { Brain, CheckCircle2, XCircle, Loader2, ChevronRight, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const CU = {
