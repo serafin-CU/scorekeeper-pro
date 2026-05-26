@@ -29,7 +29,8 @@
         "KNOCKOUT_HISTORY",
         "PLAYERS_RECORDS",
         "HOST_2026",
-        "RULES_FORMAT"
+        "RULES_FORMAT",
+        "CULTURE_AND_FOOD"
       ],
       "description": "Question category"
     },
