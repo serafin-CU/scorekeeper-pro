@@ -29,31 +29,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Step 2: Sample questions — 2 EASY, 2 MEDIUM, 1 HARD — lowest times_used first
-    const pickByDifficulty = async (difficulty, count) => {
-      const pool = await base44.asServiceRole.entities.TriviaQuestion.filter({
-        difficulty,
-        is_active: true
-      });
-      if (pool.length < count) {
-        throw new Error(
-          `Not enough ${difficulty} questions in pool (need ${count}, have ${pool.length}). ` +
-          `Run generateTriviaQuestions first.`
-        );
-      }
-      pool.sort((a, b) => (a.times_used ?? 0) - (b.times_used ?? 0));
-      // Pick randomly within the lowest-usage tier for variety
-      const targetUsage = pool[count - 1].times_used ?? 0;
-      const leastUsed = pool.filter(q => (q.times_used ?? 0) <= targetUsage);
-      const shuffled = leastUsed.sort(() => Math.random() - 0.5);
-      return shuffled.slice(0, count);
-    };
-
-    const easyPick   = await pickByDifficulty('EASY', 2);
-    const mediumPick = await pickByDifficulty('MEDIUM', 2);
-    const hardPick   = await pickByDifficulty('HARD', 1);
-
-    const selected = [...easyPick, ...mediumPick, ...hardPick];
+    // Step 2: Sample 5 questions from active pool — lowest times_used first, shuffled for variety
+    const allActive = await base44.asServiceRole.entities.TriviaQuestion.filter({ is_active: true });
+    if (allActive.length < 5) {
+      throw new Error(
+        `Not enough active questions in pool (need 5, have ${allActive.length}). Activate more questions first.`
+      );
+    }
+    allActive.sort((a, b) => (a.times_used ?? 0) - (b.times_used ?? 0));
+    const targetUsage = allActive[4].times_used ?? 0;
+    const leastUsed = allActive.filter(q => (q.times_used ?? 0) <= targetUsage);
+    const shuffled = leastUsed.sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, 5);
     const ids = selected.map(q => q.id);
 
     if (new Set(ids).size !== 5) {

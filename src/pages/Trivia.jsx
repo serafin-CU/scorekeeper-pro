@@ -122,26 +122,32 @@ export default function Trivia() {
 
     async function handleStart() {
         setStatus('ASSEMBLING');
-        const res = await base44.functions.invoke('assembleDailyTrivia', { date: today });
-        const ids = res.data?.question_ids;
-        if (!ids || ids.length !== 5) {
-            setErrorMsg(res.data?.error || 'Could not load today\'s questions. Please try again later.');
-            setStatus('ERROR');
-            return;
-        }
-        setQuestionIds(ids);
+        try {
+            const res = await base44.functions.invoke('assembleDailyTrivia', { date: today });
+            const ids = res.data?.question_ids;
+            if (!ids || ids.length !== 5) {
+                setErrorMsg(res.data?.error || 'Could not load today\'s questions. Please try again later.');
+                setStatus('ERROR');
+                return;
+            }
+            setQuestionIds(ids);
 
-        // Fetch question details (without correct_answer_index — server grades)
-        const qs = [];
-        for (const qid of ids) {
-            const rows = await base44.entities.TriviaQuestion.filter({ id: qid });
-            if (rows.length > 0) qs.push(rows[0]);
+            // Fetch question details (without correct_answer_index — server grades)
+            const qs = [];
+            for (const qid of ids) {
+                const rows = await base44.entities.TriviaQuestion.filter({ id: qid });
+                if (rows.length > 0) qs.push(rows[0]);
+            }
+            setQuestions(qs);
+            setCurrentQIndex(0);
+            setCollectedAnswers([]);
+            answeredRef.current = false;
+            setStatus('ANSWERING');
+        } catch (err) {
+            console.error('[Trivia] assembleDailyTrivia failed:', err);
+            setErrorMsg(err?.message || 'Could not load today\'s questions. Please try again later.');
+            setStatus('ERROR');
         }
-        setQuestions(qs);
-        setCurrentQIndex(0);
-        setCollectedAnswers([]);
-        answeredRef.current = false;
-        setStatus('ANSWERING');
     }
 
     // Timer tick while ANSWERING
