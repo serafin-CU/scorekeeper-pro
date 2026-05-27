@@ -366,14 +366,28 @@ export default function ProdePredictions() {
 
     // Auto-select first phase with upcoming matches
     useEffect(() => {
-        if (!selectedPhase && availablePhases.length > 0) {
-            const now = new Date();
-            const upcoming = availablePhases.find(p =>
-                (phases[p] || []).some(m => new Date(m.kickoff_at) > now)
-            );
-            setSelectedPhase(upcoming || availablePhases[0]);
+        if (availablePhases.length === 0) return;
+
+        const now = new Date();
+        const phaseWithUpcoming = availablePhases.find(p =>
+            (phases[p] || []).some(m => new Date(m.kickoff_at) > now)
+        );
+
+        const currentIsKnockoutPlaceholder =
+            selectedPhase && KNOCKOUT_SLOT_COUNT[selectedPhase] !== undefined;
+        const upcomingIsGroupPhase =
+            phaseWithUpcoming && KNOCKOUT_SLOT_COUNT[phaseWithUpcoming] === undefined;
+
+        const shouldAutoSet =
+            !selectedPhase ||
+            (currentIsKnockoutPlaceholder && upcomingIsGroupPhase);
+
+        if (shouldAutoSet && phaseWithUpcoming) {
+            setSelectedPhase(phaseWithUpcoming);
+        } else if (!selectedPhase) {
+            setSelectedPhase(availablePhases[0]);
         }
-    }, [availablePhases.length]);
+    }, [availablePhases.length, matches.length]);
 
     // Initialize local edits from saved predictions when phase changes
     useEffect(() => {
@@ -488,8 +502,7 @@ export default function ProdePredictions() {
                     <p className="text-sm mt-2" style={{ color: '#6b7280' }}>
                         Predict the score for each match. 
                         <span style={{ color: CU.green, fontWeight: 600 }}> Exact score = 5 pts</span> · 
-                        <span style={{ color: CU.blue, fontWeight: 600 }}> Correct winner = 3 pts</span> · 
-                        <span style={{ color: CU.magenta, fontWeight: 600 }}> MVP = 2 pts</span>
+                        <span style={{ color: CU.blue, fontWeight: 600 }}> Correct winner = 3 pts</span>
                     </p>
                 </div>
 
