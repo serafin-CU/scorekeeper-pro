@@ -391,7 +391,7 @@ function StartView({ onStart }) {
                 <div className="grid grid-cols-3 gap-3 text-center">
                     {[
                         { label: 'Questions', value: '5' },
-                        { label: 'Max points', value: '500' },
+                        { label: 'Max points', value: '100' },
                         { label: 'Timer', value: '30s' }
                     ].map(({ label, value }) => (
                         <div key={label} className="rounded-xl p-3" style={{ background: '#f9fafb' }}>
@@ -403,7 +403,7 @@ function StartView({ onStart }) {
                 <div className="space-y-2">
                     {[
                         '⚡ Answer faster to earn more points per question',
-                        '✅ 5 → 500 pts   |   4 → 400 pts   |   etc.',
+                        '✅ 5 correct → 100 pts max   |   speed earns up to 20 pts/question',
                         '🔒 One attempt per day — no re-dos'
                     ].map(tip => (
                         <p key={tip} className="text-sm" style={{ fontFamily: "'Raleway', sans-serif", color: '#6b7280' }}>{tip}</p>
@@ -451,7 +451,7 @@ function AlreadyDoneView({ attempt, questions }) {
 
             <BreakdownList answers={attempt.answers} qMap={qMap} />
 
-            <Link to="/Leaderboard">
+            <Link to="/Leaderboard?tab=trivia">
                 <button className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mt-2"
                         style={{ background: '#f3f4f6', color: '#2C2B2B', fontFamily: "'Raleway', sans-serif" }}>
                     <Trophy className="w-4 h-4" style={{ color: CU.orange }} />
@@ -492,7 +492,7 @@ function ResultView({ result, questions }) {
                 Come back tomorrow for a new set! 🌟
             </p>
 
-            <Link to="/Leaderboard">
+            <Link to="/Leaderboard?tab=trivia">
                 <button className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
                         style={{ background: '#f3f4f6', color: '#2C2B2B', fontFamily: "'Raleway', sans-serif" }}>
                     <Trophy className="w-4 h-4" style={{ color: CU.orange }} />

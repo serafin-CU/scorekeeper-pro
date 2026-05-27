@@ -4,11 +4,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 // Points are awarded only for correct answers; speed determines the tier.
 function scoreAnswer(isCorrect, responseTimeMs) {
   if (!isCorrect || responseTimeMs === null || responseTimeMs === undefined) return 0;
-  if (responseTimeMs <= 5000)  return 100; // answered in ≤5s
-  if (responseTimeMs <= 12000) return 70;  // answered in ≤12s
-  if (responseTimeMs <= 20000) return 40;  // answered in ≤20s
-  if (responseTimeMs <= 30000) return 20;  // answered in ≤30s
-  return 0;                                // >30s — treat as timeout
+  const remainingMs = 30000 - responseTimeMs;
+  if (remainingMs >= 25000) return 20; // 25-30s remaining
+  if (remainingMs >= 20000) return 16; // 20-24s remaining
+  if (remainingMs >= 15000) return 12; // 15-19s remaining
+  if (remainingMs >= 10000) return 8;  // 10-14s remaining
+  if (remainingMs >= 5000)  return 4;  // 5-9s remaining
+  if (remainingMs >= 0)     return 1;  // 0-4s remaining
+  return 0;                            // timeout
 }
 
 Deno.serve(async (req) => {

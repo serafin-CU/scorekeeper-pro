@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import WorldCupBanner from '@/components/WorldCupBanner';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, Medal, TrendingUp, Loader2, Crown, Brain } from 'lucide-react';
+import { Trophy, Medal, Loader2, Crown, Brain } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import { FANTASY_ENABLED } from '@/config/features';
 
@@ -64,7 +65,10 @@ function LeaderboardTable({ entries, currentUserId, mode, showFantasyCol }) {
                                 color: isMe ? CU.charcoal : CU.charcoal
                             }}>
                                 {rank === 1 && <span className="mr-1">🏆</span>}
-                                {entry.display_name || entry.email || entry.user_id.slice(-8)}
+                                {isMe
+                                ? <Link to="/Profile" style={{ color: 'inherit', textDecoration: 'none' }}>{entry.display_name || (entry.email ? entry.email.split('@')[0] : entry.user_id.slice(-8))}</Link>
+                                : <span>{entry.display_name || (entry.email ? entry.email.split('@')[0] : entry.user_id.slice(-8))}</span>
+                            }
                                 {isMe && (
                                     <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
                                           style={{ background: CU.orange + '30', color: CU.charcoal, fontWeight: 700 }}>
@@ -90,14 +94,14 @@ function LeaderboardTable({ entries, currentUserId, mode, showFantasyCol }) {
 }
 
 const TAB_CONFIG_BASE = [
-    { value: 'ALL', label: 'Overall', icon: TrendingUp },
     { value: 'PRODE', label: 'Prode', icon: Medal },
     { value: 'TRIVIA', label: 'Trivia', icon: Brain },
 ];
 
 export default function Leaderboard() {
     const [searchParams] = useSearchParams();
-    const [tab, setTab] = useState('ALL');
+    const tabParam = searchParams.get('tab');
+    const [tab, setTab] = useState(tabParam === 'trivia' ? 'TRIVIA' : 'PRODE');
 
     const { data: currentUser } = useQuery({
         queryKey: ['currentUser'],
@@ -200,7 +204,7 @@ export default function Leaderboard() {
                     </div>
                 </div>
                 <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.875rem', color: '#6b7280' }}>
-                    {entries.length} participant{entries.length !== 1 ? 's' : ''}
+                    {(tab === 'TRIVIA' ? triviaAttempts.length : entries.length)} participant{(tab === 'TRIVIA' ? triviaAttempts.length : entries.length) !== 1 ? 's' : ''}
                     {myRank > 0 && (
                         <> · You're ranked <span style={{ fontWeight: 700, color: CU.charcoal }}>#{myRank}</span></>
                     )}
@@ -215,11 +219,7 @@ export default function Leaderboard() {
                         <div>
                             <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 700, fontSize: '0.875rem', color: CU.charcoal }}>Your Position</div>
                             <div style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.75rem', color: '#6b7280' }}>
-                                {tab === 'ALL'
-                                    ? showFantasyTab
-                                        ? `${entries[myRank - 1]?.prode_points || 0} Prode + ${entries[myRank - 1]?.fantasy_points || 0} Fantasy`
-                                        : `${entries[myRank - 1]?.prode_points || 0} Prode points`
-                                    : `${entries[myRank - 1]?.total_points || 0} points`}
+                                {`${entries[myRank - 1]?.total_points || 0} ${tab === 'PRODE' ? 'Prode' : 'Trivia'} points`}
                             </div>
                         </div>
                     </div>
