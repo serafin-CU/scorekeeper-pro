@@ -404,6 +404,9 @@ export default function ProdePredictions() {
 
     const currentMatches = phases[selectedPhase] || [];
     const now = new Date();
+    const isMatchLocked = (match) =>
+        Date.now() >= new Date(match.kickoff_at).getTime() - 2 * 60 * 60 * 1000 ||
+        match.status === 'FINAL';
 
     // Count unsaved changes
     const unsavedChanges = currentMatches.filter(match => {
@@ -550,7 +553,7 @@ export default function ProdePredictions() {
                         {/* ── Match list ───────────────────────── */}
                         <div className="space-y-3">
                             {currentMatches.map(match => {
-                                const isLocked = new Date(match.kickoff_at) <= now || match.status === 'FINAL';
+                                const isLocked = isMatchLocked(match);
                                 return (
                                     <MatchRow
                                         key={match.id}
