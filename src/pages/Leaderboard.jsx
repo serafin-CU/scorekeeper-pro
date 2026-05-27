@@ -124,7 +124,7 @@ export default function Leaderboard() {
         queryKey: ['allUsers'],
         queryFn: async () => {
             try {
-                return await base44.entities.AppUser.list();
+                return await base44.entities.User.list();
             } catch {
                 return [];
             }
@@ -177,6 +177,10 @@ export default function Leaderboard() {
     const entries = getEntries(tab);
     const myRank = entries.findIndex(e => e.user_id === currentUser?.id) + 1;
 
+    const triviaRanked = [...triviaAttempts].sort((a, b) => b.total_points - a.total_points);
+    const myTriviaRank = triviaRanked.findIndex(a => a.user_id === currentUser?.id) + 1;
+    const myTriviaPoints = triviaRanked.find(a => a.user_id === currentUser?.id)?.total_points ?? 0;
+
     if (ledgerLoading) {
         return (
             <div className="max-w-2xl mx-auto p-6 flex items-center gap-2" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
@@ -212,19 +216,23 @@ export default function Leaderboard() {
             </div>
 
             {/* My position */}
-            {myRank > 0 && (
+            {(tab === 'TRIVIA' || myRank > 0) && (
                 <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: CU.orange + '15', border: `1px solid ${CU.orange}40` }}>
                     <div className="flex items-center gap-3">
-                        <RankBadge rank={myRank} />
+                        <RankBadge rank={tab === 'TRIVIA' ? (myTriviaRank || '—') : myRank} />
                         <div>
-                            <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 700, fontSize: '0.875rem', color: CU.charcoal }}>Your Position</div>
+                            <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 700, fontSize: '0.875rem', color: CU.charcoal }}>
+                                Your {tab === 'TRIVIA' ? 'Trivia' : 'Prode'} Position
+                            </div>
                             <div style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.75rem', color: '#6b7280' }}>
-                                {`${entries[myRank - 1]?.total_points || 0} ${tab === 'PRODE' ? 'Prode' : 'Trivia'} points`}
+                                {tab === 'TRIVIA'
+                                    ? `${myTriviaPoints} Trivia points today`
+                                    : `${entries[myRank - 1]?.total_points || 0} Prode points`}
                             </div>
                         </div>
                     </div>
                     <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.75rem', color: CU.charcoal }}>
-                        {entries[myRank - 1]?.total_points || 0}
+                        {tab === 'TRIVIA' ? myTriviaPoints : (entries[myRank - 1]?.total_points || 0)}
                     </div>
                 </div>
             )}
@@ -339,7 +347,10 @@ function TriviaLeaderboard({ todayAttempts, users, currentUserId }) {
                                 <div className="flex-1 min-w-0">
                                     <div className="text-sm truncate" style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, color: CU.charcoal }}>
                                         {rank === 1 && <span className="mr-1">🏆</span>}
-                                        {row.display_name}
+                                        {isMe
+                                            ? <Link to="/Profile" style={{ color: 'inherit', textDecoration: 'none' }}>{row.display_name}</Link>
+                                            : <span>{row.display_name}</span>
+                                        }
                                         {isMe && (
                                             <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
                                                   style={{ background: CU.orange + '30', color: CU.charcoal, fontWeight: 700 }}>you</span>
