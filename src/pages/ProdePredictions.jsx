@@ -325,7 +325,7 @@ export default function ProdePredictions() {
 
     const { data: matches = [], isLoading: matchesLoading } = useQuery({
         queryKey: ['matches'],
-        queryFn: () => base44.entities.Match.list()
+        queryFn: () => base44.entities.Match.filter({ kickoff_at: { $gte: '2026-06-01T00:00:00Z' } })
     });
 
     const { data: teams = [] } = useQuery({
