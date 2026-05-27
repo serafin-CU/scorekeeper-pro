@@ -140,7 +140,7 @@ export default function Leaderboard() {
             const user = usersMap[entry.user_id];
             aggregated[entry.user_id] = {
                 user_id: entry.user_id,
-                display_name: user?.full_name || user?.name || null,
+                display_name: user?.display_name || user?.full_name || null,
                 email: user?.email || null,
                 prode_points: 0,
                 fantasy_points: 0,
@@ -283,7 +283,7 @@ function TriviaLeaderboard({ todayAttempts, users, currentUserId }) {
             const u = usersMap[a.user_id];
             return {
                 user_id: a.user_id,
-                display_name: u?.full_name || u?.display_name || u?.name || a.user_id.slice(-6),
+                display_name: u?.display_name || u?.full_name || (u?.email ? u.email.split('@')[0] : null) || a.user_id.slice(-6),
                 department: u?.department || '—',
                 points: a.total_points,
                 correct: a.correct_count
@@ -295,7 +295,7 @@ function TriviaLeaderboard({ todayAttempts, users, currentUserId }) {
         .filter(u => (u.engagement_points ?? 0) > 0)
         .map(u => ({
             user_id: u.id,
-            display_name: u.full_name || u.display_name || u.name || u.id.slice(-6),
+            display_name: u.display_name || u.full_name || (u.email ? u.email.split('@')[0] : null) || u.id.slice(-6),
             department: u.department || '—',
             points: u.engagement_points ?? 0
         }))
