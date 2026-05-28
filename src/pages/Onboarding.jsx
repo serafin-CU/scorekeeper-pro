@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, Search, Upload, X } from 'lucide-react';
+import PredictionStep from '@/components/onboarding/PredictionStep';
 
 const CU = {
     orange: '#FFB81C',
@@ -348,6 +349,9 @@ export default function Onboarding() {
     const [department, setDepartment] = useState('');
     const [preferredTeamId, setPreferredTeamId] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
+    const [predictedWinnerTeamId, setPredictedWinnerTeamId] = useState('');
+    const [predictedTopScorer, setPredictedTopScorer] = useState('');
+    const [predictedTopAssister, setPredictedTopAssister] = useState('');
     const [saving, setSaving] = useState(false);
 
     const { data: currentUser } = useQuery({
@@ -363,7 +367,7 @@ export default function Onboarding() {
     }, [currentUser]);
 
     async function saveAndContinue(newStep) {
-        if (newStep < 4) {
+        if (newStep < 5) {
             setStep(newStep);
             return;
         }
@@ -375,10 +379,13 @@ export default function Onboarding() {
                 department,
                 preferred_team_id: preferredTeamId,
                 avatar_url: avatarUrl,
+                predicted_winner_team_id: predictedWinnerTeamId,
+                predicted_top_scorer: predictedTopScorer,
+                predicted_top_assister: predictedTopAssister,
                 onboarding_completed: true
             });
             await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-            setStep(4);
+            setStep(5);
         } catch (err) {
             console.error('Save failed:', err);
         } finally {
@@ -401,6 +408,9 @@ export default function Onboarding() {
                 department: department || 'Other',
                 preferred_team_id: preferredTeamId || '',
                 avatar_url: avatarUrl || '',
+                predicted_winner_team_id: predictedWinnerTeamId || '',
+                predicted_top_scorer: predictedTopScorer || '',
+                predicted_top_assister: predictedTopAssister || '',
                 onboarding_completed: true
             });
             navigate('/');
@@ -428,7 +438,7 @@ export default function Onboarding() {
             
             {/* Progress */}
             <div className="mb-12">
-                <ProgressDots current={step} total={4} />
+                <ProgressDots current={step} total={5} />
             </div>
 
             {/* Step content */}
@@ -465,6 +475,18 @@ export default function Onboarding() {
                 />
             )}
             {step === 4 && (
+                <PredictionStep
+                    predictedWinnerTeamId={predictedWinnerTeamId}
+                    setPredictedWinnerTeamId={setPredictedWinnerTeamId}
+                    predictedTopScorer={predictedTopScorer}
+                    setPredictedTopScorer={setPredictedTopScorer}
+                    predictedTopAssister={predictedTopAssister}
+                    setPredictedTopAssister={setPredictedTopAssister}
+                    onNext={() => saveAndContinue(5)}
+                    onSkip={() => saveAndContinue(5)}
+                />
+            )}
+            {step === 5 && (
                 <Completion
                     displayName={displayName}
                     department={department}
