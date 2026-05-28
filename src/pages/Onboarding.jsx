@@ -272,8 +272,7 @@ function Step4({ avatarUrl, setAvatarUrl, onNext, onSkip }) {
     );
 }
 
-function Completion({ displayName, department, preferredTeamId, avatarUrl }) {
-    const navigate = useNavigate();
+function Completion({ displayName, department, preferredTeamId, avatarUrl, onFinish }) {
     const { data: team } = useQuery({
         queryKey: ['team', preferredTeamId],
         queryFn: () => preferredTeamId ? base44.entities.Team.get(preferredTeamId) : null,
@@ -314,7 +313,7 @@ function Completion({ displayName, department, preferredTeamId, avatarUrl }) {
             
             <div className="space-y-3">
                 <button
-                    onClick={() => navigate('/ProdePredictions')}
+                    onClick={() => onFinish('/ProdePredictions')}
                     className="w-full py-3 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-opacity"
                     style={{
                         fontFamily: "'Raleway', sans-serif",
@@ -326,7 +325,7 @@ function Completion({ displayName, department, preferredTeamId, avatarUrl }) {
                 </button>
                 
                 <button
-                    onClick={() => navigate('/SquadBuilder')}
+                    onClick={() => onFinish('/SquadBuilder')}
                     className="w-full py-3 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-opacity"
                     style={{
                         fontFamily: "'Raleway', sans-serif",
@@ -385,6 +384,13 @@ export default function Onboarding() {
         } finally {
             setSaving(false);
         }
+    }
+
+    async function handleFinish(path) {
+        // Ensure the parent (App.jsx) re-evaluates onboarding_completed and unmounts this overlay
+        await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+        await queryClient.refetchQueries({ queryKey: ['currentUser'] });
+        navigate(path);
     }
 
     async function handleSkip() {
@@ -464,6 +470,7 @@ export default function Onboarding() {
                     department={department}
                     preferredTeamId={preferredTeamId}
                     avatarUrl={avatarUrl}
+                    onFinish={handleFinish}
                 />
             )}
         </div>
