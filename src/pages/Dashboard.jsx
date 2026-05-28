@@ -227,7 +227,7 @@ export default function Dashboard() {
         enabled: !!currentUser
     });
 
-    const showFantasy = (FANTASY_ENABLED || isAdmin) && !previewAsParticipant;
+    const showFantasy = false;
 
     const prodePoints = ledger.filter(e => e.mode === 'PRODE').reduce((sum, e) => sum + (e.points || 0), 0);
     const fantasyPoints = ledger.filter(e => e.mode === 'FANTASY').reduce((sum, e) => sum + (e.points || 0), 0);
@@ -270,25 +270,11 @@ export default function Dashboard() {
                 }).join(', ') : 'None yet'} accentColor={CU.magenta} />
             </div>
 
-            {/* Two-column content */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Content */}
+            <div className="grid grid-cols-1 gap-6">
                 <SectionCard title="Recent Predictions" icon={Target} iconColor={CU.orange} linkTo="/ProdePredictions" linkLabel="All">
                     <RecentPredictions predictions={predictions} matches={matches} teams={teams} />
                 </SectionCard>
-                {showFantasy ? (
-                    <SectionCard title="My Squad" icon={Users} iconColor={CU.blue} linkTo="/SquadManagement" linkLabel="Manage">
-                        <SquadSummary currentUser={currentUser} teams={teams} />
-                    </SectionCard>
-                ) : (
-                    <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
-                        <div style={{ height: '3px', background: CU.blue }} />
-                        <div className="p-6 text-center space-y-2">
-                            <div style={{ fontSize: '2rem' }}>🏟️</div>
-                            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.1rem', color: CU.charcoal }}>Fantasy Game</div>
-                            <div style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.875rem', color: '#6b7280' }}>Coming soon — squads open before tournament kickoff.</div>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {upcomingMatches > 0 && (

@@ -9,20 +9,12 @@ const CU = {
 };
 
 const ALBA_FAQ = {
-    welcome: "Hey! 👋 I'm Alba, your UnityCup assistant. Ask me about scoring rules, squad building, the tournament schedule, or how UnityCup works!",
+    welcome: "Hey! 👋 I'm Alba, your UnityCup assistant. Ask me about scoring rules, the tournament schedule, or how UnityCup works!",
     
     responses: [
         {
             triggers: ['score', 'points', 'scoring', 'how do points work'],
-            response: "📊 UnityCup has two game modes:\n\n**Prode (Predictions):**\n• Exact score = 5 pts\n• Correct winner = 3 pts\n\n**Fantasy:**\n• FWD goal = 4 pts\n• MID goal = 5 pts\n• DEF/GK goal = 6 pts\n• 60+ minutes played = 1 pt\n• Yellow card = -1 pt\n• Red card = -3 pts\n• Captain gets 2x points!"
-        },
-        {
-            triggers: ['squad', 'formation', 'team', 'players', 'how many', '4-3-3', 'build'],
-            response: "⚽ Your fantasy squad needs:\n• 11 starters (1 GK, 4 DEF, 3 MID, 3 FWD)\n• 3 bench players\n• 1 captain (earns 2x points)\n• Budget: $150M total\n\nFormation is fixed at 4-3-3. Go to 'Build Squad' in the nav to create yours!"
-        },
-        {
-            triggers: ['transfer', 'change', 'edit', 'swap', 'lock', 'window', 'deadline'],
-            response: "🔄 Transfers are FREE in UnityCup — no penalties!\n\nYou can edit your squad anytime until 48 hours before the first match of each phase. After that, your squad locks for that phase.\n\nCheck the countdown on your Squad Builder page to see when the window closes."
+            response: "📊 UnityCup Prode (Predictions) scoring:\n\n• Exact score = 5 pts\n• Correct winner = 3 pts\n• Wrong outcome = 0 pts\n\nPredict every match and climb the leaderboard!"
         },
         {
             triggers: ['schedule', 'when', 'date', 'start', 'calendar', 'fixture', 'match'],
@@ -37,28 +29,22 @@ const ALBA_FAQ = {
             response: "🏅 UnityCup Badges:\n\n🛡️ **Unbreakable XI** — Keep 8+ of your 11 starters between knockout rounds\n👑 **The Originals** — Keep 9+ original R32 starters all the way to the Final\n🎯 **Perfect Matchday** — Predict the correct winner for every match in a matchday\n\nBadges appear on your profile and Squad page!"
         },
         {
-            triggers: ['captain', '2x', 'double', 'multiplier'],
-            response: "©️ Your Captain earns DOUBLE points!\n\nOnly starters can be captain. Choose wisely — pick someone likely to score or play 60+ minutes.\n\nYou can change your captain anytime before the squad locks. Go to Build Squad → tap the ☆ star on any starter."
-        },
-        {
             triggers: ['group', 'argentina', 'brazil', 'usa', 'mexico', 'england', 'france', 'spain', 'germany', 'who is in'],
             response: "🌍 12 Groups, 48 Teams!\n\nHighlights:\n• Group A: Mexico, South Korea, South Africa\n• Group C: Brazil, Morocco, Scotland\n• Group D: USA, Paraguay, Australia\n• Group H: Spain, Uruguay, Saudi Arabia\n• Group I: France, Senegal, Norway\n• Group J: Argentina, Algeria, Austria\n• Group L: England, Croatia, Ghana\n\nCheck 'Prode' to see all fixtures by matchday!"
         },
         {
             triggers: ['rules', 'how to play', 'how does this work', 'help', 'what is this', 'explain'],
-            response: "🏆 Welcome to UnityCup: FIFA World Cup 2026!\n\nTwo ways to play:\n\n1️⃣ **Prode** — Predict match scores. Exact = 5pts, correct winner = 3pts.\n2️⃣ **Fantasy** — Build a squad of 14 real players. They earn points based on real match performance.\n\nBoth modes have separate leaderboards. Your combined score determines the overall champion!\n\nNeed help with something specific? Ask me about scoring, squads, transfers, or the schedule!"
+            response: "🏆 Welcome to UnityCup: FIFA World Cup 2026!\n\n**Prode** — Predict match scores. Exact = 5pts, correct winner = 3pts.\n\nCompete on the leaderboard and test your knowledge with daily Trivia!\n\nNeed help with something specific? Ask me about scoring, the schedule, badges, or trivia!"
         }
     ],
     
-    fallback: "🤔 I'm not sure about that one! I can help with:\n• Scoring rules\n• Squad building\n• Transfer windows\n• Tournament schedule\n• Badges\n• How to play\n\nTry asking about one of those!"
+    fallback: "🤔 I'm not sure about that one! I can help with:\n• Scoring rules\n• Tournament schedule\n• Badges\n• How to play\n\nTry asking about one of those!"
 };
 
 const QUICK_REPLIES = [
     "How does scoring work?",
-    "Build my squad",
     "Tournament schedule",
     "What are badges?",
-    "Transfer rules",
     "How to play"
 ];
 

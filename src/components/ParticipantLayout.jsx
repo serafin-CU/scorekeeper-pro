@@ -15,8 +15,6 @@ const CU = {
 const ALL_NAV_ITEMS = [
     { name: 'Dashboard', label: 'Home', icon: LayoutDashboard },
     { name: 'ProdePredictions', label: 'Prode', icon: Target },
-    { name: 'SquadManagement', label: 'My Squad', icon: Users, fantasyOnly: true },
-    { name: 'SquadBuilder', label: 'Build Squad', icon: Shield, fantasyOnly: true },
     { name: 'Leaderboard', label: 'Standings', icon: Trophy },
     { name: 'Trivia', label: 'Trivia', icon: Brain },
     { name: 'AlbaChat', label: 'Alba 🤖', icon: MessageSquare },
