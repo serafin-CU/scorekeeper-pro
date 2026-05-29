@@ -5,7 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronLeft, Trophy, Award, Brain, Loader2 } from 'lucide-react';
 import { CU } from '@/components/feed/feedConstants';
-import FinishedPredictions from '@/components/profile/FinishedPredictions';
+import PastPredictions from '@/components/profile/PastPredictions';
 
 const BADGE_NAMES = {
     UNBREAKABLE_XI: '🛡️ Unbreakable XI',
@@ -128,7 +128,7 @@ export default function PublicProfile() {
                 )}
 
                 {/* Past predictions (finished matches only) */}
-                <FinishedPredictions predictions={profile.finished_predictions || []} />
+                <PastPredictions predictions={profile.past_predictions} />
 
                 {/* Recent posts */}
                 <h2 className="mb-3" style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.25rem', color: CU.charcoal }}>
