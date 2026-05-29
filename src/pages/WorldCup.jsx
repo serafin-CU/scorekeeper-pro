@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import WorldCupBanner from '@/components/WorldCupBanner';
 import { CU } from '@/components/worldcup/wcTokens';
 import FixturesTab from '@/components/worldcup/FixturesTab';
+import ResultsTab from '@/components/worldcup/ResultsTab';
 
 const TABS = [
     { key: 'fixtures', label: 'Fixtures' },
@@ -73,7 +74,8 @@ export default function WorldCup() {
 
                 {/* Tab content */}
                 {activeTab === 'fixtures' && <FixturesTab />}
-                {activeTab !== 'fixtures' && (
+                {activeTab === 'results' && <ResultsTab />}
+                {activeTab !== 'fixtures' && activeTab !== 'results' && (
                     <div className="text-center py-16 rounded-2xl border" style={{ borderColor: '#e5e7eb', color: '#9ca3af', fontFamily: "'Raleway', sans-serif" }}>
                         Coming soon!
                     </div>
