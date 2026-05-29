@@ -21,12 +21,12 @@ const ALBA_FAQ = {
             response: "📅 FIFA World Cup 2026 Schedule:\n\n• Group Stage: June 11–27\n• Round of 32: June 28 – July 3\n• Round of 16: July 4–7\n• Quarterfinals: July 9–11\n• Semifinals: July 14–15\n• Third Place: July 18\n• Final: July 19 🏆\n\n48 teams, 104 matches across USA, Canada & Mexico!"
         },
         {
-            triggers: ['prode', 'predict', 'prediction', 'guess'],
-            response: "🎯 Prode is the prediction game!\n\nFor each match, predict the final score (home goals vs away goals). You can predict as many matches as you want and save them all at once.\n\nScoring: Exact score = 5 pts, Correct winner/draw = 3 pts.\n\nGo to 'Prode' in the nav to start predicting!"
+            triggers: ['prode', 'predict', 'prediction', 'guess', 'lock', 'deadline'],
+            response: "🎯 Prode is the prediction game!\n\nPredict the final score of any upcoming match before it starts. Predictions lock the moment the match kicks off, so get them in early! You can predict as many matches as you want and save them all at once.\n\nScoring (awarded automatically after each match): Exact score = 3 pts, correct outcome (win/draw/loss) = 1 pt, wrong = 0 pts.\n\nGo to 'Prode' in the nav to start predicting!"
         },
         {
             triggers: ['badge', 'achievement', 'award', 'trophy'],
-            response: "🏅 UnityCup Badges:\n\n🎯 **Perfect Matchday** — Predict the correct winner for every match in a matchday\n\nMore badges to come! Your badges appear on your Profile page."
+            response: "🏅 UnityCup Badges:\n\n🎯 **Perfect Matchday** — Predict the correct outcome for every match in a matchday\n\nMore badges to come! Your badges appear on your Profile page."
         },
         {
             triggers: ['trivia', 'quiz', 'question', 'daily quiz'],
@@ -50,7 +50,7 @@ const ALBA_FAQ = {
         },
         {
             triggers: ['rules', 'how to play', 'how does this work', 'help', 'what is this', 'explain'],
-            response: "🏆 Welcome to UnityCup: FIFA World Cup 2026!\n\n**Prode** — Predict match scores. Exact = 5pts, correct winner = 3pts.\n**Trivia** — Play the daily quiz to earn points.\n**Feed** — Share posts with the community.\n**Standings** — Track group & knockout tables.\n\nCompete on the leaderboard and check the 'World Cup' page for live fixtures, results & news!\n\nNeed help with something specific? Ask me about scoring, the schedule, trivia, the feed, or any page!"
+            response: "🏆 Welcome to UnityCup: FIFA World Cup 2026!\n\n**Prode** — Predict match scores before kickoff. Exact = 3 pts, correct outcome = 1 pt.\n**Trivia** — Play the daily quiz to earn points.\n**Feed** — Share posts with the community.\n**Standings** — Track group & knockout tables.\n\nCompete on the leaderboard and check the 'World Cup' page for live fixtures, results & news!\n\nNeed help with something specific? Ask me about scoring, the schedule, trivia, the feed, or any page!"
         }
     ],
     
