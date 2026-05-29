@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronLeft, Trophy, Award, Loader2 } from 'lucide-react';
+import { ChevronLeft, Trophy, Award, Brain, Loader2 } from 'lucide-react';
 import { CU } from '@/components/feed/feedConstants';
 
 const BADGE_NAMES = {
@@ -86,7 +86,7 @@ export default function PublicProfile() {
                 </div>
 
                 {/* Points & badges */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="rounded-2xl p-5 flex items-center gap-3" style={{ background: 'white', border: '1px solid #e5e7eb' }}>
                         <div style={{ padding: '8px', borderRadius: '8px', background: CU.green + '18' }}>
                             <Trophy className="w-5 h-5" style={{ color: CU.green }} />
@@ -94,6 +94,15 @@ export default function PublicProfile() {
                         <div>
                             <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.75rem', color: CU.charcoal, lineHeight: 1 }}>{profile.prode_points}</div>
                             <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: '0.85rem', color: '#6b7280' }}>Prode Points</div>
+                        </div>
+                    </div>
+                    <div className="rounded-2xl p-5 flex items-center gap-3" style={{ background: 'white', border: '1px solid #e5e7eb' }}>
+                        <div style={{ padding: '8px', borderRadius: '8px', background: CU.orange + '18' }}>
+                            <Brain className="w-5 h-5" style={{ color: CU.orange }} />
+                        </div>
+                        <div>
+                            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.75rem', color: CU.charcoal, lineHeight: 1 }}>{profile.trivia_points ?? 0}</div>
+                            <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: '0.85rem', color: '#6b7280' }}>Trivia Points</div>
                         </div>
                     </div>
                     <div className="rounded-2xl p-5 flex items-center gap-3" style={{ background: 'white', border: '1px solid #e5e7eb' }}>

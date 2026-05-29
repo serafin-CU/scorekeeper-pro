@@ -21,16 +21,18 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'User not found' }, { status: 404 });
         }
 
-        const [ledger, badges, posts, teams] = await Promise.all([
+        const [ledger, badges, posts, teams, triviaAttempts] = await Promise.all([
             base44.asServiceRole.entities.PointsLedger.filter({ user_id }),
             base44.asServiceRole.entities.BadgeAward.filter({ user_id }),
             base44.asServiceRole.entities.FeedPost.filter({ author_id: user_id }, '-created_date', 10),
             target.preferred_team_id
                 ? base44.asServiceRole.entities.Team.filter({ id: target.preferred_team_id })
-                : Promise.resolve([])
+                : Promise.resolve([]),
+            base44.asServiceRole.entities.TriviaAttempt.filter({ user_id })
         ]);
 
         const prodePoints = ledger.filter(e => e.mode === 'PRODE').reduce((s, e) => s + (e.points || 0), 0);
+        const triviaPoints = triviaAttempts.reduce((s, a) => s + (a.total_points || 0), 0);
 
         const profile = {
             id: target.id,
@@ -39,6 +41,8 @@ Deno.serve(async (req) => {
             avatar_url: target.avatar_url || '',
             favorite_team: teams?.[0] ? { name: teams[0].name, fifa_code: teams[0].fifa_code } : null,
             prode_points: prodePoints,
+            trivia_points: triviaPoints,
+            trivia_games: triviaAttempts.length,
             badges: badges.map(b => ({ badge_type: b.badge_type, awarded_at: b.awarded_at })),
             posts: posts.map(p => ({
                 id: p.id,
