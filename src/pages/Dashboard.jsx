@@ -4,8 +4,9 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Trophy, Users, Target, TrendingUp, Loader2, ChevronRight, Award } from 'lucide-react';
+import { Trophy, Users, Target, TrendingUp, Loader2, ChevronRight, Award, Newspaper } from 'lucide-react';
 import { FANTASY_ENABLED } from '@/config/features';
+import DashboardFeedPreview from '@/components/dashboard/DashboardFeedPreview';
 
 const CU = {
     orange: '#FFB81C',
@@ -274,6 +275,10 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 gap-6">
                 <SectionCard title="Recent Predictions" icon={Target} iconColor={CU.orange} linkTo="/ProdePredictions" linkLabel="All">
                     <RecentPredictions predictions={predictions} matches={matches} teams={teams} />
+                </SectionCard>
+
+                <SectionCard title="From the Feed" icon={Newspaper} iconColor={CU.magenta} linkTo="/Feed" linkLabel="See all posts">
+                    <DashboardFeedPreview />
                 </SectionCard>
             </div>
 
