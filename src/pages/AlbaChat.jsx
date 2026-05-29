@@ -26,7 +26,23 @@ const ALBA_FAQ = {
         },
         {
             triggers: ['badge', 'achievement', 'award', 'trophy'],
-            response: "🏅 UnityCup Badges:\n\n🛡️ **Unbreakable XI** — Keep 8+ of your 11 starters between knockout rounds\n👑 **The Originals** — Keep 9+ original R32 starters all the way to the Final\n🎯 **Perfect Matchday** — Predict the correct winner for every match in a matchday\n\nBadges appear on your profile and Squad page!"
+            response: "🏅 UnityCup Badges:\n\n🎯 **Perfect Matchday** — Predict the correct winner for every match in a matchday\n\nMore badges to come! Your badges appear on your Profile page."
+        },
+        {
+            triggers: ['trivia', 'quiz', 'question', 'daily quiz'],
+            response: "🧠 Trivia is the daily quiz game!\n\nEach day you get a fresh set of World Cup questions. Answer fast and correctly to earn points and climb the leaderboard.\n\nHead to 'Trivia' in the nav to play today's set!"
+        },
+        {
+            triggers: ['feed', 'post', 'social', 'comment', 'community'],
+            response: "💬 The Feed is your social hub!\n\nShare posts, react to others, and chat about the tournament with the community. You can also see a preview of the latest posts on your Home dashboard.\n\nOpen 'Feed' in the nav to join the conversation!"
+        },
+        {
+            triggers: ['standings', 'table', 'ranking', 'leaderboard', 'position'],
+            response: "📊 Standings show how teams are doing!\n\nCheck group tables and the knockout bracket under 'Standings'. To see how YOU rank against other players, head to the Leaderboard.\n\nThe 'World Cup' page also has live fixtures, results, standings & news."
+        },
+        {
+            triggers: ['nav', 'page', 'navigate', 'where', 'menu', 'sections'],
+            response: "🧭 Here's what you'll find in UnityCup:\n\n• 🏠 **Home** — your stats, predictions & feed preview\n• 🎯 **Prode** — predict match scores\n• 📊 **Standings** — group & knockout tables\n• 🧠 **Trivia** — daily quiz games\n• 💬 **Feed** — social posts\n• 👤 **Profile** — your stats & badges\n• 🌍 **World Cup** — fixtures, results, standings & news\n• 🤖 **Alba** — that's me, your assistant!"
         },
         {
             triggers: ['group', 'argentina', 'brazil', 'usa', 'mexico', 'england', 'france', 'spain', 'germany', 'who is in'],
@@ -34,18 +50,18 @@ const ALBA_FAQ = {
         },
         {
             triggers: ['rules', 'how to play', 'how does this work', 'help', 'what is this', 'explain'],
-            response: "🏆 Welcome to UnityCup: FIFA World Cup 2026!\n\n**Prode** — Predict match scores. Exact = 5pts, correct winner = 3pts.\n\nCompete on the leaderboard and test your knowledge with daily Trivia!\n\nNeed help with something specific? Ask me about scoring, the schedule, badges, or trivia!"
+            response: "🏆 Welcome to UnityCup: FIFA World Cup 2026!\n\n**Prode** — Predict match scores. Exact = 5pts, correct winner = 3pts.\n**Trivia** — Play the daily quiz to earn points.\n**Feed** — Share posts with the community.\n**Standings** — Track group & knockout tables.\n\nCompete on the leaderboard and check the 'World Cup' page for live fixtures, results & news!\n\nNeed help with something specific? Ask me about scoring, the schedule, trivia, the feed, or any page!"
         }
     ],
     
-    fallback: "🤔 I'm not sure about that one! I can help with:\n• Scoring rules\n• Tournament schedule\n• Badges\n• How to play\n\nTry asking about one of those!"
+    fallback: "🤔 I'm not sure about that one! I can help with:\n• Scoring rules\n• Tournament schedule\n• Trivia & Feed\n• Standings & badges\n• Getting around the app\n\nTry asking about one of those!"
 };
 
 const QUICK_REPLIES = [
     "How does scoring work?",
-    "Tournament schedule",
-    "What are badges?",
-    "How to play"
+    "How do I play Trivia?",
+    "Show me the app pages",
+    "Tournament schedule"
 ];
 
 function getAlbaResponse(userMessage) {
