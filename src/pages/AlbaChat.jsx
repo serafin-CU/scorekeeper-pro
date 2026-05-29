@@ -14,7 +14,7 @@ const ALBA_FAQ = {
     responses: [
         {
             triggers: ['score', 'points', 'scoring', 'how do points work'],
-            response: "📊 UnityCup Prode (Predictions) scoring:\n\n• Exact score = 5 pts\n• Correct winner = 3 pts\n• Wrong outcome = 0 pts\n\nPredict every match and climb the leaderboard!"
+            response: "📊 UnityCup Prode (Predictions) scoring:\n\n• Exact score = 3 pts\n• Correct outcome (win/draw/loss) = 1 pt\n• Wrong prediction = 0 pts\n\nPredict every match and climb the leaderboard!"
         },
         {
             triggers: ['schedule', 'when', 'date', 'start', 'calendar', 'fixture', 'match'],
