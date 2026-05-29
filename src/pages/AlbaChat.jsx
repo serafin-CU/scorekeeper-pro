@@ -30,7 +30,7 @@ const ALBA_FAQ = {
         },
         {
             triggers: ['trivia', 'quiz', 'question', 'daily quiz'],
-            response: "🧠 Trivia is the daily quiz game!\n\nEach day you get a fresh set of World Cup questions. Answer fast and correctly to earn points and climb the leaderboard.\n\nHead to 'Trivia' in the nav to play today's set!"
+            response: "🧠 Trivia is the quiz game!\n\nAnswer World Cup trivia questions covering history, teams, players, and stats. Each correct answer earns Trivia Points, and games are timed — so answer fast and accurately!\n\nYour Trivia score shows up on your Profile. Head to 'Trivia' in the nav to play!"
         },
         {
             triggers: ['feed', 'post', 'social', 'comment', 'community'],
