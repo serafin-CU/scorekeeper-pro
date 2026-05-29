@@ -4,6 +4,7 @@ import { CU } from '@/components/worldcup/wcTokens';
 import FixturesTab from '@/components/worldcup/FixturesTab';
 import ResultsTab from '@/components/worldcup/ResultsTab';
 import StandingsTab from '@/components/worldcup/StandingsTab';
+import NewsTab from '@/components/worldcup/NewsTab';
 
 const TABS = [
     { key: 'fixtures', label: 'Fixtures' },
@@ -77,11 +78,7 @@ export default function WorldCup() {
                 {activeTab === 'fixtures' && <FixturesTab />}
                 {activeTab === 'results' && <ResultsTab />}
                 {activeTab === 'standings' && <StandingsTab />}
-                {activeTab !== 'fixtures' && activeTab !== 'results' && activeTab !== 'standings' && (
-                    <div className="text-center py-16 rounded-2xl border" style={{ borderColor: '#e5e7eb', color: '#9ca3af', fontFamily: "'Raleway', sans-serif" }}>
-                        Coming soon!
-                    </div>
-                )}
+                {activeTab === 'news' && <NewsTab />}
             </div>
         </>
     );
