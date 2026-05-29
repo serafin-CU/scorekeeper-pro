@@ -19,6 +19,7 @@ import AdminWipeData from './pages/AdminWipeData';
 import Trivia from './pages/Trivia';
 import TriviaAdmin from './pages/TriviaAdmin';
 import Feed from './pages/Feed';
+import PublicProfile from './pages/PublicProfile';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { FANTASY_ENABLED } from '@/config/features';
@@ -106,6 +107,7 @@ const AuthenticatedApp = () => {
       <Route path="/Standings" element={<LayoutWrapper currentPageName="Standings"><Standings /></LayoutWrapper>} />
       <Route path="/WipeData" element={<LayoutWrapper currentPageName="AdminWipeData"><AdminWipeData /></LayoutWrapper>} />
       <Route path="/Feed" element={<LayoutWrapper currentPageName="Feed"><Feed /></LayoutWrapper>} />
+      <Route path="/Profile/:userId" element={<LayoutWrapper currentPageName="PublicProfile"><PublicProfile /></LayoutWrapper>} />
       <Route path="/Trivia" element={<LayoutWrapper currentPageName="Trivia"><Trivia /></LayoutWrapper>} />
       <Route path="/TriviaAdmin" element={<LayoutWrapper currentPageName="TriviaAdmin"><TriviaAdmin /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />

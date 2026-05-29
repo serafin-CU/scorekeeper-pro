@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { CU } from './feedConstants';
+import AuthorLink from '@/components/AuthorLink';
 
 export default function PostCard({ post }) {
     const name = post.author_name || 'Anonymous';
@@ -12,19 +13,21 @@ export default function PostCard({ post }) {
     return (
         <div className="rounded-xl p-4" style={{ background: 'white', border: '1px solid #e5e7eb' }}>
             <div className="flex gap-3">
-                {post.author_avatar_url ? (
-                    <img src={post.author_avatar_url} alt={name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                ) : (
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold"
-                        style={{ background: CU.charcoal, fontFamily: "'Raleway', sans-serif" }}>
-                        {initials}
-                    </div>
-                )}
+                <AuthorLink userId={post.author_id} className="flex-shrink-0">
+                    {post.author_avatar_url ? (
+                        <img src={post.author_avatar_url} alt={name} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                            style={{ background: CU.charcoal, fontFamily: "'Raleway', sans-serif" }}>
+                            {initials}
+                        </div>
+                    )}
+                </AuthorLink>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm" style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>
+                        <AuthorLink userId={post.author_id} className="font-semibold text-sm hover:underline" style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>
                             {name}
-                        </span>
+                        </AuthorLink>
                         {post.author_department && (
                             <span className="text-xs px-2 py-0.5 rounded-full"
                                 style={{ background: CU.orange + '20', color: CU.charcoal, fontFamily: "'Raleway', sans-serif" }}>

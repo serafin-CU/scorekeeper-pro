@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { CU } from '@/components/feed/feedConstants';
+import AuthorLink from '@/components/AuthorLink';
 
 function CompactPost({ post }) {
     const name = post.author_name || 'Anonymous';
@@ -14,17 +15,19 @@ function CompactPost({ post }) {
 
     return (
         <div className="flex gap-3 py-2.5 px-3 rounded-lg" style={{ background: '#f9fafb' }}>
-            {post.author_avatar_url ? (
-                <img src={post.author_avatar_url} alt={name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-            ) : (
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-semibold"
-                    style={{ background: CU.charcoal, fontFamily: "'Raleway', sans-serif" }}>
-                    {initials}
-                </div>
-            )}
+            <AuthorLink userId={post.author_id} className="flex-shrink-0">
+                {post.author_avatar_url ? (
+                    <img src={post.author_avatar_url} alt={name} className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                        style={{ background: CU.charcoal, fontFamily: "'Raleway', sans-serif" }}>
+                        {initials}
+                    </div>
+                )}
+            </AuthorLink>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm truncate" style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>{name}</span>
+                    <AuthorLink userId={post.author_id} className="font-semibold text-sm truncate hover:underline" style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>{name}</AuthorLink>
                     <span className="text-xs flex-shrink-0" style={{ color: '#9ca3af', fontFamily: "'Raleway', sans-serif" }}>· {timeAgo}</span>
                 </div>
                 <p className="text-sm mt-0.5 line-clamp-2 break-words" style={{ fontFamily: "'Raleway', sans-serif", color: '#4b5563' }}>
