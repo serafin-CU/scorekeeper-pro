@@ -23,7 +23,13 @@ const CU = {
 
 function StatCard({ icon: Icon, label, value, sublabel, accentColor }) {
     return (
-        <HoverLift glow={accentColor} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
+        <HoverLift
+            style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}
+            whileHover={{
+                y: 0,
+                boxShadow: `0 0 0 1px ${accentColor}55, 0 0 18px -2px ${accentColor}66`,
+            }}
+        >
             <div style={{ height: '3px', background: accentColor }} />
             <div className="p-4">
                 <div className="flex items-start gap-3">
