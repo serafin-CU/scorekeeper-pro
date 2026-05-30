@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import PostComposer from '@/components/feed/PostComposer';
@@ -8,6 +8,12 @@ import { CU } from '@/components/feed/feedConstants';
 
 export default function Feed() {
     const [filter, setFilter] = useState('all');
+    const composerRef = useRef(null);
+
+    const focusComposer = () => {
+        composerRef.current?.focus();
+        composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
 
     const { data: user } = useQuery({
         queryKey: ['currentUser'],
@@ -44,15 +50,23 @@ export default function Feed() {
 
             <FeedFilterTabs active={filter} onChange={setFilter} />
 
-            <PostComposer user={user} onPosted={() => refetch()} />
+            <PostComposer ref={composerRef} user={user} onPosted={() => refetch()} />
 
             {isLoading ? (
                 <div className="flex justify-center py-12">
                     <div className="w-7 h-7 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
                 </div>
             ) : posts.length === 0 ? (
-                <div className="text-center py-12 rounded-xl" style={{ background: 'white', border: '1px dashed #e5e7eb' }}>
-                    <p className="text-sm" style={{ color: '#9ca3af' }}>No posts yet. Be the first to share! ⚽</p>
+                <div className="text-center py-12 px-6 rounded-xl" style={{ background: 'white', border: '1px dashed #e5e7eb' }}>
+                    <p className="text-base mb-1" style={{ fontWeight: 600, color: CU.charcoal }}>Be the first to kick things off!</p>
+                    <p className="text-sm mb-5" style={{ color: '#9ca3af' }}>Share a prediction, cheer for your team, or just say hi. ⚽</p>
+                    <button
+                        onClick={focusComposer}
+                        className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+                        style={{ fontFamily: "'Raleway', sans-serif", background: CU.magenta, color: 'white', border: 'none', cursor: 'pointer' }}
+                    >
+                        Write your first post
+                    </button>
                 </div>
             ) : (
                 <div className="space-y-4">

@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Send } from 'lucide-react';
 import { CU } from './feedConstants';
 
-export default function PostComposer({ user, onPosted }) {
+const PostComposer = React.forwardRef(function PostComposer({ user, onPosted }, ref) {
     const [content, setContent] = useState('');
     const [posting, setPosting] = useState(false);
 
@@ -42,6 +42,7 @@ export default function PostComposer({ user, onPosted }) {
                 )}
                 <div className="flex-1">
                     <textarea
+                        ref={ref}
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         placeholder="Share your World Cup take..."
@@ -70,4 +71,6 @@ export default function PostComposer({ user, onPosted }) {
             </div>
         </div>
     );
-}
+});
+
+export default PostComposer;
