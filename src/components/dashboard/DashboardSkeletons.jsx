@@ -1,15 +1,8 @@
 import React from 'react';
 
-/* ── Animated grey pulse placeholders for Dashboard loading ── */
-
-function Bar({ w = '100%', h = '14px', className = '' }) {
-    return (
-        <div
-            className={`animate-pulse rounded ${className}`}
-            style={{ width: w, height: h, background: '#e5e7eb' }}
-        />
-    );
-}
+const Pulse = ({ className, style }) => (
+    <div className={`animate-pulse rounded ${className || ''}`} style={{ background: '#e5e7eb', ...style }} />
+);
 
 export function StatCardSkeleton() {
     return (
@@ -17,10 +10,11 @@ export function StatCardSkeleton() {
             <div style={{ height: '3px', background: '#e5e7eb' }} />
             <div className="p-4">
                 <div className="flex items-start gap-3">
-                    <div className="animate-pulse rounded-lg" style={{ width: '37px', height: '37px', background: '#e5e7eb' }} />
-                    <div className="flex-1 space-y-2 pt-1">
-                        <Bar w="50%" h="20px" />
-                        <Bar w="70%" h="12px" />
+                    <Pulse className="w-9 h-9" style={{ borderRadius: '8px' }} />
+                    <div className="flex-1 space-y-2">
+                        <Pulse className="h-6 w-16" />
+                        <Pulse className="h-3 w-20" />
+                        <Pulse className="h-2.5 w-14" />
                     </div>
                 </div>
             </div>
@@ -33,13 +27,20 @@ export function NextMatchSkeleton() {
         <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
             <div style={{ height: '3px', background: '#e5e7eb' }} />
             <div className="p-5 space-y-4">
-                <Bar w="40%" h="14px" />
-                <div className="flex items-center justify-center gap-4">
-                    <div className="animate-pulse rounded-full" style={{ width: '48px', height: '48px', background: '#e5e7eb' }} />
-                    <Bar w="40px" h="20px" />
-                    <div className="animate-pulse rounded-full" style={{ width: '48px', height: '48px', background: '#e5e7eb' }} />
+                <Pulse className="h-4 w-44" />
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col items-center gap-1.5 flex-1">
+                        <Pulse className="w-10 h-10 rounded-full" />
+                        <Pulse className="h-3 w-16" />
+                    </div>
+                    <Pulse className="h-3 w-6" />
+                    <div className="flex flex-col items-center gap-1.5 flex-1">
+                        <Pulse className="w-10 h-10 rounded-full" />
+                        <Pulse className="h-3 w-16" />
+                    </div>
                 </div>
-                <Bar w="100%" h="36px" />
+                <Pulse className="h-3 w-40 mx-auto" />
+                <Pulse className="h-10 w-full rounded-lg" />
             </div>
         </div>
     );

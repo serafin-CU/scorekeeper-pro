@@ -199,7 +199,7 @@ export default function Dashboard() {
         queryFn: () => base44.entities.Match.list()
     });
 
-    const { data: teams = [], isLoading: teamsLoading } = useQuery({
+    const { data: teams = [] } = useQuery({
         queryKey: ['teams'],
         queryFn: () => base44.entities.Team.list()
     });
@@ -239,8 +239,6 @@ export default function Dashboard() {
     });
 
     const showFantasy = false;
-    const statsLoading = ledgerLoading || predictionsLoading;
-    const nextMatchLoading = matchesLoading || teamsLoading || predictionsLoading;
 
     const prodePoints = ledger.filter(e => e.mode === 'PRODE').reduce((sum, e) => sum + (e.points || 0), 0);
     const fantasyPoints = ledger.filter(e => e.mode === 'FANTASY').reduce((sum, e) => sum + (e.points || 0), 0);
@@ -258,6 +256,9 @@ export default function Dashboard() {
 
     const now = new Date();
     const upcomingMatches = matches.filter(m => new Date(m.kickoff_at) > now).length;
+
+    const statsLoading = ledgerLoading || predictionsLoading;
+    const nextMatchLoading = matchesLoading || predictionsLoading;
 
     if (userLoading) {
         return (
@@ -289,19 +290,20 @@ export default function Dashboard() {
                     <>
                         <StatCardSkeleton />
                         <StatCardSkeleton />
+                        {showFantasy && <StatCardSkeleton />}
                         <StatCardSkeleton />
                     </>
                 ) : (
-                    <>
-                        <StatCard icon={TrendingUp} label={showFantasy ? "Total Points" : "Prode Points"} value={showFantasy ? totalPoints : prodePoints} sublabel={showFantasy ? "Prode + Fantasy" : undefined} accentColor={CU.orange} />
-                        {/* Note: when !showFantasy, value=prodePoints and sublabel=undefined — no fantasy leak */}
-                        <StatCard icon={Medal} label="Your Ranking" value={ranking} sublabel={hasPredictions ? `${predictions.length} predictions` : 'No predictions yet'} accentColor={CU.green} />
-                        {showFantasy && <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} />}
-                        <StatCard icon={Award} label="Badges" value={badges.length} sublabel={badges.length > 0 ? badges.map(b => {
-                            const names = { UNBREAKABLE_XI: '🛡️ Unbreakable XI', THE_ORIGINALS: '👑 The Originals', PERFECT_MATCHDAY: '🎯 Perfect Matchday' };
-                            return names[b.badge_type] || b.badge_type;
-                        }).join(', ') : 'None yet'} accentColor={CU.magenta} />
-                    </>
+                <>
+                <StatCard icon={TrendingUp} label={showFantasy ? "Total Points" : "Prode Points"} value={showFantasy ? totalPoints : prodePoints} sublabel={showFantasy ? "Prode + Fantasy" : undefined} accentColor={CU.orange} />
+                {/* Note: when !showFantasy, value=prodePoints and sublabel=undefined — no fantasy leak */}
+                <StatCard icon={Medal} label="Your Ranking" value={ranking} sublabel={hasPredictions ? `${predictions.length} predictions` : 'No predictions yet'} accentColor={CU.green} />
+                {showFantasy && <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} />}
+                <StatCard icon={Award} label="Badges" value={badges.length} sublabel={badges.length > 0 ? badges.map(b => {
+                    const names = { UNBREAKABLE_XI: '🛡️ Unbreakable XI', THE_ORIGINALS: '👑 The Originals', PERFECT_MATCHDAY: '🎯 Perfect Matchday' };
+                    return names[b.badge_type] || b.badge_type;
+                }).join(', ') : 'None yet'} accentColor={CU.magenta} />
+                </>
                 )}
             </div>
 
