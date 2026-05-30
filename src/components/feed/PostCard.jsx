@@ -2,6 +2,7 @@ import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { CU } from './feedConstants';
 import AuthorLink from '@/components/AuthorLink';
+import PostReactions from './PostReactions';
 
 export default function PostCard({ post }) {
     const name = post.author_name || 'Anonymous';
@@ -42,6 +43,7 @@ export default function PostCard({ post }) {
                         style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>
                         {post.content}
                     </p>
+                    <PostReactions postId={post.id} />
                 </div>
             </div>
         </div>
