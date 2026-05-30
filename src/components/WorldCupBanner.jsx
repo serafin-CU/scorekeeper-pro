@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 /**
  * WorldCupBanner — Reusable hero banner for ScoreKeeper Pro
@@ -54,11 +55,80 @@ function getTimeLeft(target) {
     };
 }
 
+const BANNER_KEYFRAMES = `
+@keyframes wcBannerGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes wcFloatUp {
+    0% { transform: translateY(20px) rotate(0deg); opacity: 0; }
+    15% { opacity: 0.5; }
+    85% { opacity: 0.5; }
+    100% { transform: translateY(-120px) rotate(40deg); opacity: 0; }
+}
+@keyframes wcSparkle {
+    0%, 100% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 0.7; transform: scale(1); }
+}
+`;
+
+function FloatingIcons() {
+    const balls = [
+        { left: '8%', size: 18, delay: 0, dur: 11 },
+        { left: '28%', size: 12, delay: 3, dur: 14 },
+        { left: '52%', size: 22, delay: 6, dur: 12 },
+        { left: '72%', size: 14, delay: 1.5, dur: 15 },
+        { left: '90%', size: 16, delay: 4.5, dur: 13 },
+    ];
+    const sparkles = [
+        { left: '18%', top: '30%', delay: 0 },
+        { left: '40%', top: '60%', delay: 1.2 },
+        { left: '65%', top: '25%', delay: 2.1 },
+        { left: '82%', top: '55%', delay: 0.8 },
+    ];
+    return (
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+            {balls.map((b, i) => (
+                <span
+                    key={`b${i}`}
+                    style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: b.left,
+                        fontSize: `${b.size}px`,
+                        opacity: 0,
+                        animation: `wcFloatUp ${b.dur}s ease-in-out ${b.delay}s infinite`,
+                    }}
+                >
+                    ⚽
+                </span>
+            ))}
+            {sparkles.map((s, i) => (
+                <span
+                    key={`s${i}`}
+                    style={{
+                        position: 'absolute',
+                        left: s.left,
+                        top: s.top,
+                        width: '3px',
+                        height: '3px',
+                        borderRadius: '50%',
+                        background: CU.orange,
+                        boxShadow: `0 0 6px ${CU.orange}`,
+                        animation: `wcSparkle 3.5s ease-in-out ${s.delay}s infinite`,
+                    }}
+                />
+            ))}
+        </div>
+    );
+}
+
 function CountdownUnit({ value, label }) {
     return (
         <div className="flex flex-col items-center">
             <div
-                className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center text-lg sm:text-xl font-bold"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center text-lg sm:text-xl font-bold overflow-hidden"
                 style={{
                     fontFamily: "'DM Serif Display', serif",
                     background: 'rgba(255,255,255,0.1)',
@@ -67,7 +137,17 @@ function CountdownUnit({ value, label }) {
                     border: '1px solid rgba(255,255,255,0.15)'
                 }}
             >
-                {String(value).padStart(2, '0')}
+                <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                        key={value}
+                        initial={{ y: '-100%', opacity: 0, scale: 1.3 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: '100%', opacity: 0, scale: 0.7 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                    >
+                        {String(value).padStart(2, '0')}
+                    </motion.span>
+                </AnimatePresence>
             </div>
             <span
                 className="mt-1 uppercase tracking-widest"
@@ -125,11 +205,16 @@ export default function WorldCupBanner({ compact = false }) {
         <div
             className="rounded-2xl overflow-hidden mb-8"
             style={{
-                background: `linear-gradient(135deg, ${CU.charcoal} 0%, #1a1919 40%, #2a2020 70%, ${CU.charcoal} 100%)`,
+                background: `linear-gradient(120deg, #0b1437 0%, #14224d 25%, #1a1919 50%, #3a2c10 72%, #14224d 90%, #0b1437 100%)`,
+                backgroundSize: '300% 300%',
+                animation: 'wcBannerGradient 18s ease infinite',
                 borderBottom: `4px solid ${CU.orange}`,
                 position: 'relative'
             }}
         >
+            <style>{BANNER_KEYFRAMES}</style>
+            <FloatingIcons />
+
             {/* Subtle pitch pattern overlay */}
             <div
                 style={{
