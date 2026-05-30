@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Users, LogOut, Shield, MessageSquare, Trophy, Target, LayoutDashboard, User, Eye, EyeOff, Brain, Newspaper, Globe } from 'lucide-react';
+import { motion } from 'framer-motion';
 import AlbaChatWidget from '@/components/AlbaChatWidget';
 import { FANTASY_ENABLED } from '@/config/features';
 
@@ -58,9 +59,8 @@ export default function ParticipantLayout({ children, currentPageName }) {
                                             to={`/${item.name}`}
                                             style={{
                                                 fontFamily: "'Raleway', sans-serif",
-                                                fontWeight: 500,
+                                                fontWeight: isActive ? 700 : 500,
                                                 color: isActive ? CU.orange : 'rgba(255,255,255,0.75)',
-                                                borderBottom: isActive ? `2px solid ${CU.orange}` : '2px solid transparent',
                                                 padding: '0 12px',
                                                 height: '64px',
                                                 display: 'flex',
@@ -68,11 +68,28 @@ export default function ParticipantLayout({ children, currentPageName }) {
                                                 gap: '6px',
                                                 fontSize: '0.875rem',
                                                 textDecoration: 'none',
-                                                transition: 'color 0.15s'
+                                                transition: 'color 0.2s',
+                                                position: 'relative'
                                             }}
                                         >
                                             <Icon className="w-4 h-4" />
                                             {item.label}
+                                            {isActive && (
+                                                <motion.div
+                                                    layoutId="navActiveUnderline"
+                                                    style={{
+                                                        position: 'absolute',
+                                                        left: '8px',
+                                                        right: '8px',
+                                                        bottom: 0,
+                                                        height: '3px',
+                                                        borderRadius: '3px 3px 0 0',
+                                                        background: CU.orange,
+                                                        boxShadow: `0 0 8px ${CU.orange}, 0 0 14px ${CU.orange}aa`
+                                                    }}
+                                                    transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+                                                />
+                                            )}
                                         </Link>
                                     );
                                 })}
