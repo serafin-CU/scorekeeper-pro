@@ -17,6 +17,11 @@ export default function FixtureRow({ match, teams }) {
             className="rounded-xl border bg-white"
             glow={CU.orange}
             style={{ borderColor: '#e5e7eb' }}
+            whileHover={{
+                y: -4,
+                backgroundColor: CU.orange + '0d',
+                boxShadow: `0 12px 28px -8px rgba(0,0,0,0.18), 0 0 0 1px ${CU.orange}55`,
+            }}
         >
             {/* Date / time / venue */}
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
