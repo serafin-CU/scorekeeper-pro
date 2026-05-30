@@ -5,7 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronLeft, Trophy, Award, Brain, Loader2 } from 'lucide-react';
 import { CU } from '@/components/feed/feedConstants';
-import PastPredictions from '@/components/profile/PastPredictions';
+import ProfileTabs from '@/components/profile/ProfileTabs';
 
 const BADGE_NAMES = {
     UNBREAKABLE_XI: '🛡️ Unbreakable XI',
@@ -127,31 +127,7 @@ export default function PublicProfile() {
                     </div>
                 )}
 
-                {/* Past predictions (finished matches only) */}
-                <PastPredictions predictions={profile.past_predictions} />
-
-                {/* Recent posts */}
-                <h2 className="mb-3" style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.25rem', color: CU.charcoal }}>
-                    Recent Posts
-                </h2>
-                {profile.posts.length === 0 ? (
-                    <div className="text-center py-8 rounded-xl text-sm" style={{ background: 'white', border: '1px dashed #e5e7eb', color: '#9ca3af', fontFamily: "'Raleway', sans-serif" }}>
-                        No posts yet.
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {profile.posts.map(post => (
-                            <div key={post.id} className="rounded-xl p-4" style={{ background: 'white', border: '1px solid #e5e7eb' }}>
-                                <p className="text-sm whitespace-pre-wrap break-words" style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>
-                                    {post.content}
-                                </p>
-                                <div className="text-xs mt-2" style={{ color: '#9ca3af', fontFamily: "'Raleway', sans-serif" }}>
-                                    {post.created_date ? formatDistanceToNow(new Date(post.created_date), { addSuffix: true }) : ''}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                <ProfileTabs profile={profile} />
             </div>
         </div>
     );
