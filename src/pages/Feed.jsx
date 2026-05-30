@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import PostComposer from '@/components/feed/PostComposer';
 import PostCard from '@/components/feed/PostCard';
+import FeedFilterTabs from '@/components/feed/FeedFilterTabs';
 import { CU } from '@/components/feed/feedConstants';
 
 export default function Feed() {
+    const [filter, setFilter] = useState('all');
+
     const { data: user } = useQuery({
         queryKey: ['currentUser'],
         queryFn: () => base44.auth.me(),
@@ -16,11 +19,30 @@ export default function Feed() {
         queryFn: () => base44.entities.FeedPost.list('-created_date', 100),
     });
 
+    const { data: allReactions = [] } = useQuery({
+        queryKey: ['allPostReactions'],
+        queryFn: () => base44.entities.PostReaction.list('', 1000),
+    });
+
+    const reactionCount = {};
+    for (const r of allReactions) reactionCount[r.postId] = (reactionCount[r.postId] || 0) + 1;
+
+    let displayedPosts = posts;
+    if (filter === 'popular') {
+        displayedPosts = [...posts].sort((a, b) => (reactionCount[b.id] || 0) - (reactionCount[a.id] || 0));
+    } else if (filter === 'following') {
+        const myPostIds = new Set(allReactions.filter(r => r.userId === user?.id).map(r => r.postId));
+        const filtered = posts.filter(p => myPostIds.has(p.id));
+        displayedPosts = filtered.length > 0 ? filtered : posts;
+    }
+
     return (
         <div className="max-w-2xl mx-auto px-4 py-8" style={{ fontFamily: "'Raleway', sans-serif" }}>
             <h1 className="mb-6" style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.75rem', color: CU.charcoal }}>
                 Feed
             </h1>
+
+            <FeedFilterTabs active={filter} onChange={setFilter} />
 
             <PostComposer user={user} onPosted={() => refetch()} />
 
@@ -34,7 +56,7 @@ export default function Feed() {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {posts.map((post) => (
+                    {displayedPosts.map((post) => (
                         <PostCard key={post.id} post={post} />
                     ))}
                 </div>
