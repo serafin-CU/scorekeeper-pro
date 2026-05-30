@@ -21,25 +21,24 @@ const CU = {
     green: '#218848',
 };
 
-function StatCard({ icon: Icon, label, value, sublabel, accentColor }) {
+function StatCard({ icon: Icon, label, value, sublabel, accentColor, gradient }) {
     return (
         <HoverLift
-            style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}
+            style={{ background: gradient, borderRadius: '12px', overflow: 'hidden' }}
             whileHover={{
                 y: 0,
-                boxShadow: `0 0 0 1px ${accentColor}55, 0 0 18px -2px ${accentColor}66`,
+                boxShadow: `0 0 18px -2px ${accentColor}88`,
             }}
         >
-            <div style={{ height: '3px', background: accentColor }} />
             <div className="p-4">
                 <div className="flex items-start gap-3">
-                    <div style={{ padding: '8px', borderRadius: '8px', background: accentColor + '18' }}>
-                        <Icon className="w-5 h-5" style={{ color: accentColor }} />
+                    <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.22)' }}>
+                        <Icon className="w-5 h-5" style={{ color: 'white' }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.75rem', color: CU.charcoal, lineHeight: 1 }}>{value}</div>
-                        <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: '0.85rem', color: '#6b7280', marginTop: '2px' }}>{label}</div>
-                        {sublabel && <div style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.75rem', color: '#9ca3af', marginTop: '2px' }}>{sublabel}</div>}
+                        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.75rem', color: 'white', lineHeight: 1 }}>{value}</div>
+                        <div style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: '0.85rem', color: 'rgba(255,255,255,0.9)', marginTop: '2px' }}>{label}</div>
+                        {sublabel && <div style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', marginTop: '2px' }}>{sublabel}</div>}
                     </div>
                 </div>
             </div>
@@ -301,7 +300,7 @@ export default function Dashboard() {
             </div>
 
             {/* Stats grid */}
-            <div className={`grid gap-3 ${showFantasy ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'}`}>
+            <div className={`dash-enter grid gap-3 ${showFantasy ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'}`} style={{ animationDelay: '0ms' }}>
                 {statsLoading ? (
                     <>
                         <StatCardSkeleton />
@@ -311,28 +310,32 @@ export default function Dashboard() {
                     </>
                 ) : (
                 <>
-                <StatCard icon={TrendingUp} label={showFantasy ? "Total Points" : "Prode Points"} value={showFantasy ? totalPoints : prodePoints} sublabel={showFantasy ? "Prode + Fantasy" : undefined} accentColor={CU.orange} />
+                <StatCard icon={TrendingUp} label={showFantasy ? "Total Points" : "Prode Points"} value={showFantasy ? totalPoints : prodePoints} sublabel={showFantasy ? "Prode + Fantasy" : undefined} accentColor={CU.orange} gradient="linear-gradient(135deg, #FFB81C 0%, #F59E0B 50%, #D97706 100%)" />
                 {/* Note: when !showFantasy, value=prodePoints and sublabel=undefined — no fantasy leak */}
-                <StatCard icon={Medal} label="Your Ranking" value={ranking} sublabel={hasPredictions ? `${predictions.length} predictions` : 'No predictions yet'} accentColor={CU.green} />
-                {showFantasy && <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} />}
-                <StatCard icon={Award} label="Badges" value={badges.length} sublabel={badges.length > 0 ? badges.map(b => {
+                <StatCard icon={Medal} label="Your Ranking" value={ranking} sublabel={hasPredictions ? `${predictions.length} predictions` : 'No predictions yet'} accentColor={CU.green} gradient="linear-gradient(135deg, #218848 0%, #10B981 50%, #14B8A6 100%)" />
+                {showFantasy && <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} gradient="linear-gradient(135deg, #475CC7 0%, #6366F1 50%, #4F46E5 100%)" />}
+                <StatCard icon={Award} label="Badges" value={badges.length} accentColor={CU.magenta} gradient="linear-gradient(135deg, #AA0061 0%, #C026D3 50%, #DB2777 100%)" sublabel={badges.length > 0 ? badges.map(b => {
                     const names = { UNBREAKABLE_XI: '🛡️ Unbreakable XI', THE_ORIGINALS: '👑 The Originals', PERFECT_MATCHDAY: '🎯 Perfect Matchday' };
                     return names[b.badge_type] || b.badge_type;
-                }).join(', ') : 'None yet'} accentColor={CU.magenta} />
+                }).join(', ') : 'None yet'} />
                 </>
                 )}
             </div>
 
-            {nextMatchLoading ? (
-                <NextMatchSkeleton />
-            ) : (
-                <NextMatchCard matches={matches} teams={teams} predictions={predictions} />
-            )}
+            <div className="dash-enter" style={{ animationDelay: '100ms' }}>
+                {nextMatchLoading ? (
+                    <NextMatchSkeleton />
+                ) : (
+                    <NextMatchCard matches={matches} teams={teams} predictions={predictions} />
+                )}
+            </div>
 
-            <PostShortcut />
+            <div className="dash-enter" style={{ animationDelay: '200ms' }}>
+                <PostShortcut />
+            </div>
 
             {/* Content */}
-            <div className="grid grid-cols-1 gap-6">
+            <div className="dash-enter grid grid-cols-1 gap-6" style={{ animationDelay: '300ms' }}>
                 <SectionCard title="Recent Predictions" icon={Target} iconColor={CU.orange} linkTo="/ProdePredictions" linkLabel="All">
                     <RecentPredictions predictions={predictions} matches={matches} teams={teams} />
                 </SectionCard>

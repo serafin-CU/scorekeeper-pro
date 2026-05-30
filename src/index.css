@@ -86,3 +86,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes dashFadeSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dash-enter {
+  opacity: 0;
+  animation: dashFadeSlideUp 0.5s ease forwards;
+}
