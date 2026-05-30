@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Calendar, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const CU = {
     orange: '#FFB81C',
@@ -40,6 +40,7 @@ export default function NextMatchCard({ matches, teams, predictions }) {
     return (
         <motion.div
             style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}
+            initial={{ scale: 1 }}
             whileHover={{
                 scale: 1.02,
                 boxShadow: `0 14px 32px -10px rgba(0,0,0,0.18), 0 0 0 2px ${CU.orange}`,
