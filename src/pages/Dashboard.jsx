@@ -9,6 +9,7 @@ import { FANTASY_ENABLED } from '@/config/features';
 import DashboardFeedPreview from '@/components/dashboard/DashboardFeedPreview';
 import NextMatchCard from '@/components/dashboard/NextMatchCard';
 import PostShortcut from '@/components/dashboard/PostShortcut';
+import WCNewsTeaser from '@/components/dashboard/WCNewsTeaser';
 
 const CU = {
     orange: '#FFB81C',
@@ -302,6 +303,8 @@ export default function Dashboard() {
                 <SectionCard title="From the Feed" icon={Newspaper} iconColor={CU.magenta} linkTo="/Feed" linkLabel="See all posts">
                     <DashboardFeedPreview />
                 </SectionCard>
+
+                <WCNewsTeaser />
             </div>
 
             {upcomingMatches > 0 && (
