@@ -50,9 +50,18 @@ function RecentPredictions({ predictions, matches, teams }) {
 
     if (recent.length === 0) {
         return (
-            <div className="text-center py-6 text-sm" style={{ color: '#9ca3af', fontFamily: "'Raleway', sans-serif" }}>
-                No predictions yet.{' '}
-                <Link to="/ProdePredictions" style={{ color: CU.blue, textDecoration: 'underline' }}>Make your first!</Link>
+            <div className="text-center py-6">
+                <p className="text-sm mb-3" style={{ color: '#9ca3af', fontFamily: "'Raleway', sans-serif" }}>
+                    No predictions yet.
+                </p>
+                <Link to="/ProdePredictions">
+                    <button
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold"
+                        style={{ background: CU.charcoal, color: 'white', fontFamily: "'Raleway', sans-serif", border: 'none', cursor: 'pointer' }}
+                    >
+                        Make your first! <ChevronRight className="w-4 h-4" />
+                    </button>
+                </Link>
             </div>
         );
     }
