@@ -11,6 +11,7 @@ import NextMatchCard from '@/components/dashboard/NextMatchCard';
 import PostShortcut from '@/components/dashboard/PostShortcut';
 import WCNewsTeaser from '@/components/dashboard/WCNewsTeaser';
 import { StatCardSkeleton, NextMatchSkeleton } from '@/components/dashboard/DashboardSkeletons';
+import HoverLift from '@/components/ui/HoverLift';
 
 const CU = {
     orange: '#FFB81C',
@@ -22,7 +23,7 @@ const CU = {
 
 function StatCard({ icon: Icon, label, value, sublabel, accentColor }) {
     return (
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
+        <HoverLift glow={accentColor} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
             <div style={{ height: '3px', background: accentColor }} />
             <div className="p-4">
                 <div className="flex items-start gap-3">
@@ -36,7 +37,7 @@ function StatCard({ icon: Icon, label, value, sublabel, accentColor }) {
                     </div>
                 </div>
             </div>
-        </div>
+        </HoverLift>
     );
 }
 

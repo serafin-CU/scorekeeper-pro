@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { CU } from './wcTokens';
+import HoverLift from '@/components/ui/HoverLift';
 
 /* ── Single scheduled fixture row ────────────────────────── */
 export default function FixtureRow({ match, teams }) {
@@ -12,8 +13,9 @@ export default function FixtureRow({ match, teams }) {
     const kickoff = new Date(match.kickoff_at);
 
     return (
-        <div
+        <HoverLift
             className="rounded-xl border bg-white"
+            glow={CU.orange}
             style={{ borderColor: '#e5e7eb' }}
         >
             {/* Date / time / venue */}
@@ -83,6 +85,6 @@ export default function FixtureRow({ match, teams }) {
                     </Link>
                 </div>
             )}
-        </div>
+        </HoverLift>
     );
 }

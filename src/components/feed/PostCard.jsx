@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { CU } from './feedConstants';
 import AuthorLink from '@/components/AuthorLink';
 import PostReactions from './PostReactions';
+import HoverLift from '@/components/ui/HoverLift';
 
 export default function PostCard({ post }) {
     const name = post.author_name || 'Anonymous';
@@ -12,7 +13,7 @@ export default function PostCard({ post }) {
         : '';
 
     return (
-        <div className="rounded-xl p-4" style={{ background: 'white', border: '1px solid #e5e7eb' }}>
+        <HoverLift className="rounded-xl p-4" glow={CU.orange} style={{ background: 'white', border: '1px solid #e5e7eb' }}>
             <div className="flex gap-3">
                 <AuthorLink userId={post.author_id} className="flex-shrink-0">
                     {post.author_avatar_url ? (
@@ -46,6 +47,6 @@ export default function PostCard({ post }) {
                     <PostReactions postId={post.id} />
                 </div>
             </div>
-        </div>
+        </HoverLift>
     );
 }
