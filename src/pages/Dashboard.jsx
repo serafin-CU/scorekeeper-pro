@@ -10,6 +10,7 @@ import DashboardFeedPreview from '@/components/dashboard/DashboardFeedPreview';
 import NextMatchCard from '@/components/dashboard/NextMatchCard';
 import PostShortcut from '@/components/dashboard/PostShortcut';
 import WCNewsTeaser from '@/components/dashboard/WCNewsTeaser';
+import { StatCardSkeleton, NextMatchSkeleton } from '@/components/dashboard/DashboardSkeletons';
 
 const CU = {
     orange: '#FFB81C',
@@ -193,17 +194,17 @@ export default function Dashboard() {
     const isAdmin = currentUser?.role === 'admin';
     const previewAsParticipant = isAdmin && searchParams.get('preview_as') === 'participant';
 
-    const { data: matches = [] } = useQuery({
+    const { data: matches = [], isLoading: matchesLoading } = useQuery({
         queryKey: ['matches'],
         queryFn: () => base44.entities.Match.list()
     });
 
-    const { data: teams = [] } = useQuery({
+    const { data: teams = [], isLoading: teamsLoading } = useQuery({
         queryKey: ['teams'],
         queryFn: () => base44.entities.Team.list()
     });
 
-    const { data: predictions = [] } = useQuery({
+    const { data: predictions = [], isLoading: predictionsLoading } = useQuery({
         queryKey: ['dashPredictions', currentUser?.id],
         queryFn: async () => {
             if (!currentUser) return [];
@@ -216,7 +217,7 @@ export default function Dashboard() {
         enabled: !!currentUser
     });
 
-    const { data: ledger = [] } = useQuery({
+    const { data: ledger = [], isLoading: ledgerLoading } = useQuery({
         queryKey: ['dashLedger', currentUser?.id],
         queryFn: async () => {
             if (!currentUser) return [];
@@ -238,6 +239,8 @@ export default function Dashboard() {
     });
 
     const showFantasy = false;
+    const statsLoading = ledgerLoading || predictionsLoading;
+    const nextMatchLoading = matchesLoading || teamsLoading || predictionsLoading;
 
     const prodePoints = ledger.filter(e => e.mode === 'PRODE').reduce((sum, e) => sum + (e.points || 0), 0);
     const fantasyPoints = ledger.filter(e => e.mode === 'FANTASY').reduce((sum, e) => sum + (e.points || 0), 0);
@@ -282,17 +285,31 @@ export default function Dashboard() {
 
             {/* Stats grid */}
             <div className={`grid gap-3 ${showFantasy ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'}`}>
-                <StatCard icon={TrendingUp} label={showFantasy ? "Total Points" : "Prode Points"} value={showFantasy ? totalPoints : prodePoints} sublabel={showFantasy ? "Prode + Fantasy" : undefined} accentColor={CU.orange} />
-                {/* Note: when !showFantasy, value=prodePoints and sublabel=undefined — no fantasy leak */}
-                <StatCard icon={Medal} label="Your Ranking" value={ranking} sublabel={hasPredictions ? `${predictions.length} predictions` : 'No predictions yet'} accentColor={CU.green} />
-                {showFantasy && <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} />}
-                <StatCard icon={Award} label="Badges" value={badges.length} sublabel={badges.length > 0 ? badges.map(b => {
-                    const names = { UNBREAKABLE_XI: '🛡️ Unbreakable XI', THE_ORIGINALS: '👑 The Originals', PERFECT_MATCHDAY: '🎯 Perfect Matchday' };
-                    return names[b.badge_type] || b.badge_type;
-                }).join(', ') : 'None yet'} accentColor={CU.magenta} />
+                {statsLoading ? (
+                    <>
+                        <StatCardSkeleton />
+                        <StatCardSkeleton />
+                        <StatCardSkeleton />
+                    </>
+                ) : (
+                    <>
+                        <StatCard icon={TrendingUp} label={showFantasy ? "Total Points" : "Prode Points"} value={showFantasy ? totalPoints : prodePoints} sublabel={showFantasy ? "Prode + Fantasy" : undefined} accentColor={CU.orange} />
+                        {/* Note: when !showFantasy, value=prodePoints and sublabel=undefined — no fantasy leak */}
+                        <StatCard icon={Medal} label="Your Ranking" value={ranking} sublabel={hasPredictions ? `${predictions.length} predictions` : 'No predictions yet'} accentColor={CU.green} />
+                        {showFantasy && <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} />}
+                        <StatCard icon={Award} label="Badges" value={badges.length} sublabel={badges.length > 0 ? badges.map(b => {
+                            const names = { UNBREAKABLE_XI: '🛡️ Unbreakable XI', THE_ORIGINALS: '👑 The Originals', PERFECT_MATCHDAY: '🎯 Perfect Matchday' };
+                            return names[b.badge_type] || b.badge_type;
+                        }).join(', ') : 'None yet'} accentColor={CU.magenta} />
+                    </>
+                )}
             </div>
 
-            <NextMatchCard matches={matches} teams={teams} predictions={predictions} />
+            {nextMatchLoading ? (
+                <NextMatchSkeleton />
+            ) : (
+                <NextMatchCard matches={matches} teams={teams} predictions={predictions} />
+            )}
 
             <PostShortcut />
 
