@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Calendar, ChevronRight } from 'lucide-react';
 
 const CU = {
@@ -37,7 +38,14 @@ export default function NextMatchCard({ matches, teams, predictions }) {
     const kickoff = new Date(nextMatch.kickoff_at);
 
     return (
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
+        <motion.div
+            style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}
+            whileHover={{
+                scale: 1.02,
+                boxShadow: `0 14px 32px -10px rgba(0,0,0,0.18), 0 0 0 2px ${CU.orange}`,
+            }}
+            transition={{ type: 'spring', stiffness: 350, damping: 24 }}
+        >
             <div style={{ height: '3px', background: CU.orange }} />
             <div className="p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -66,6 +74,6 @@ export default function NextMatchCard({ matches, teams, predictions }) {
                     </button>
                 </Link>
             </div>
-        </div>
+        </motion.div>
     );
 }
