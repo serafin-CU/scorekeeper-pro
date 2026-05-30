@@ -45,7 +45,7 @@ export default function NextMatchCard({ matches, teams, predictions }) {
                 scale: 1.02,
                 boxShadow: `0 14px 32px -10px rgba(0,0,0,0.18), 0 0 0 2px ${CU.orange}`,
             }}
-            transition={{ type: 'spring', stiffness: 350, damping: 24 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
         >
             <div style={{ height: '3px', background: CU.orange }} />
             <div className="p-5">

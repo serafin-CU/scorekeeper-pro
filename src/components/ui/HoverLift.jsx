@@ -24,7 +24,7 @@ export default function HoverLift({ children, className = '', glow, style, ...pr
                     ? `0 12px 28px -8px rgba(0,0,0,0.18), 0 0 0 1px ${glow}55`
                     : '0 12px 28px -8px rgba(0,0,0,0.18)',
             }}
-            transition={{ type: 'spring', stiffness: 350, damping: 24 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
             {...props}
         >
             {children}
