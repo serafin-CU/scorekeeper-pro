@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, CalendarDays, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const CU = { orange: '#FFB81C', charcoal: '#2C2B2B' };
 
@@ -172,8 +173,23 @@ export default function Standings() {
                     </div>
                 ) : (
                     <Card>
-                        <CardContent className="py-8 text-center text-gray-500">
-                            No standings data available yet.
+                        <CardContent className="py-12 text-center">
+                            <div className="flex justify-center mb-4">
+                                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: CU.orange + '20' }}>
+                                    <CalendarDays className="w-7 h-7" style={{ color: CU.orange }} />
+                                </div>
+                            </div>
+                            <p className="text-lg font-semibold mb-1" style={{ color: CU.charcoal, fontFamily: "'DM Serif Display', serif" }}>
+                                Matches kick off June 11!
+                            </p>
+                            <p className="text-sm text-gray-500 mb-5">
+                                Standings will appear once games begin.
+                            </p>
+                            <Link to="/WorldCup">
+                                <Button style={{ background: CU.charcoal }}>
+                                    Check the World Cup schedule <ChevronRight className="w-4 h-4 ml-1.5" />
+                                </Button>
+                            </Link>
                         </CardContent>
                     </Card>
                 )}
