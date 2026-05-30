@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Trophy, Users, Target, TrendingUp, Loader2, ChevronRight, Award, Newspaper } from 'lucide-react';
+import { Trophy, Users, Target, TrendingUp, Loader2, ChevronRight, Award, Newspaper, Medal } from 'lucide-react';
 import { FANTASY_ENABLED } from '@/config/features';
 import DashboardFeedPreview from '@/components/dashboard/DashboardFeedPreview';
 
@@ -228,11 +228,27 @@ export default function Dashboard() {
         enabled: !!currentUser
     });
 
+    const { data: allProdeLedger = [] } = useQuery({
+        queryKey: ['allProdeLedger'],
+        queryFn: () => base44.entities.PointsLedger.filter({ mode: 'PRODE' }),
+        enabled: !!currentUser
+    });
+
     const showFantasy = false;
 
     const prodePoints = ledger.filter(e => e.mode === 'PRODE').reduce((sum, e) => sum + (e.points || 0), 0);
     const fantasyPoints = ledger.filter(e => e.mode === 'FANTASY').reduce((sum, e) => sum + (e.points || 0), 0);
     const totalPoints = prodePoints + fantasyPoints;
+
+    // Compute leaderboard ranking from all PRODE points
+    const pointsByUser = {};
+    for (const e of allProdeLedger) {
+        pointsByUser[e.user_id] = (pointsByUser[e.user_id] || 0) + (e.points || 0);
+    }
+    const hasPredictions = predictions.length > 0;
+    const ranking = hasPredictions
+        ? `#${Object.values(pointsByUser).filter(p => p > prodePoints).length + 1}`
+        : '—';
 
     const now = new Date();
     const upcomingMatches = matches.filter(m => new Date(m.kickoff_at) > now).length;
@@ -263,7 +279,7 @@ export default function Dashboard() {
             <div className={`grid gap-3 ${showFantasy ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'}`}>
                 <StatCard icon={TrendingUp} label={showFantasy ? "Total Points" : "Prode Points"} value={showFantasy ? totalPoints : prodePoints} sublabel={showFantasy ? "Prode + Fantasy" : undefined} accentColor={CU.orange} />
                 {/* Note: when !showFantasy, value=prodePoints and sublabel=undefined — no fantasy leak */}
-                <StatCard icon={Trophy} label="Prode Points" value={prodePoints} sublabel={`${predictions.length} predictions`} accentColor={CU.green} />
+                <StatCard icon={Medal} label="Your Ranking" value={ranking} sublabel={hasPredictions ? `${predictions.length} predictions` : 'No predictions yet'} accentColor={CU.green} />
                 {showFantasy && <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} />}
                 <StatCard icon={Award} label="Badges" value={badges.length} sublabel={badges.length > 0 ? badges.map(b => {
                     const names = { UNBREAKABLE_XI: '🛡️ Unbreakable XI', THE_ORIGINALS: '👑 The Originals', PERFECT_MATCHDAY: '🎯 Perfect Matchday' };
