@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { CU } from './wcTokens';
 
 /* ── Single scheduled fixture row ────────────────────────── */
@@ -69,6 +70,19 @@ export default function FixtureRow({ match, teams }) {
                     </div>
                 </div>
             </div>
+
+            {/* Predict button — scheduled matches only */}
+            {match.status === 'SCHEDULED' && (
+                <div className="flex justify-end px-4 pb-3 -mt-1">
+                    <Link
+                        to="/ProdePredictions"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                        style={{ fontFamily: "'Raleway', sans-serif", background: CU.orange + '22', color: CU.charcoal, border: `1px solid ${CU.orange}` }}
+                    >
+                        Predict →
+                    </Link>
+                </div>
+            )}
         </div>
     );
 }

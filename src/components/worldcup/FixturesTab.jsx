@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { CU, PHASE_LABELS, PHASE_ORDER } from './wcTokens';
 import FixtureRow from './FixtureRow';
+import PlayingNext from './PlayingNext';
 
 /* ── Fixtures tab: all scheduled matches grouped by round ── */
 export default function FixturesTab() {
@@ -49,6 +50,7 @@ export default function FixturesTab() {
 
     return (
         <div className="space-y-8">
+            <PlayingNext matches={matches} teams={teamsMap} />
             {orderedPhases.map(phase => (
                 <div key={phase}>
                     <h2

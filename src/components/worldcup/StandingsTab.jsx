@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
@@ -64,6 +64,8 @@ function GroupTable({ group }) {
 
 /* ── Standings tab: group stage tables ───────────────────── */
 export default function StandingsTab() {
+    const [activeGroup, setActiveGroup] = useState('all');
+
     const { data, isLoading, error } = useQuery({
         queryKey: ['wcStandings'],
         queryFn: async () => {
@@ -89,9 +91,35 @@ export default function StandingsTab() {
         );
     }
 
+    const pills = ['all', ...data.map(g => g.name)];
+    const visibleGroups = activeGroup === 'all' ? data : data.filter(g => g.name === activeGroup);
+
     return (
         <div className="space-y-4">
-            {data.map(group => (
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                {pills.map(pill => {
+                    const isActive = activeGroup === pill;
+                    return (
+                        <button
+                            key={pill}
+                            onClick={() => setActiveGroup(pill)}
+                            className="px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors shrink-0"
+                            style={{
+                                fontFamily: "'Raleway', sans-serif",
+                                fontWeight: 600,
+                                background: isActive ? CU.orange : 'white',
+                                color: isActive ? CU.charcoal : '#6b7280',
+                                border: `1px solid ${isActive ? CU.orange : '#e5e7eb'}`,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {pill === 'all' ? 'All Groups' : pill}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {visibleGroups.map(group => (
                 <GroupTable key={group.name} group={group} />
             ))}
         </div>
