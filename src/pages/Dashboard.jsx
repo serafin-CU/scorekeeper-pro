@@ -8,6 +8,7 @@ import { Trophy, Users, Target, TrendingUp, Loader2, ChevronRight, Award, Newspa
 import { FANTASY_ENABLED } from '@/config/features';
 import DashboardFeedPreview from '@/components/dashboard/DashboardFeedPreview';
 import NextMatchCard from '@/components/dashboard/NextMatchCard';
+import PostShortcut from '@/components/dashboard/PostShortcut';
 
 const CU = {
     orange: '#FFB81C',
@@ -289,6 +290,8 @@ export default function Dashboard() {
             </div>
 
             <NextMatchCard matches={matches} teams={teams} predictions={predictions} />
+
+            <PostShortcut />
 
             {/* Content */}
             <div className="grid grid-cols-1 gap-6">
