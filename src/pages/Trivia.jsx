@@ -74,6 +74,7 @@ export default function Trivia() {
     const [collectedAnswers, setCollectedAnswers] = useState([]);
     const [selectedIndex, setSelectedIndex] = useState(null);  // current question pending selection
     const [confirming, setConfirming] = useState(false);        // 300ms highlight before advance
+    const [feedbackCorrect, setFeedbackCorrect] = useState(null); // null = none, true = correct, false = wrong
     const [remainingMs, setRemainingMs] = useState(TIMER_TOTAL_MS);
     const [result, setResult] = useState(null);
     const [existingAttempt, setExistingAttempt] = useState(null);
@@ -106,11 +107,8 @@ export default function Trivia() {
             // Load full question details for the breakdown display
             const set = await base44.entities.TriviaDailySet.filter({ date: today });
             if (set.length > 0) {
-                const qs = [];
-                for (const qid of set[0].question_ids) {
-                    const rows = await base44.entities.TriviaQuestion.filter({ id: qid });
-                    if (rows.length > 0) qs.push(rows[0]);
-                }
+                const results = await Promise.all(set[0].question_ids.map(qid => base44.entities.TriviaQuestion.filter({ id: qid })));
+                const qs = results.map(rows => rows[0]).filter(Boolean);
                 setQuestions(qs);
             }
             setExistingAttempt(attempts[0]);
@@ -132,12 +130,9 @@ export default function Trivia() {
             }
             setQuestionIds(ids);
 
-            // Fetch question details (without correct_answer_index — server grades)
-            const qs = [];
-            for (const qid of ids) {
-                const rows = await base44.entities.TriviaQuestion.filter({ id: qid });
-                if (rows.length > 0) qs.push(rows[0]);
-            }
+            // Fetch question details
+            const results = await Promise.all(ids.map(qid => base44.entities.TriviaQuestion.filter({ id: qid })));
+            const qs = results.map(rows => rows[0]).filter(Boolean);
             setQuestions(qs);
             setCurrentQIndex(0);
             setCollectedAnswers([]);
@@ -156,6 +151,7 @@ export default function Trivia() {
         answeredRef.current = false;
         setSelectedIndex(null);
         setConfirming(false);
+        setFeedbackCorrect(null);
         setRemainingMs(TIMER_TOTAL_MS);
         startTimeRef.current = Date.now();
 
@@ -197,12 +193,20 @@ export default function Trivia() {
         const newAnswers = [...collectedAnswers, answer];
         setCollectedAnswers(newAnswers);
 
-        if (currentQIndex < 4) {
-            setCurrentQIndex(prev => prev + 1);
-            // status stays ANSWERING, useEffect re-fires on currentQIndex change
-        } else {
-            submitAttempt(newAnswers);
-        }
+        // Instant correct/wrong feedback for 1200ms before advancing
+        const isCorrect = optionIndex === questions[currentQIndex].correct_answer_index;
+        setFeedbackCorrect(isCorrect);
+
+        const isLast = currentQIndex >= questions.length - 1;
+        setTimeout(() => {
+            setFeedbackCorrect(null);
+            if (isLast) {
+                submitAttempt(newAnswers);
+            } else {
+                setCurrentQIndex(prev => prev + 1);
+                // status stays ANSWERING, useEffect re-fires on currentQIndex change
+            }
+        }, 1200);
     }
 
     async function submitAttempt(answers) {
@@ -308,7 +312,7 @@ export default function Trivia() {
                             <button
                                 key={idx}
                                 onClick={() => handleOptionClick(idx)}
-                                disabled={confirming}
+                                disabled={confirming || feedbackCorrect !== null}
                                 className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200"
                                 style={{
                                     fontFamily: "'Raleway', sans-serif",
@@ -330,6 +334,27 @@ export default function Trivia() {
                         );
                     })}
                 </div>
+
+                {/* Instant feedback banner */}
+                {feedbackCorrect !== null && (
+                    <div
+                        className="flex items-center gap-2 px-4 py-3 rounded-xl"
+                        style={{
+                            background: feedbackCorrect ? '#f0fdf4' : '#fef2f2',
+                            border: `1.5px solid ${feedbackCorrect ? '#bbf7d0' : '#fecaca'}`,
+                            fontFamily: "'Raleway', sans-serif",
+                            fontWeight: 600,
+                            color: feedbackCorrect ? '#16a34a' : '#dc2626',
+                            animation: 'dashFadeSlideUp 0.3s ease forwards'
+                        }}
+                    >
+                        {feedbackCorrect ? (
+                            <><CheckCircle2 className="w-5 h-5" /> Correct!</>
+                        ) : (
+                            <><XCircle className="w-5 h-5" /> Wrong — correct answer was {OPTION_LABELS[q.correct_answer_index]}</>
+                        )}
+                    </div>
+                )}
 
                 <p className="text-center text-xs" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
                     5 questions · 30s each · faster = more points
