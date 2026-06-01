@@ -25,9 +25,16 @@ export default function ResultsTab() {
     const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]));
     const resultsMap = Object.fromEntries(results.map(r => [r.match_id, r]));
 
+    // Guard: only include matches that have actually been played and have a final result.
+    // Protects against records incorrectly flagged FINAL (future match, no scores).
+    const now = new Date();
+    const playedMatches = matches.filter(
+        m => new Date(m.kickoff_at) <= now && resultsMap[m.id] != null
+    );
+
     // Group by phase, most recent first within each phase
     const phases = {};
-    for (const match of matches) {
+    for (const match of playedMatches) {
         if (!phases[match.phase]) phases[match.phase] = [];
         phases[match.phase].push(match);
     }
