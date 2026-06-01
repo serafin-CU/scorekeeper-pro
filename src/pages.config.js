@@ -49,14 +49,11 @@
  */
 import AdminDataSources from './pages/AdminDataSources';
 import AdminDevSeed from './pages/AdminDevSeed';
-import AdminFantasyLedgerViewer from './pages/AdminFantasyLedgerViewer';
-import AdminFantasyStatsViewer from './pages/AdminFantasyStatsViewer';
 import AdminIngestionMonitor from './pages/AdminIngestionMonitor';
 import AdminManualOverride from './pages/AdminManualOverride';
 import AdminMatchSourceLinks from './pages/AdminMatchSourceLinks';
 import AdminMatchValidation from './pages/AdminMatchValidation';
 import AdminSystemTestHarness from './pages/AdminSystemTestHarness';
-import SquadManagement from './pages/SquadManagement';
 import Dashboard from './pages/Dashboard';
 import AdminWipeData from './pages/AdminWipeData';
 import __Layout from './Layout.jsx';
@@ -65,14 +62,11 @@ import __Layout from './Layout.jsx';
 export const PAGES = {
     "AdminDataSources": AdminDataSources,
     "AdminDevSeed": AdminDevSeed,
-    "AdminFantasyLedgerViewer": AdminFantasyLedgerViewer,
-    "AdminFantasyStatsViewer": AdminFantasyStatsViewer,
     "AdminIngestionMonitor": AdminIngestionMonitor,
     "AdminManualOverride": AdminManualOverride,
     "AdminMatchSourceLinks": AdminMatchSourceLinks,
     "AdminMatchValidation": AdminMatchValidation,
     "AdminSystemTestHarness": AdminSystemTestHarness,
-    "SquadManagement": SquadManagement,
     "Dashboard": Dashboard,
     "AdminWipeData": AdminWipeData,
 }
