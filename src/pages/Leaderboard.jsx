@@ -33,7 +33,7 @@ function RankBadge({ rank }) {
     );
 }
 
-function LeaderboardTable({ entries, currentUserId, mode, showFantasyCol }) {
+function LeaderboardTable({ entries, currentUserId, mode }) {
     if (entries.length === 0) {
         return (
             <div className="text-center py-12" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
@@ -79,7 +79,6 @@ function LeaderboardTable({ entries, currentUserId, mode, showFantasyCol }) {
                         {mode === 'ALL' && (
                             <div className="flex gap-3 text-xs" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
                                 <span title="Prode">P: {entry.prode_points}</span>
-                                {showFantasyCol && <span title="Fantasy">F: {entry.fantasy_points}</span>}
                             </div>
                         )}
                         <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.2rem', color: CU.charcoal }}>
@@ -106,7 +105,6 @@ export default function Leaderboard() {
         queryKey: ['currentUser'],
         queryFn: () => base44.auth.me()
     });
-    const showFantasyTab = false;
     const TAB_CONFIG = TAB_CONFIG_BASE;
 
     const { data: leaderboardData = { entries: [] }, isLoading: ledgerLoading } = useQuery({
@@ -124,7 +122,8 @@ export default function Leaderboard() {
         queryFn: async () => {
             try {
                 return await base44.entities.User.list();
-            } catch {
+            } catch (error) {
+                console.warn('Leaderboard: failed to load users:', error);
                 return [];
             }
         }
@@ -236,7 +235,7 @@ export default function Leaderboard() {
                     currentUserId={currentUser?.id}
                 />
             ) : (
-                <LeaderboardTable entries={entries} currentUserId={currentUser?.id} mode={tab} showFantasyCol={showFantasyTab} />
+                <LeaderboardTable entries={entries} currentUserId={currentUser?.id} mode={tab} />
             )}
         </div>
     );
