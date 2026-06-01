@@ -1,0 +1,39 @@
+{
+  "description": "User predictions for match outcomes (Prode mode). MVP prediction removed in v1.",
+  "name": "ProdePrediction",
+  "properties": {
+    "match_id": {
+      "description": "FK reference to matches.id",
+      "type": "string"
+    },
+    "pred_away_goals": {
+      "description": "Predicted goals for away team",
+      "maximum": 20,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "pred_home_goals": {
+      "description": "Predicted goals for home team",
+      "maximum": 20,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "submitted_at": {
+      "description": "When prediction was submitted",
+      "format": "date-time",
+      "type": "string"
+    },
+    "user_id": {
+      "description": "FK reference to users.id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "match_id",
+    "user_id",
+    "pred_home_goals",
+    "pred_away_goals",
+    "submitted_at"
+  ],
+  "type": "object"
+}

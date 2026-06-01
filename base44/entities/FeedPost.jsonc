@@ -1,0 +1,40 @@
+{
+  "name": "FeedPost",
+  "type": "object",
+  "description": "A short social feed post by a user",
+  "properties": {
+    "author_id": {
+      "type": "string",
+      "description": "User id of the author"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Display name of the author at time of posting"
+    },
+    "author_avatar_url": {
+      "type": "string",
+      "description": "Avatar URL of the author at time of posting"
+    },
+    "author_department": {
+      "type": "string",
+      "description": "Department of the author at time of posting"
+    },
+    "content": {
+      "type": "string",
+      "description": "The post text content"
+    },
+    "like_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Cached number of likes"
+    },
+    "comment_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Cached number of comments"
+    }
+  },
+  "required": [
+    "content"
+  ]
+}

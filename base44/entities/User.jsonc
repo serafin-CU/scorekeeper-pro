@@ -14,5 +14,10 @@
       "type": "string",
       "description": "Onboarding prediction: top assister player name"
     }
-  }
+  },
+  "required": [
+    "predicted_winner_team_id",
+    "predicted_top_scorer",
+    "predicted_top_assister"
+  ]
 }

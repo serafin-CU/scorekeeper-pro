@@ -1,0 +1,30 @@
+{
+  "name": "FeedLike",
+  "type": "object",
+  "description": "An emoji reaction on a feed post by a user",
+  "properties": {
+    "post_id": {
+      "type": "string",
+      "description": "FK reference to FeedPost.id"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User id of the reactor"
+    },
+    "reaction": {
+      "type": "string",
+      "enum": [
+        "fire",
+        "heart",
+        "soccer"
+      ],
+      "default": "fire",
+      "description": "Emoji reaction type"
+    }
+  },
+  "required": [
+    "post_id",
+    "user_id",
+    "reaction"
+  ]
+}

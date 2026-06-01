@@ -10,8 +10,6 @@ import ProdePredictions from './pages/ProdePredictions';
 import Leaderboard from './pages/Leaderboard';
 import AdminBadgesViewer from './pages/AdminBadgesViewer';
 import AdminWCDataSync from './pages/AdminWCDataSync';
-import SquadBuilder from './pages/SquadBuilder';
-import SquadManagement from './pages/SquadManagement';
 import Onboarding from './pages/Onboarding';
 import Profile from './pages/Profile';
 import Standings from './pages/Standings';
@@ -23,7 +21,6 @@ import PublicProfile from './pages/PublicProfile';
 import WorldCup from './pages/WorldCup';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import { FANTASY_ENABLED } from '@/config/features';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -34,21 +31,6 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
-
-// Redirects non-admin users away from Fantasy pages when FANTASY_ENABLED = false
-const FantasyRedirect = () => {
-  useEffect(() => {
-    toast('Fantasy Game coming soon — squads not yet locked 🔒', { duration: 4000 });
-  }, []);
-  return <Navigate to="/" replace />;
-};
-
-const FantasyGuard = ({ children }) => {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
-  if (!FANTASY_ENABLED && !isAdmin) return <FantasyRedirect />;
-  return children;
-};
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
@@ -101,8 +83,6 @@ const AuthenticatedApp = () => {
       <Route path="/ProdePredictions" element={<LayoutWrapper currentPageName="ProdePredictions"><ProdePredictions /></LayoutWrapper>} />
       <Route path="/Leaderboard" element={<LayoutWrapper currentPageName="Leaderboard"><Leaderboard /></LayoutWrapper>} />
       <Route path="/AdminBadgesViewer" element={<LayoutWrapper currentPageName="AdminBadgesViewer"><AdminBadgesViewer /></LayoutWrapper>} />
-      <Route path="/SquadBuilder" element={<FantasyGuard><LayoutWrapper currentPageName="SquadBuilder"><SquadBuilder /></LayoutWrapper></FantasyGuard>} />
-      <Route path="/SquadManagement" element={<FantasyGuard><LayoutWrapper currentPageName="SquadManagement"><SquadManagement /></LayoutWrapper></FantasyGuard>} />
       <Route path="/Profile" element={<LayoutWrapper currentPageName="Profile"><Profile /></LayoutWrapper>} />
       <Route path="/AdminWCDataSync" element={<LayoutWrapper currentPageName="AdminWCDataSync"><AdminWCDataSync /></LayoutWrapper>} />
       <Route path="/Standings" element={<LayoutWrapper currentPageName="Standings"><Standings /></LayoutWrapper>} />

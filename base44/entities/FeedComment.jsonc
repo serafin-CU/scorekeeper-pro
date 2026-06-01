@@ -1,0 +1,31 @@
+{
+  "name": "FeedComment",
+  "type": "object",
+  "description": "A comment on a feed post",
+  "properties": {
+    "post_id": {
+      "type": "string",
+      "description": "FK reference to FeedPost.id"
+    },
+    "author_id": {
+      "type": "string",
+      "description": "User id of the comment author"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Display name of the comment author"
+    },
+    "author_avatar_url": {
+      "type": "string",
+      "description": "Avatar URL of the comment author"
+    },
+    "content": {
+      "type": "string",
+      "description": "The comment text"
+    }
+  },
+  "required": [
+    "post_id",
+    "content"
+  ]
+}

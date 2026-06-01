@@ -1,0 +1,192 @@
+{
+  "name": "AppConfig",
+  "type": "object",
+  "description": "Global application configuration (single row with id=1). Stores all scoring rules and tournament state. Version-controlled via fantasy_scoring_version.",
+  "properties": {
+    "tournament_start_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Tournament start date/time"
+    },
+    "tournament_phase": {
+      "type": "string",
+      "enum": [
+        "PRE_TOURNAMENT",
+        "GROUP_MD1",
+        "GROUP_MD2",
+        "GROUP_MD3",
+        "ROUND_OF_32",
+        "ROUND_OF_16",
+        "QUARTERFINALS",
+        "SEMIFINALS",
+        "FINAL",
+        "TOURNAMENT_DONE"
+      ],
+      "default": "PRE_TOURNAMENT",
+      "description": "Current tournament phase"
+    },
+    "transfer_window_state": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "CLOSED"
+      ],
+      "default": "OPEN",
+      "description": "Whether fantasy transfers are allowed"
+    },
+    "squad_lock_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When fantasy squads lock for the tournament (legacy single-lock; per-phase locks are derived at runtime from Match.kickoff_at)"
+    },
+    "last_operator_run_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time the operator/scraper ran"
+    },
+    "rules_last_updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When scoring rules were last changed"
+    },
+    "fantasy_scoring_version": {
+      "type": "string",
+      "default": "v1",
+      "description": "Fantasy scoring rules version (bump on any rule change)"
+    },
+    "points_goal_fwd": {
+      "type": "integer",
+      "default": 5,
+      "description": "Points for FWD goal"
+    },
+    "points_goal_mid": {
+      "type": "integer",
+      "default": 6,
+      "description": "Points for MID goal"
+    },
+    "points_goal_def": {
+      "type": "integer",
+      "default": 7,
+      "description": "Points for DEF goal"
+    },
+    "points_goal_gk": {
+      "type": "integer",
+      "default": 7,
+      "description": "Points for GK goal"
+    },
+    "points_yellow_card": {
+      "type": "integer",
+      "default": -1,
+      "description": "Points for yellow card"
+    },
+    "points_red_card": {
+      "type": "integer",
+      "default": -3,
+      "description": "Points for red card"
+    },
+    "points_play_60_plus": {
+      "type": "integer",
+      "default": 2,
+      "description": "Points for playing 60+ minutes"
+    },
+    "points_play_1_to_59": {
+      "type": "integer",
+      "default": 1,
+      "description": "Points for playing 1-59 minutes"
+    },
+    "points_play_0": {
+      "type": "integer",
+      "default": 0,
+      "description": "Points for playing 0 minutes"
+    },
+    "clean_sheet_def_gk": {
+      "type": "integer",
+      "default": 4,
+      "description": "Points for DEF/GK clean sheet"
+    },
+    "clean_sheet_min_minutes": {
+      "type": "integer",
+      "default": 60,
+      "description": "Minimum minutes for clean sheet bonus"
+    },
+    "prode_points_exact": {
+      "type": "integer",
+      "default": 5,
+      "description": "Prode: exact score correct"
+    },
+    "prode_points_correct_outcome": {
+      "type": "integer",
+      "default": 3,
+      "description": "Prode: correct winner or correct draw, wrong score"
+    },
+    "prode_points_wrong": {
+      "type": "integer",
+      "default": 0,
+      "description": "Prode: wrong outcome"
+    },
+    "prode_submission_lock_minutes": {
+      "type": "integer",
+      "default": 60,
+      "description": "Minutes before kickoff when Prode predictions lock"
+    },
+    "prode_knockout_score_basis": {
+      "type": "string",
+      "enum": [
+        "AFTER_ET_BEFORE_PENS",
+        "FULL_TIME_90",
+        "FINAL_INCLUDING_PENS"
+      ],
+      "default": "AFTER_ET_BEFORE_PENS",
+      "description": "Which score to use for Prode scoring in knockout matches"
+    },
+    "fantasy_free_transfers_per_phase": {
+      "type": "integer",
+      "default": 3,
+      "description": "Free transfers allowed per phase transition"
+    },
+    "fantasy_transfer_penalty_pts": {
+      "type": "integer",
+      "default": -4,
+      "description": "Penalty per extra transfer beyond free allowance"
+    },
+    "fantasy_max_players_per_team": {
+      "type": "integer",
+      "default": 3,
+      "description": "Max players from same national team (the Unity Rule)"
+    },
+    "fantasy_squad_size_total": {
+      "type": "integer",
+      "default": 15,
+      "description": "Total squad size (starters + bench)"
+    },
+    "fantasy_squad_size_starters": {
+      "type": "integer",
+      "default": 11,
+      "description": "Number of starters"
+    },
+    "fantasy_formation_gk": {
+      "type": "integer",
+      "default": 1,
+      "description": "Formation: starters at GK"
+    },
+    "fantasy_formation_def": {
+      "type": "integer",
+      "default": 4,
+      "description": "Formation: starters at DEF"
+    },
+    "fantasy_formation_mid": {
+      "type": "integer",
+      "default": 3,
+      "description": "Formation: starters at MID"
+    },
+    "fantasy_formation_fwd": {
+      "type": "integer",
+      "default": 3,
+      "description": "Formation: starters at FWD"
+    }
+  },
+  "required": [
+    "tournament_start_at",
+    "squad_lock_at"
+  ]
+}
