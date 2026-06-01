@@ -7,6 +7,18 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import PageNotFound from './lib/PageNotFound';
 import Onboarding from './pages/Onboarding';
 import PublicProfile from './pages/PublicProfile';
+import AlbaChat from './pages/AlbaChat';
+import FAFOChat from './pages/FAFOChat';
+import Feed from './pages/Feed';
+import Leaderboard from './pages/Leaderboard';
+import ProdePredictions from './pages/ProdePredictions';
+import Profile from './pages/Profile';
+import Standings from './pages/Standings';
+import Trivia from './pages/Trivia';
+import TriviaAdmin from './pages/TriviaAdmin';
+import WorldCup from './pages/WorldCup';
+import AdminWCDataSync from './pages/AdminWCDataSync';
+import AdminBadgesViewer from './pages/AdminBadgesViewer';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -69,6 +81,18 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
+      <Route path="/AlbaChat" element={<LayoutWrapper currentPageName="AlbaChat"><AlbaChat /></LayoutWrapper>} />
+      <Route path="/FAFOChat" element={<LayoutWrapper currentPageName="FAFOChat"><FAFOChat /></LayoutWrapper>} />
+      <Route path="/Feed" element={<LayoutWrapper currentPageName="Feed"><Feed /></LayoutWrapper>} />
+      <Route path="/Leaderboard" element={<LayoutWrapper currentPageName="Leaderboard"><Leaderboard /></LayoutWrapper>} />
+      <Route path="/ProdePredictions" element={<LayoutWrapper currentPageName="ProdePredictions"><ProdePredictions /></LayoutWrapper>} />
+      <Route path="/Profile" element={<LayoutWrapper currentPageName="Profile"><Profile /></LayoutWrapper>} />
+      <Route path="/Standings" element={<LayoutWrapper currentPageName="Standings"><Standings /></LayoutWrapper>} />
+      <Route path="/Trivia" element={<LayoutWrapper currentPageName="Trivia"><Trivia /></LayoutWrapper>} />
+      <Route path="/TriviaAdmin" element={<LayoutWrapper currentPageName="TriviaAdmin"><TriviaAdmin /></LayoutWrapper>} />
+      <Route path="/WorldCup" element={<LayoutWrapper currentPageName="WorldCup"><WorldCup /></LayoutWrapper>} />
+      <Route path="/AdminWCDataSync" element={<LayoutWrapper currentPageName="AdminWCDataSync"><AdminWCDataSync /></LayoutWrapper>} />
+      <Route path="/AdminBadgesViewer" element={<LayoutWrapper currentPageName="AdminBadgesViewer"><AdminBadgesViewer /></LayoutWrapper>} />
       <Route path="/Profile/:userId" element={<LayoutWrapper currentPageName="PublicProfile"><PublicProfile /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
