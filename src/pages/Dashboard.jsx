@@ -102,7 +102,6 @@ function RecentPredictions({ predictions, matches, teams }) {
     );
 }
 
-
 function SectionCard({ title, icon: Icon, iconColor, linkTo, linkLabel, children }) {
     return (
         <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
@@ -175,7 +174,11 @@ export default function Dashboard() {
         enabled: !!currentUser
     });
 
+    const showFantasy = false;
+
     const prodePoints = ledger.filter(e => e.mode === 'PRODE').reduce((sum, e) => sum + (e.points || 0), 0);
+    const fantasyPoints = ledger.filter(e => e.mode === 'FANTASY').reduce((sum, e) => sum + (e.points || 0), 0);
+    const totalPoints = prodePoints + fantasyPoints;
 
     // Compute leaderboard ranking from all PRODE points
     const pointsByUser = {};
@@ -218,17 +221,20 @@ export default function Dashboard() {
             </div>
 
             {/* Stats grid */}
-            <div className="dash-enter grid gap-3 grid-cols-2 sm:grid-cols-3" style={{ animationDelay: '0ms' }}>
+            <div className={`dash-enter grid gap-3 ${showFantasy ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'}`} style={{ animationDelay: '0ms' }}>
                 {statsLoading ? (
                     <>
                         <StatCardSkeleton />
                         <StatCardSkeleton />
+                        {showFantasy && <StatCardSkeleton />}
                         <StatCardSkeleton />
                     </>
                 ) : (
                 <>
-                <StatCard icon={TrendingUp} label="Prode Points" value={prodePoints} accentColor={CU.orange} gradient="linear-gradient(135deg, #FFB81C 0%, #F59E0B 50%, #D97706 100%)" />
+                <StatCard icon={TrendingUp} label={showFantasy ? "Total Points" : "Prode Points"} value={showFantasy ? totalPoints : prodePoints} sublabel={showFantasy ? "Prode + Fantasy" : undefined} accentColor={CU.orange} gradient="linear-gradient(135deg, #FFB81C 0%, #F59E0B 50%, #D97706 100%)" />
+                {/* Note: when !showFantasy, value=prodePoints and sublabel=undefined — no fantasy leak */}
                 <StatCard icon={Medal} label="Your Ranking" value={ranking} sublabel={hasPredictions ? `${predictions.length} predictions` : 'No predictions yet'} accentColor={CU.green} gradient="linear-gradient(135deg, #218848 0%, #10B981 50%, #14B8A6 100%)" />
+                {showFantasy && <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} gradient="linear-gradient(135deg, #475CC7 0%, #6366F1 50%, #4F46E5 100%)" />}
                 <StatCard icon={Award} label="Badges" value={badges.length} accentColor={CU.magenta} gradient="linear-gradient(135deg, #AA0061 0%, #C026D3 50%, #DB2777 100%)" sublabel={badges.length > 0 ? badges.map(b => {
                     const names = { UNBREAKABLE_XI: '🛡️ Unbreakable XI', THE_ORIGINALS: '👑 The Originals', PERFECT_MATCHDAY: '🎯 Perfect Matchday' };
                     return names[b.badge_type] || b.badge_type;

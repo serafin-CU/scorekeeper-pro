@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import WorldCupBanner from '@/components/WorldCupBanner';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, Medal, Loader2, Crown, Brain } from 'lucide-react';
+import { Trophy, Medal, Loader2, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 
@@ -107,10 +107,7 @@ export default function Leaderboard() {
         queryFn: () => base44.auth.me()
     });
     const showFantasyTab = false;
-    const TAB_CONFIG = [
-        ...TAB_CONFIG_BASE,
-        ...(showFantasyTab ? [{ value: 'FANTASY', label: 'Fantasy', icon: Crown }] : []),
-    ];
+    const TAB_CONFIG = TAB_CONFIG_BASE;
 
     const { data: ledger = [], isLoading: ledgerLoading } = useQuery({
         queryKey: ['leaderboardLedger'],
