@@ -21,6 +21,7 @@ import PublicProfile from './pages/PublicProfile';
 import WorldCup from './pages/WorldCup';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -62,6 +63,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
+    <ErrorBoundary>
     <Routes>
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>
@@ -94,6 +96,7 @@ const AuthenticatedApp = () => {
       <Route path="/TriviaAdmin" element={<LayoutWrapper currentPageName="TriviaAdmin"><TriviaAdmin /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </ErrorBoundary>
   );
 };
 
