@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Users, LogOut, Shield, MessageSquare, Trophy, Target, LayoutDashboard, User, Eye, EyeOff, Brain, Newspaper, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AlbaChatWidget from '@/components/AlbaChatWidget';
-import { FANTASY_ENABLED } from '@/config/features';
 
 const CU = {
     orange: '#FFB81C',
@@ -33,7 +32,7 @@ export default function ParticipantLayout({ children, currentPageName }) {
     const [searchParams] = useSearchParams();
     const isAdmin = currentUser?.role === 'admin';
     const previewAsParticipant = isAdmin && searchParams.get('preview_as') === 'participant';
-    const navItems = ALL_NAV_ITEMS.filter(item => !item.fantasyOnly || FANTASY_ENABLED || (isAdmin && !previewAsParticipant));
+    const navItems = ALL_NAV_ITEMS;
 
     const handleLogout = () => {
         base44.auth.logout();

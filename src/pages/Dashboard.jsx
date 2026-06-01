@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Trophy, Users, Target, TrendingUp, Loader2, ChevronRight, Award, Newspaper, Medal } from 'lucide-react';
-import { FANTASY_ENABLED } from '@/config/features';
 import DashboardFeedPreview from '@/components/dashboard/DashboardFeedPreview';
 import NextMatchCard from '@/components/dashboard/NextMatchCard';
 import PostShortcut from '@/components/dashboard/PostShortcut';
@@ -103,83 +102,6 @@ function RecentPredictions({ predictions, matches, teams }) {
     );
 }
 
-function SquadSummary({ currentUser, teams }) {
-    const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]));
-
-    const { data: squads = [], isLoading } = useQuery({
-        queryKey: ['userSquadsDash', currentUser?.id],
-        queryFn: () => base44.entities.FantasySquad.filter({ user_id: currentUser.id, status: 'FINAL' }),
-        enabled: !!currentUser
-    });
-
-    const latestSquad = squads.sort((a, b) => new Date(b.finalized_at || b.created_date) - new Date(a.finalized_at || a.created_date))[0];
-
-    const { data: squadPlayers = [] } = useQuery({
-        queryKey: ['squadPlayersDash', latestSquad?.id],
-        queryFn: () => base44.entities.FantasySquadPlayer.filter({ squad_id: latestSquad.id }),
-        enabled: !!latestSquad
-    });
-
-    const { data: allPlayers = [] } = useQuery({
-        queryKey: ['allPlayers'],
-        queryFn: () => base44.entities.Player.list()
-    });
-
-    const playersMap = Object.fromEntries(allPlayers.map(p => [p.id, p]));
-
-    if (isLoading) {
-        return <div className="text-sm flex items-center gap-2" style={{ color: '#9ca3af', fontFamily: "'Raleway', sans-serif" }}><Loader2 className="w-4 h-4 animate-spin" /> Loading squad...</div>;
-    }
-
-    if (!latestSquad) {
-        return (
-            <div className="text-center py-6 text-sm" style={{ color: '#9ca3af', fontFamily: "'Raleway', sans-serif" }}>
-                No squad created yet.{' '}
-                <Link to="/SquadManagement" style={{ color: CU.blue, textDecoration: 'underline' }}>Build your squad!</Link>
-            </div>
-        );
-    }
-
-    const starters = squadPlayers.filter(sp => sp.slot_type === 'STARTER');
-    const captain = squadPlayers.find(sp => sp.is_captain);
-    const captainPlayer = captain ? playersMap[captain.player_id] : null;
-
-    return (
-        <div className="space-y-3">
-            <div className="flex items-center justify-between">
-                <div style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.85rem', color: '#6b7280' }}>
-                    Phase: <span style={{ fontWeight: 600, color: CU.charcoal }}>{latestSquad.phase}</span>
-                </div>
-                <div style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.75rem', color: '#9ca3af' }}>{starters.length}/11 starters</div>
-            </div>
-            {captainPlayer && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: CU.orange + '15', border: `1px solid ${CU.orange}40` }}>
-                    <span style={{ color: CU.orange, fontWeight: 700, fontSize: '0.75rem', fontFamily: "'Raleway', sans-serif" }}>C</span>
-                    <span style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: '0.875rem', color: CU.charcoal }}>{captainPlayer.full_name}</span>
-                    <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.75rem', color: '#9ca3af' }}>({captainPlayer.position})</span>
-                    <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.75rem', color: CU.orange, marginLeft: 'auto' }}>2× points</span>
-                </div>
-            )}
-            <div className="grid grid-cols-2 gap-1.5">
-                {starters.slice(0, 6).map(sp => {
-                    const player = playersMap[sp.player_id];
-                    if (!player) return null;
-                    return (
-                        <div key={sp.id} className="text-xs py-1.5 px-2 rounded flex items-center justify-between" style={{ background: '#f9fafb' }}>
-                            <span style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 500, color: CU.charcoal }} className="truncate">{player.full_name}</span>
-                            <span style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af', marginLeft: '4px' }}>{player.position}</span>
-                        </div>
-                    );
-                })}
-                {starters.length > 6 && (
-                    <div className="text-xs py-1.5 px-2" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
-                        +{starters.length - 6} more
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
 
 function SectionCard({ title, icon: Icon, iconColor, linkTo, linkLabel, children }) {
     return (
@@ -253,11 +175,7 @@ export default function Dashboard() {
         enabled: !!currentUser
     });
 
-    const showFantasy = false;
-
     const prodePoints = ledger.filter(e => e.mode === 'PRODE').reduce((sum, e) => sum + (e.points || 0), 0);
-    const fantasyPoints = ledger.filter(e => e.mode === 'FANTASY').reduce((sum, e) => sum + (e.points || 0), 0);
-    const totalPoints = prodePoints + fantasyPoints;
 
     // Compute leaderboard ranking from all PRODE points
     const pointsByUser = {};
@@ -300,20 +218,17 @@ export default function Dashboard() {
             </div>
 
             {/* Stats grid */}
-            <div className={`dash-enter grid gap-3 ${showFantasy ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'}`} style={{ animationDelay: '0ms' }}>
+            <div className="dash-enter grid gap-3 grid-cols-2 sm:grid-cols-3" style={{ animationDelay: '0ms' }}>
                 {statsLoading ? (
                     <>
                         <StatCardSkeleton />
                         <StatCardSkeleton />
-                        {showFantasy && <StatCardSkeleton />}
                         <StatCardSkeleton />
                     </>
                 ) : (
                 <>
-                <StatCard icon={TrendingUp} label={showFantasy ? "Total Points" : "Prode Points"} value={showFantasy ? totalPoints : prodePoints} sublabel={showFantasy ? "Prode + Fantasy" : undefined} accentColor={CU.orange} gradient="linear-gradient(135deg, #FFB81C 0%, #F59E0B 50%, #D97706 100%)" />
-                {/* Note: when !showFantasy, value=prodePoints and sublabel=undefined — no fantasy leak */}
+                <StatCard icon={TrendingUp} label="Prode Points" value={prodePoints} accentColor={CU.orange} gradient="linear-gradient(135deg, #FFB81C 0%, #F59E0B 50%, #D97706 100%)" />
                 <StatCard icon={Medal} label="Your Ranking" value={ranking} sublabel={hasPredictions ? `${predictions.length} predictions` : 'No predictions yet'} accentColor={CU.green} gradient="linear-gradient(135deg, #218848 0%, #10B981 50%, #14B8A6 100%)" />
-                {showFantasy && <StatCard icon={Users} label="Fantasy Points" value={fantasyPoints} accentColor={CU.blue} gradient="linear-gradient(135deg, #475CC7 0%, #6366F1 50%, #4F46E5 100%)" />}
                 <StatCard icon={Award} label="Badges" value={badges.length} accentColor={CU.magenta} gradient="linear-gradient(135deg, #AA0061 0%, #C026D3 50%, #DB2777 100%)" sublabel={badges.length > 0 ? badges.map(b => {
                     const names = { UNBREAKABLE_XI: '🛡️ Unbreakable XI', THE_ORIGINALS: '👑 The Originals', PERFECT_MATCHDAY: '🎯 Perfect Matchday' };
                     return names[b.badge_type] || b.badge_type;

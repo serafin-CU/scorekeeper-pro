@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Trophy, Medal, Loader2, Crown, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
-import { FANTASY_ENABLED } from '@/config/features';
 
 const CU = {
     orange: '#FFB81C',
@@ -107,9 +106,7 @@ export default function Leaderboard() {
         queryKey: ['currentUser'],
         queryFn: () => base44.auth.me()
     });
-    const isAdmin = currentUser?.role === 'admin';
-    const previewAsParticipant = isAdmin && searchParams.get('preview_as') === 'participant';
-    const showFantasyTab = FANTASY_ENABLED && !previewAsParticipant;
+    const showFantasyTab = false;
     const TAB_CONFIG = [
         ...TAB_CONFIG_BASE,
         ...(showFantasyTab ? [{ value: 'FANTASY', label: 'Fantasy', icon: Crown }] : []),
