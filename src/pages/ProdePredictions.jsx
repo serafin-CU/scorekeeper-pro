@@ -336,7 +336,6 @@ export default function ProdePredictions() {
     const { data: predictions = [] } = useQuery({
         queryKey: ['prodePredictions', currentUser?.id],
         queryFn: async () => {
-            if (!currentUser) return [];
             const result = await base44.functions.invoke('prodeService', {
                 action: 'get_user_predictions',
                 target_user_id: currentUser.id

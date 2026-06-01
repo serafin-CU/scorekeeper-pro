@@ -143,7 +143,6 @@ export default function Dashboard() {
     const { data: predictions = [], isLoading: predictionsLoading } = useQuery({
         queryKey: ['dashPredictions', currentUser?.id],
         queryFn: async () => {
-            if (!currentUser) return [];
             const result = await base44.functions.invoke('prodeService', {
                 action: 'get_user_predictions',
                 target_user_id: currentUser.id
@@ -156,7 +155,6 @@ export default function Dashboard() {
     const { data: ledger = [], isLoading: ledgerLoading } = useQuery({
         queryKey: ['dashLedger', currentUser?.id],
         queryFn: async () => {
-            if (!currentUser) return [];
             return base44.entities.PointsLedger.filter({ user_id: currentUser.id });
         },
         enabled: !!currentUser
