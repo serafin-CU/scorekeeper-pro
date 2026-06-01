@@ -166,23 +166,21 @@ export default function Dashboard() {
         enabled: !!currentUser
     });
 
-    const { data: allProdeLedger = [] } = useQuery({
-        queryKey: ['allProdeLedger'],
-        queryFn: () => base44.entities.PointsLedger.filter({ mode: 'PRODE' }),
-        enabled: !!currentUser
+    const { data: leaderboardRank } = useQuery({
+        queryKey: ['leaderboardRank', currentUser?.id],
+        queryFn: async () => {
+            const result = await base44.functions.invoke('prodeService', {
+                action: 'get_leaderboard_rank'
+            });
+            return result.data;
+        },
+        enabled: !!currentUser,
+        staleTime: 30000
     });
 
     const prodePoints = ledger.filter(e => e.mode === 'PRODE').reduce((sum, e) => sum + (e.points || 0), 0);
 
-    // Compute leaderboard ranking from all PRODE points
-    const pointsByUser = {};
-    for (const e of allProdeLedger) {
-        pointsByUser[e.user_id] = (pointsByUser[e.user_id] || 0) + (e.points || 0);
-    }
     const hasPredictions = predictions.length > 0;
-    const ranking = hasPredictions
-        ? `#${Object.values(pointsByUser).filter(p => p > prodePoints).length + 1}`
-        : '—';
 
     const now = new Date();
     const upcomingMatches = matches.filter(m => new Date(m.kickoff_at) > now).length;
@@ -225,7 +223,7 @@ export default function Dashboard() {
                 ) : (
                 <>
                 <StatCard icon={TrendingUp} label="Prode Points" value={prodePoints} accentColor={CU.orange} gradient="linear-gradient(135deg, #FFB81C 0%, #F59E0B 50%, #D97706 100%)" />
-                <StatCard icon={Medal} label="Your Ranking" value={ranking} sublabel={hasPredictions ? `${predictions.length} predictions` : 'No predictions yet'} accentColor={CU.green} gradient="linear-gradient(135deg, #218848 0%, #10B981 50%, #14B8A6 100%)" />
+                <StatCard icon={Medal} label="Your Ranking" value={leaderboardRank?.rank ? '#' + leaderboardRank.rank : '—'} sublabel={'of ' + (leaderboardRank?.totalUsers || 0) + ' players'} accentColor={CU.green} gradient="linear-gradient(135deg, #218848 0%, #10B981 50%, #14B8A6 100%)" />
                 <StatCard icon={Award} label="Badges" value={badges.length} accentColor={CU.magenta} gradient="linear-gradient(135deg, #AA0061 0%, #C026D3 50%, #DB2777 100%)" sublabel={badges.length > 0 ? badges.map(b => {
                     const names = { UNBREAKABLE_XI: '🛡️ Unbreakable XI', THE_ORIGINALS: '👑 The Originals', PERFECT_MATCHDAY: '🎯 Perfect Matchday' };
                     return names[b.badge_type] || b.badge_type;

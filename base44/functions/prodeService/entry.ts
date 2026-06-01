@@ -31,6 +31,8 @@ Deno.serve(async (req) => {
                 return await finalizeMatchResult(base44, user, body);
             case 'score_match':
                 return await scoreMatch(base44, user, body);
+            case 'get_leaderboard_rank':
+                return await getLeaderboardRank(base44, user, body);
             default:
                 return Response.json({ error: 'Invalid action' }, { status: 400 });
         }
@@ -119,6 +121,30 @@ async function getUserPredictions(base44, user, body) {
     }, '-submitted_at', 100);
 
     return Response.json({ success: true, predictions, total: predictions.length });
+}
+
+/**
+ * Compute the requesting user's leaderboard rank from all PRODE points.
+ * Returns { rank, totalUsers, userPoints }. rank is null if user has no points.
+ */
+async function getLeaderboardRank(base44, user, body) {
+    const entries = await base44.asServiceRole.entities.PointsLedger.filter({ mode: 'PRODE' });
+
+    const pointsByUser = {};
+    for (const e of entries) {
+        pointsByUser[e.user_id] = (pointsByUser[e.user_id] || 0) + (e.points || 0);
+    }
+
+    const totalUsers = Object.keys(pointsByUser).length;
+    const userPoints = pointsByUser[user.id] || 0;
+
+    if (!(user.id in pointsByUser)) {
+        return Response.json({ success: true, rank: null, totalUsers, userPoints: 0 });
+    }
+
+    const higher = Object.values(pointsByUser).filter(p => p > userPoints).length;
+
+    return Response.json({ success: true, rank: higher + 1, totalUsers, userPoints });
 }
 
 /**
