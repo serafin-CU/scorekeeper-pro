@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const CU = {
     orange: '#FFB81C',
@@ -53,6 +54,7 @@ export default function Profile() {
             setAvatarUrl(file_url);
         } catch (err) {
             console.error('Upload failed:', err);
+            toast.error('Failed to upload profile picture. Please try again.');
         }
     };
 

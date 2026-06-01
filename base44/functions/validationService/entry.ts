@@ -30,8 +30,6 @@ Deno.serve(async (req) => {
                 return await validateMatch(base44, user, body);
             case 'validate_prediction':
                 return await validatePrediction(base44, user, body);
-            case 'validate_squad':
-                return await validateSquad(base44, user, body);
             case 'validate_url':
                 return await validateUrl(base44, user, body);
             case 'check_unique_constraint':
