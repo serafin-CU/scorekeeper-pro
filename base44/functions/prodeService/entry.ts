@@ -33,6 +33,8 @@ Deno.serve(async (req) => {
                 return await scoreMatch(base44, user, body);
             case 'get_leaderboard_rank':
                 return await getLeaderboardRank(base44, user, body);
+            case 'get_leaderboard':
+                return await getLeaderboard(base44, user, body);
             default:
                 return Response.json({ error: 'Invalid action' }, { status: 400 });
         }
@@ -145,6 +147,40 @@ async function getLeaderboardRank(base44, user, body) {
     const higher = Object.values(pointsByUser).filter(p => p > userPoints).length;
 
     return Response.json({ success: true, rank: higher + 1, totalUsers, userPoints });
+}
+
+/**
+ * Aggregate the full PRODE leaderboard server-side.
+ * Returns { entries } sorted by total_points descending.
+ */
+async function getLeaderboard(base44, user, body) {
+    const [ledger, users] = await Promise.all([
+        base44.asServiceRole.entities.PointsLedger.filter({ mode: 'PRODE' }),
+        base44.asServiceRole.entities.User.list()
+    ]);
+
+    const usersMap = Object.fromEntries(users.map(u => [u.id, u]));
+    const aggregated = {};
+
+    for (const entry of ledger) {
+        if (!entry.user_id) continue;
+        if (!aggregated[entry.user_id]) {
+            const u = usersMap[entry.user_id];
+            aggregated[entry.user_id] = {
+                user_id: entry.user_id,
+                display_name: u?.display_name || u?.full_name || null,
+                email: u?.email || null,
+                prode_points: 0,
+                total_points: 0
+            };
+        }
+        const pts = entry.points || 0;
+        aggregated[entry.user_id].prode_points += pts;
+        aggregated[entry.user_id].total_points += pts;
+    }
+
+    const entries = Object.values(aggregated).sort((a, b) => b.total_points - a.total_points);
+    return Response.json({ entries });
 }
 
 /**

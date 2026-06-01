@@ -109,10 +109,15 @@ export default function Leaderboard() {
     const showFantasyTab = false;
     const TAB_CONFIG = TAB_CONFIG_BASE;
 
-    const { data: ledger = [], isLoading: ledgerLoading } = useQuery({
-        queryKey: ['leaderboardLedger'],
-        queryFn: () => base44.entities.PointsLedger.list()
+    const { data: leaderboardData = { entries: [] }, isLoading: ledgerLoading } = useQuery({
+        queryKey: ['leaderboard'],
+        queryFn: async () => {
+            const result = await base44.functions.invoke('prodeService', { action: 'get_leaderboard' });
+            return result.data;
+        },
+        staleTime: 60000
     });
+    const allEntries = leaderboardData.entries || [];
 
     const { data: users = [] } = useQuery({
         queryKey: ['allUsers'],
@@ -125,39 +130,8 @@ export default function Leaderboard() {
         }
     });
 
-    const usersMap = Object.fromEntries(users.map(u => [u.id, u]));
-
-    const aggregated = {};
-    for (const entry of ledger) {
-        if (!entry.user_id) continue;
-        if (!aggregated[entry.user_id]) {
-            const user = usersMap[entry.user_id];
-            aggregated[entry.user_id] = {
-                user_id: entry.user_id,
-                display_name: user?.display_name || user?.full_name || null,
-                email: user?.email || null,
-                prode_points: 0,
-                fantasy_points: 0,
-                total_points: 0
-            };
-        }
-        const pts = entry.points || 0;
-        if (entry.mode === 'PRODE') aggregated[entry.user_id].prode_points += pts;
-        else if (entry.mode === 'FANTASY') aggregated[entry.user_id].fantasy_points += pts;
-        aggregated[entry.user_id].total_points += pts;
-    }
-
-    const allEntries = Object.values(aggregated);
-
     const getEntries = (mode) => {
-        if (mode === 'ALL') {
-            const base = showFantasyTab
-                ? [...allEntries]
-                : [...allEntries].map(e => ({ ...e, total_points: e.prode_points }));
-            return base.sort((a, b) => b.total_points - a.total_points);
-        }
-        if (mode === 'PRODE') return [...allEntries].map(e => ({ ...e, total_points: e.prode_points })).filter(e => e.total_points !== 0).sort((a, b) => b.total_points - a.total_points);
-        return [...allEntries].map(e => ({ ...e, total_points: e.fantasy_points })).filter(e => e.total_points !== 0).sort((a, b) => b.total_points - a.total_points);
+        return [...allEntries].sort((a, b) => b.total_points - a.total_points);
     };
 
     const today = new Date().toISOString().slice(0, 10);
