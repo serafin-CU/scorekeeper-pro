@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 
 // Parse source_note like "Day 1 — May 27, 2026 — Pre-Kickoff — Welcome to UnityCup — ..."
 function parseSourceNote(sourceNote) {
@@ -149,6 +149,8 @@ export default function TriviaAdmin() {
     const { user, isLoadingAuth } = useAuth();
     const queryClient = useQueryClient();
 
+    const [generating, setGenerating] = useState(false);
+
     const { data: questions = [], isLoading } = useQuery({
         queryKey: ['triviaQuestions'],
         queryFn: () => base44.entities.TriviaQuestion.list(),
@@ -171,6 +173,23 @@ export default function TriviaAdmin() {
         queryClient.invalidateQueries({ queryKey: ['triviaQuestions'] });
     };
 
+    const handleGenerate = async () => {
+        setGenerating(true);
+        try {
+            const res = await base44.functions.invoke('generateTriviaCalendar', {});
+            if (res.data?.ok) {
+                toast.success(`Generated ${res.data.questionsCreated} questions for ${res.data.daysProcessed} days`);
+            } else {
+                toast.error(res.data?.error || 'Generation failed');
+            }
+            queryClient.invalidateQueries({ queryKey: ['triviaQuestions'] });
+        } catch (err) {
+            toast.error(err.message || 'Generation failed');
+        } finally {
+            setGenerating(false);
+        }
+    };
+
     return (
         <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Header */}
@@ -179,9 +198,19 @@ export default function TriviaAdmin() {
                     <h1 className="text-2xl font-bold text-slate-900">Trivia Admin</h1>
                     <p className="text-sm text-slate-500 mt-1">Manage which days are exposed to users</p>
                 </div>
-                <Badge variant="outline" className="text-sm px-3 py-1 mt-1">
-                    {activeDaysCount} of {groups.length} days active
-                </Badge>
+                <div className="flex items-center gap-3 mt-1">
+                    <Badge variant="outline" className="text-sm px-3 py-1">
+                        {activeDaysCount} of {groups.length} days active
+                    </Badge>
+                    <button
+                        onClick={handleGenerate}
+                        disabled={generating}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-60 transition-colors"
+                    >
+                        {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                        {generating ? 'Generating...' : 'Generate Questions'}
+                    </button>
+                </div>
             </div>
 
             {/* Table header */}
