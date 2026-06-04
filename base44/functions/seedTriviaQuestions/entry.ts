@@ -259,7 +259,214 @@ const QUESTIONS = [
     is_active: false,
     source_note: "Day 5 — May 31, 2026 — Mexico hosted in 1970 and 1986 — 2026 will be their third time.",
     times_used: 0
-  }
+  },
+  // Day 6 — June 1, 2026 — World Cup Legends — MEDIUM — LEGENDS
+{
+  question_text: "Which player has scored the most goals in FIFA World Cup history?",
+  options: ["Miroslav Klose", "Ronaldo", "Pelé", "Lionel Messi"],
+  correct_answer_index: 0,
+  category: "LEGENDS",
+  difficulty: "MEDIUM",
+  is_active: false,
+  source_note: "Miroslav Klose scored 16 World Cup goals for Germany between 2002 and 2014.",
+  times_used: 0
+},
+{
+  question_text: "Which player is known as 'The King of Football' and won three World Cups?",
+  options: ["Diego Maradona", "Pelé", "Johan Cruyff", "Zinedine Zidane"],
+  correct_answer_index: 1,
+  category: "LEGENDS",
+  difficulty: "MEDIUM",
+  is_active: false,
+  source_note: "Pelé won World Cups in 1958, 1962, and 1970.",
+  times_used: 0
+},
+{
+  question_text: "Which country did Diego Maradona represent?",
+  options: ["Brazil", "Spain", "Argentina", "Uruguay"],
+  correct_answer_index: 2,
+  category: "LEGENDS",
+  difficulty: "MEDIUM",
+  is_active: false,
+  source_note: "Maradona captained Argentina to the 1986 World Cup title.",
+  times_used: 0
+},
+{
+  question_text: "Who won the Golden Ball as the best player of the 2022 World Cup?",
+  options: ["Kylian Mbappé", "Lionel Messi", "Luka Modrić", "Julián Álvarez"],
+  correct_answer_index: 1,
+  category: "LEGENDS",
+  difficulty: "MEDIUM",
+  is_active: false,
+  source_note: "Messi led Argentina to the 2022 World Cup title.",
+  times_used: 0
+},
+{
+  question_text: "Which French player scored a hat trick in the 2022 World Cup Final?",
+  options: ["Antoine Griezmann", "Olivier Giroud", "Kylian Mbappé", "Kingsley Coman"],
+  correct_answer_index: 2,
+  category: "LEGENDS",
+  difficulty: "MEDIUM",
+  is_active: false,
+  source_note: "Mbappé scored three goals against Argentina in the Final.",
+  times_used: 0
+},
+
+// Day 7 — June 2, 2026 — World Cup Records — HARD — RECORDS
+{
+  question_text: "Which country has appeared in every FIFA World Cup tournament?",
+  options: ["Germany", "Argentina", "Brazil", "Italy"],
+  correct_answer_index: 2,
+  category: "RECORDS",
+  difficulty: "HARD",
+  is_active: false,
+  source_note: "Brazil is the only nation to qualify for every World Cup.",
+  times_used: 0
+},
+{
+  question_text: "What is the largest margin of victory in a World Cup match?",
+  options: ["8 goals", "9 goals", "10 goals", "11 goals"],
+  correct_answer_index: 1,
+  category: "RECORDS",
+  difficulty: "HARD",
+  is_active: false,
+  source_note: "Hungary defeated El Salvador 10-1 in 1982.",
+  times_used: 0
+},
+{
+  question_text: "Which country won the 2010 FIFA World Cup?",
+  options: ["Netherlands", "Spain", "Germany", "Brazil"],
+  correct_answer_index: 1,
+  category: "RECORDS",
+  difficulty: "HARD",
+  is_active: false,
+  source_note: "Spain beat the Netherlands 1-0 after extra time.",
+  times_used: 0
+},
+{
+  question_text: "Which goalkeeper holds the record for the most World Cup clean sheets?",
+  options: ["Gianluigi Buffon", "Manuel Neuer", "Peter Shilton", "Fabien Barthez"],
+  correct_answer_index: 2,
+  category: "RECORDS",
+  difficulty: "HARD",
+  is_active: false,
+  source_note: "England's Peter Shilton recorded 10 clean sheets.",
+  times_used: 0
+},
+{
+  question_text: "Which country won the first World Cup held in Asia?",
+  options: ["Germany", "Brazil", "France", "Italy"],
+  correct_answer_index: 1,
+  category: "RECORDS",
+  difficulty: "HARD",
+  is_active: false,
+  source_note: "Brazil won the 2002 tournament hosted by South Korea and Japan.",
+  times_used: 0
+},
+
+// Day 8 — June 3, 2026 — World Cup Finals — EASY — FINALS
+{
+  question_text: "Which country defeated Germany in the 2014 World Cup Final?",
+  options: ["Argentina", "Brazil", "Spain", "None of the above"],
+  correct_answer_index: 3,
+  category: "FINALS",
+  difficulty: "EASY",
+  is_active: false,
+  source_note: "Germany defeated Argentina 1-0 to win the 2014 World Cup.",
+  times_used: 0
+},
+{
+  question_text: "Which nation won the 2018 FIFA World Cup?",
+  options: ["France", "Croatia", "Belgium", "England"],
+  correct_answer_index: 0,
+  category: "FINALS",
+  difficulty: "EASY",
+  is_active: false,
+  source_note: "France beat Croatia 4-2 in Moscow.",
+  times_used: 0
+},
+{
+  question_text: "Which country lost to Argentina in the 2022 World Cup Final?",
+  options: ["Croatia", "Brazil", "France", "Morocco"],
+  correct_answer_index: 2,
+  category: "FINALS",
+  difficulty: "EASY",
+  is_active: false,
+  source_note: "Argentina defeated France on penalties after a 3-3 draw.",
+  times_used: 0
+},
+{
+  question_text: "Who scored the winning goal in the 2014 World Cup Final?",
+  options: ["Thomas Müller", "Mario Götze", "Miroslav Klose", "Mesut Özil"],
+  correct_answer_index: 1,
+  category: "FINALS",
+  difficulty: "EASY",
+  is_active: false,
+  source_note: "Mario Götze scored in extra time against Argentina.",
+  times_used: 0
+},
+{
+  question_text: "Which nation won the 1998 World Cup on home soil?",
+  options: ["Brazil", "France", "Italy", "Germany"],
+  correct_answer_index: 1,
+  category: "FINALS",
+  difficulty: "EASY",
+  is_active: false,
+  source_note: "France defeated Brazil 3-0 in Paris.",
+  times_used: 0
+},
+
+// Day 9 — June 4, 2026 — Fun Facts — EASY — WORLD_CUP_FUN
+{
+  question_text: "What animal appeared as the mascot of the 1966 World Cup in England?",
+  options: ["Bear", "Lion", "Tiger", "Dog"],
+  correct_answer_index: 1,
+  category: "WORLD_CUP_FUN",
+  difficulty: "EASY",
+  is_active: false,
+  source_note: "World Cup Willie, a lion, was the first official mascot.",
+  times_used: 0
+},
+{
+  question_text: "Which country hosted the 2014 FIFA World Cup?",
+  options: ["Argentina", "Brazil", "Chile", "Mexico"],
+  correct_answer_index: 1,
+  category: "WORLD_CUP_FUN",
+  difficulty: "EASY",
+  is_active: false,
+  source_note: "Brazil hosted the tournament in 2014.",
+  times_used: 0
+},
+{
+  question_text: "What color is traditionally associated with Brazil's national team jersey?",
+  options: ["Blue", "Green", "Yellow", "White"],
+  correct_answer_index: 2,
+  category: "WORLD_CUP_FUN",
+  difficulty: "EASY",
+  is_active: false,
+  source_note: "Brazil's iconic jersey is yellow with green trim.",
+  times_used: 0
+},
+{
+  question_text: "Which country famously defeated Brazil 7-1 in the 2014 semifinal?",
+  options: ["Argentina", "France", "Germany", "Spain"],
+  correct_answer_index: 2,
+  category: "WORLD_CUP_FUN",
+  difficulty: "EASY",
+  is_active: false,
+  source_note: "Germany's 7-1 win is one of the most famous matches in World Cup history.",
+  times_used: 0
+},
+{
+  question_text: "How many stars appear above Brazil's crest to represent its World Cup titles?",
+  options: ["Three", "Four", "Five", "Six"],
+  correct_answer_index: 2,
+  category: "WORLD_CUP_FUN",
+  difficulty: "EASY",
+  is_active: false,
+  source_note: "Brazil displays five stars for its five World Cup victories.",
+  times_used: 0
+}
 ];
 
 Deno.serve(async (req) => {
