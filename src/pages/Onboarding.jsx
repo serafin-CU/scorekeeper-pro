@@ -324,18 +324,6 @@ function Completion({ displayName, department, preferredTeamId, avatarUrl, onFin
                 >
                     Start Predicting <ChevronRight className="w-4 h-4" />
                 </button>
-                
-                <button
-                    onClick={() => onFinish('/SquadBuilder')}
-                    className="w-full py-3 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-opacity"
-                    style={{
-                        fontFamily: "'Raleway', sans-serif",
-                        background: CU.orange + '80',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Build My Squad <ChevronRight className="w-4 h-4" />
-                </button>
             </div>
         </div>
     );
