@@ -24,11 +24,10 @@ function TeamSide({ team }) {
 
 export default function NextMatchCard({ matches, teams, predictions }) {
     const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]));
-    const predictedIds = new Set(predictions.map(p => p.match_id));
     const now = new Date();
 
     const nextMatch = matches
-        .filter(m => m.status === 'SCHEDULED' && new Date(m.kickoff_at) > now && !predictedIds.has(m.id))
+        .filter(m => m.status === 'SCHEDULED' && new Date(m.kickoff_at) > now)
         .sort((a, b) => new Date(a.kickoff_at) - new Date(b.kickoff_at))[0];
 
     if (!nextMatch) return null;
