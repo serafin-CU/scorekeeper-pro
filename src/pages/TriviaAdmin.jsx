@@ -8,32 +8,62 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 
-// Parse source_note like "Day 1 — May 27, 2026 — Pre-Kickoff — Welcome to UnityCup — ..."
+// Parse source_note like "Day 6 – 2026-07-19 – FIFA World Cup 2026"
 function parseSourceNote(sourceNote) {
-    if (!sourceNote) return { dayNumber: null, date: null, theme: null };
-    const parts = sourceNote.split('—').map(s => s.trim());
-    const dayMatch = parts[0]?.match(/Day\s+(\d+)/i);
+    if (!sourceNote) return { dayNumber: null, date: null };
+    const dayMatch = sourceNote.match(/Day\s+(\d+)/i);
     const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-    const date = parts[1] || null;
-    const theme = parts[3] || parts[2] || null;
-    return { dayNumber, date, theme };
+    const dateMatch = sourceNote.match(/(\d{4}-\d{2}-\d{2})/);
+    const date = dateMatch ? dateMatch[1] : null;
+    return { dayNumber, date };
+}
+
+// Format YYYY-MM-DD -> "May 27, 2026"
+function formatDate(isoDate) {
+    if (!isoDate) return null;
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+
+const CATEGORY_LABELS = {
+    GROUP_STAGE: 'Group Stage',
+    KNOCKOUT_HISTORY: 'World Cup History',
+    PLAYERS_RECORDS: 'Players & Records',
+    HOST_2026: 'Host Cities',
+    RULES_FORMAT: 'Rules & Format',
+    CULTURE_AND_FOOD: 'Culture & Food'
+};
+
+// Derive a short topic label from the most common category in the day's questions
+function deriveTheme(questions) {
+    const counts = {};
+    for (const q of questions) {
+        if (q.category) counts[q.category] = (counts[q.category] || 0) + 1;
+    }
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    if (!top) return null;
+    return CATEGORY_LABELS[top[0]] || top[0];
 }
 
 function groupQuestionsByDay(questions) {
     const map = {};
     for (const q of questions) {
-        const { dayNumber, date, theme } = parseSourceNote(q.source_note);
+        const { dayNumber, date } = parseSourceNote(q.source_note);
         const key = dayNumber ?? 'unknown';
         if (!map[key]) {
-            map[key] = { dayNumber: key, date, theme, questions: [] };
+            map[key] = { dayNumber: key, date, questions: [] };
         }
+        if (!map[key].date && date) map[key].date = date;
         map[key].questions.push(q);
     }
-    return Object.values(map).sort((a, b) => {
-        if (a.dayNumber === 'unknown') return 1;
-        if (b.dayNumber === 'unknown') return -1;
-        return a.dayNumber - b.dayNumber;
-    });
+    return Object.values(map)
+        .map(g => ({ ...g, date: formatDate(g.date), theme: deriveTheme(g.questions) }))
+        .sort((a, b) => {
+            if (a.dayNumber === 'unknown') return 1;
+            if (b.dayNumber === 'unknown') return -1;
+            return a.dayNumber - b.dayNumber;
+        });
 }
 
 function DifficultyBadge({ difficulty }) {
