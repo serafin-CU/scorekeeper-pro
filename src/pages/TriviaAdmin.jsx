@@ -8,42 +8,37 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 
-// Parse both formats:
-//   New: "Day 6 – 2026-07-19 – FIFA World Cup 2026"        (en-dash, ISO date)
-//   Old: "Day 1 — May 27, 2026 — {theme} — ..."            (em-dash, written date)
+// Parse the source_note format:
+//   "Day {N} – {date} – {theme}"  e.g. "Day 1 – May 27 – Format & 48-team expansion"
+// Split only on the FIRST TWO en-dash (–) separators; everything after the
+// second separator is the theme (which may itself contain an em-dash —).
 function parseSourceNote(sourceNote) {
     if (!sourceNote) return { dayNumber: null, date: null, embeddedTheme: null };
     const dayMatch = sourceNote.match(/Day\s+(\d+)/i);
     const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
 
-    // ISO date (new format)
-    const isoMatch = sourceNote.match(/(\d{4}-\d{2}-\d{2})/);
-    // Written date e.g. "May 27, 2026" (old format)
-    const writtenMatch = sourceNote.match(/([A-Z][a-z]+\s+\d{1,2},\s*\d{4})/);
-
+    // Split on en-dash separators only, keeping the theme intact.
+    const firstSep = sourceNote.indexOf('–');
     let date = null;
-    if (isoMatch) {
-        date = formatDate(isoMatch[1]);
-    } else if (writtenMatch) {
-        date = writtenMatch[1].replace(/\s+/g, ' ').trim();
+    let embeddedTheme = null;
+
+    if (firstSep !== -1) {
+        const afterDay = sourceNote.slice(firstSep + 1);
+        const secondSep = afterDay.indexOf('–');
+        if (secondSep !== -1) {
+            date = afterDay.slice(0, secondSep).trim();
+            embeddedTheme = afterDay.slice(secondSep + 1).trim();
+        } else {
+            date = afterDay.trim();
+        }
     }
 
-    // Embedded theme: the segment after the date in the old em-dash format
-    let embeddedTheme = null;
-    if (sourceNote.includes('—')) {
-        const parts = sourceNote.split('—').map(s => s.trim());
-        embeddedTheme = parts[2] || null;
+    // Append 2026 if the date is a bare month-and-day (e.g. "May 27").
+    if (date && !/\d{4}/.test(date)) {
+        date = `${date}, 2026`;
     }
 
     return { dayNumber, date, embeddedTheme };
-}
-
-// Format YYYY-MM-DD -> "May 27, 2026"
-function formatDate(isoDate) {
-    if (!isoDate) return null;
-    const [y, m, d] = isoDate.split('-').map(Number);
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
 const CATEGORY_LABELS = {
@@ -79,7 +74,7 @@ function groupQuestionsByDay(questions) {
         map[key].questions.push(q);
     }
     return Object.values(map)
-        .map(g => ({ ...g, theme: g.embeddedTheme || deriveTheme(g.questions) }))
+        .map(g => ({ ...g, theme: g.embeddedTheme || '—' }))
         .sort((a, b) => {
             if (a.dayNumber === 'unknown') return 1;
             if (b.dayNumber === 'unknown') return -1;
