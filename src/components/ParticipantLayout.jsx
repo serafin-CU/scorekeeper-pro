@@ -181,7 +181,7 @@ export default function ParticipantLayout({ children, currentPageName }) {
                         style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}
                         className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
                     >
-                        Rules
+                        Terms
                     </Link>
                 </div>
             </footer>
