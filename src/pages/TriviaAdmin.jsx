@@ -8,14 +8,34 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 
-// Parse source_note like "Day 6 – 2026-07-19 – FIFA World Cup 2026"
+// Parse both formats:
+//   New: "Day 6 – 2026-07-19 – FIFA World Cup 2026"        (en-dash, ISO date)
+//   Old: "Day 1 — May 27, 2026 — {theme} — ..."            (em-dash, written date)
 function parseSourceNote(sourceNote) {
-    if (!sourceNote) return { dayNumber: null, date: null };
+    if (!sourceNote) return { dayNumber: null, date: null, embeddedTheme: null };
     const dayMatch = sourceNote.match(/Day\s+(\d+)/i);
     const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-    const dateMatch = sourceNote.match(/(\d{4}-\d{2}-\d{2})/);
-    const date = dateMatch ? dateMatch[1] : null;
-    return { dayNumber, date };
+
+    // ISO date (new format)
+    const isoMatch = sourceNote.match(/(\d{4}-\d{2}-\d{2})/);
+    // Written date e.g. "May 27, 2026" (old format)
+    const writtenMatch = sourceNote.match(/([A-Z][a-z]+\s+\d{1,2},\s*\d{4})/);
+
+    let date = null;
+    if (isoMatch) {
+        date = formatDate(isoMatch[1]);
+    } else if (writtenMatch) {
+        date = writtenMatch[1].replace(/\s+/g, ' ').trim();
+    }
+
+    // Embedded theme: the segment after the date in the old em-dash format
+    let embeddedTheme = null;
+    if (sourceNote.includes('—')) {
+        const parts = sourceNote.split('—').map(s => s.trim());
+        embeddedTheme = parts[2] || null;
+    }
+
+    return { dayNumber, date, embeddedTheme };
 }
 
 // Format YYYY-MM-DD -> "May 27, 2026"
@@ -49,16 +69,17 @@ function deriveTheme(questions) {
 function groupQuestionsByDay(questions) {
     const map = {};
     for (const q of questions) {
-        const { dayNumber, date } = parseSourceNote(q.source_note);
+        const { dayNumber, date, embeddedTheme } = parseSourceNote(q.source_note);
         const key = dayNumber ?? 'unknown';
         if (!map[key]) {
-            map[key] = { dayNumber: key, date, questions: [] };
+            map[key] = { dayNumber: key, date, embeddedTheme, questions: [] };
         }
         if (!map[key].date && date) map[key].date = date;
+        if (!map[key].embeddedTheme && embeddedTheme) map[key].embeddedTheme = embeddedTheme;
         map[key].questions.push(q);
     }
     return Object.values(map)
-        .map(g => ({ ...g, date: formatDate(g.date), theme: deriveTheme(g.questions) }))
+        .map(g => ({ ...g, theme: g.embeddedTheme || deriveTheme(g.questions) }))
         .sort((a, b) => {
             if (a.dayNumber === 'unknown') return 1;
             if (b.dayNumber === 'unknown') return -1;
