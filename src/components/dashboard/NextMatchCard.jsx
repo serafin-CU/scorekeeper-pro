@@ -22,27 +22,10 @@ function TeamSide({ team }) {
     );
 }
 
-export default function NextMatchCard({ matches, teams, predictions }) {
-    const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]));
-    const now = new Date();
-
-    // A match is LIVE if it has kicked off but isn't finalized yet.
-    const liveMatch = matches
-        .filter(m => m.status !== 'FINAL' && new Date(m.kickoff_at) <= now)
-        .sort((a, b) => new Date(b.kickoff_at) - new Date(a.kickoff_at))[0];
-
-    const upcomingMatch = matches
-        .filter(m => m.status !== 'FINAL' && new Date(m.kickoff_at) > now)
-        .sort((a, b) => new Date(a.kickoff_at) - new Date(b.kickoff_at))[0];
-
-    const nextMatch = liveMatch || upcomingMatch;
-    const isLive = !!liveMatch;
-
-    if (!nextMatch) return null;
-
-    const home = teamsMap[nextMatch.home_team_id];
-    const away = teamsMap[nextMatch.away_team_id];
-    const kickoff = new Date(nextMatch.kickoff_at);
+function MatchCard({ match, teamsMap, isLive }) {
+    const home = teamsMap[match.home_team_id];
+    const away = teamsMap[match.away_team_id];
+    const kickoff = new Date(match.kickoff_at);
 
     return (
         <motion.div
@@ -75,14 +58,10 @@ export default function NextMatchCard({ matches, teams, predictions }) {
                     <TeamSide team={away} />
                 </div>
 
-                <div className="text-center mb-4" style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.8rem', color: isLive ? '#ef4444' : '#6b7280', fontWeight: isLive ? 700 : 400 }}>
-                    {isLive ? 'Playing now' : (
-                        <>
-                            {kickoff.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                            {' · '}
-                            {kickoff.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                        </>
-                    )}
+                <div className="text-center mb-4" style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.8rem', color: '#6b7280' }}>
+                    {kickoff.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {' · '}
+                    {kickoff.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                 </div>
 
                 <Link to="/ProdePredictions" className="block">
@@ -95,5 +74,36 @@ export default function NextMatchCard({ matches, teams, predictions }) {
                 </Link>
             </div>
         </motion.div>
+    );
+}
+
+export default function NextMatchCard({ matches, teams, predictions }) {
+    const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]));
+    const now = new Date();
+
+    // A match is LIVE if it has kicked off but isn't finalized yet.
+    const live = matches
+        .filter(m => m.status !== 'FINAL' && new Date(m.kickoff_at) <= now)
+        .sort((a, b) => new Date(b.kickoff_at) - new Date(a.kickoff_at));
+
+    const upcoming = matches
+        .filter(m => m.status !== 'FINAL' && new Date(m.kickoff_at) > now)
+        .sort((a, b) => new Date(a.kickoff_at) - new Date(b.kickoff_at));
+
+    const isLive = live.length > 0;
+    const pool = isLive ? live : upcoming;
+
+    if (pool.length === 0) return null;
+
+    // Group Stage MD3 schedules pairs of matches at the same kickoff time (max 2 concurrent).
+    const targetTime = new Date(pool[0].kickoff_at).getTime();
+    const nextMatches = pool.filter(m => new Date(m.kickoff_at).getTime() === targetTime).slice(0, 2);
+
+    return (
+        <div className={`grid gap-4 ${nextMatches.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+            {nextMatches.map(m => (
+                <MatchCard key={m.id} match={m} teamsMap={teamsMap} isLive={isLive} />
+            ))}
+        </div>
     );
 }
