@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().slice(0, 10);
     const startDate = body.start_date ?? today;
     const endDate   = body.end_date   ?? '2026-07-19';
+    const batchSize = Number.isInteger(body.batch_size) && body.batch_size > 0 ? body.batch_size : 5;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
       return Response.json({ ok: false, error: 'start_date and end_date must be YYYY-MM-DD' }, { status: 400 });
@@ -59,6 +60,8 @@ Deno.serve(async (req) => {
 
     // Load existing questions once for idempotency check (by source_note containing date string)
     const existingQuestions = await base44.asServiceRole.entities.TriviaQuestion.list();
+    const hasQuestions = (dateStr) =>
+      existingQuestions.filter(q => q.source_note && q.source_note.includes(dateStr)).length >= 5;
 
     let daysProcessed = 0;
     let questionsCreated = 0;
@@ -69,10 +72,14 @@ Deno.serve(async (req) => {
       const dateStr = dates[dayIndex];
 
       // Idempotent re-run safety: skip dates already having 5+ questions for that date
-      const existingForDate = existingQuestions.filter(q => q.source_note && q.source_note.includes(dateStr));
-      if (existingForDate.length >= 5) {
+      if (hasQuestions(dateStr)) {
         skippedDays++;
         continue;
+      }
+
+      // Cap each invocation at batchSize processed days to stay under the serverless timeout
+      if (daysProcessed >= batchSize) {
+        break;
       }
 
       const dayNumber = dayIndex + 6; // Days 1-5 are May 27-31
@@ -105,6 +112,7 @@ Return only the JSON object. No markdown, no preamble.`;
       }
 
       const questions = (result?.questions ?? []).slice(0, 5);
+      let createdForThisDate = 0;
 
       for (const q of questions) {
         if (
@@ -131,20 +139,30 @@ Return only the JSON object. No markdown, no preamble.`;
             times_used:           0
           });
           questionsCreated++;
+          createdForThisDate++;
         } catch (writeErr) {
           errors.push(`${dateStr}: write failed — ${writeErr.message}`);
         }
+      }
+
+      // Reflect new questions in the in-memory list so remainingDays is accurate
+      for (let i = 0; i < createdForThisDate; i++) {
+        existingQuestions.push({ source_note: noteBase });
       }
 
       daysProcessed++;
       await sleep(1500); // pause between each day's LLM call to avoid rate limits
     }
 
+    // Count dates across the full range that still have no complete question set
+    const remainingDays = dates.filter(d => !hasQuestions(d)).length;
+
     return Response.json({
       ok: true,
       daysProcessed,
       questionsCreated,
       skippedDays,
+      remainingDays,
       errors
     });
 

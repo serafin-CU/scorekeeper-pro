@@ -150,6 +150,7 @@ export default function TriviaAdmin() {
     const queryClient = useQueryClient();
 
     const [generating, setGenerating] = useState(false);
+    const [genStatus, setGenStatus] = useState('');
 
     const { data: questions = [], isLoading } = useQuery({
         queryKey: ['triviaQuestions'],
@@ -175,18 +176,41 @@ export default function TriviaAdmin() {
 
     const handleGenerate = async () => {
         setGenerating(true);
+        let totalCreated = 0;
         try {
-            const res = await base44.functions.invoke('generateTriviaCalendar', {});
-            if (res.data?.ok) {
-                toast.success(`Generated ${res.data.questionsCreated} questions for ${res.data.daysProcessed} days`);
-            } else {
-                toast.error(res.data?.error || 'Generation failed');
+            while (true) {
+                let res;
+                try {
+                    res = await base44.functions.invoke('generateTriviaCalendar', { batch_size: 5 });
+                } catch (err) {
+                    toast.error(err.message || 'A batch failed. Stopping.');
+                    break;
+                }
+
+                if (!res.data?.ok) {
+                    toast.error(res.data?.error || 'Generation failed');
+                    break;
+                }
+
+                totalCreated += res.data.questionsCreated || 0;
+                const remaining = res.data.remainingDays ?? 0;
+                queryClient.invalidateQueries({ queryKey: ['triviaQuestions'] });
+
+                if (remaining <= 0) {
+                    toast.success(`Done! Generated ${totalCreated} questions.`);
+                    break;
+                }
+
+                if (res.data.daysProcessed === 0) {
+                    toast.error(`Stopped — no progress made, ${remaining} days remain.`);
+                    break;
+                }
+
+                setGenStatus(`Generating… ${remaining} days left`);
             }
-            queryClient.invalidateQueries({ queryKey: ['triviaQuestions'] });
-        } catch (err) {
-            toast.error(err.message || 'Generation failed');
         } finally {
             setGenerating(false);
+            setGenStatus('');
         }
     };
 
@@ -208,7 +232,7 @@ export default function TriviaAdmin() {
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-60 transition-colors"
                     >
                         {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                        {generating ? 'Generating...' : 'Generate Questions'}
+                        {generating ? (genStatus || 'Generating...') : 'Generate Questions'}
                     </button>
                 </div>
             </div>
