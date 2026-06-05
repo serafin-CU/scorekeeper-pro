@@ -14,7 +14,7 @@ const ALBA_FAQ = {
     responses: [
         {
             triggers: ['score', 'points', 'scoring', 'how do points work'],
-            response: "📊 UnityCup Prode (Predictions) scoring:\n\n• Exact score = 3 pts\n• Correct outcome (win/draw/loss) = 1 pt\n• Wrong prediction = 0 pts\n\nPredict every match and climb the leaderboard!"
+            response: "📊 UnityCup Prode (Predictions) scoring:\n\n• Exact score = 5 pts\n• Correct winner = 3 pts\n• Wrong prediction = 0 pts\n\nPredict every match and climb the leaderboard!"
         },
         {
             triggers: ['schedule', 'when', 'date', 'start', 'calendar', 'fixture', 'match'],
@@ -22,7 +22,7 @@ const ALBA_FAQ = {
         },
         {
             triggers: ['prode', 'predict', 'prediction', 'guess', 'lock', 'deadline'],
-            response: "🎯 Prode is the prediction game!\n\nPredict the final score of any upcoming match before it starts. Predictions lock the moment the match kicks off, so get them in early! You can predict as many matches as you want and save them all at once.\n\nScoring (awarded automatically after each match): Exact score = 3 pts, correct outcome (win/draw/loss) = 1 pt, wrong = 0 pts.\n\nGo to 'Prode' in the nav to start predicting!"
+            response: "🎯 Prode is the prediction game!\n\nPredict the final score of any upcoming match before it starts. Predictions lock the moment the match kicks off, so get them in early! You can predict as many matches as you want and save them all at once.\n\nScoring (awarded automatically after each match): Exact score = 5 pts, correct winner = 3 pts, wrong prediction = 0 pts.\n\nGo to 'Prode' in the nav to start predicting!"
         },
         {
             triggers: ['badge', 'achievement', 'award', 'trophy'],
@@ -50,7 +50,7 @@ const ALBA_FAQ = {
         },
         {
             triggers: ['rules', 'how to play', 'how does this work', 'help', 'what is this', 'explain'],
-            response: "🏆 Welcome to UnityCup: FIFA World Cup 2026!\n\n**Prode** — Predict match scores before kickoff. Exact = 3 pts, correct outcome = 1 pt.\n**Trivia** — Play the daily quiz to earn points.\n**Feed** — Share posts with the community.\n**Standings** — Track group & knockout tables.\n\nCompete on the leaderboard and check the 'World Cup' page for live fixtures, results & news!\n\nNeed help with something specific? Ask me about scoring, the schedule, trivia, the feed, or any page!"
+            response: "🏆 Welcome to UnityCup: FIFA World Cup 2026!\n\n**Prode** — Predict match scores before kickoff. Exact score = 5 pts, correct winner = 3 pts.\n**Trivia** — Play the daily quiz to earn points.\n**Feed** — Share posts with the community.\n**Standings** — Track group & knockout tables.\n\nCompete on the leaderboard and check the 'World Cup' page for live fixtures, results & news!\n\nNeed help with something specific? Ask me about scoring, the schedule, trivia, the feed, or any page!"
         }
     ],
     
