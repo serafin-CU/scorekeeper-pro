@@ -26,9 +26,17 @@ export default function NextMatchCard({ matches, teams, predictions }) {
     const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]));
     const now = new Date();
 
-    const nextMatch = matches
-        .filter(m => m.status === 'SCHEDULED' && new Date(m.kickoff_at) > now)
+    // A match is LIVE if it has kicked off but isn't finalized yet.
+    const liveMatch = matches
+        .filter(m => m.status !== 'FINAL' && new Date(m.kickoff_at) <= now)
+        .sort((a, b) => new Date(b.kickoff_at) - new Date(a.kickoff_at))[0];
+
+    const upcomingMatch = matches
+        .filter(m => m.status !== 'FINAL' && new Date(m.kickoff_at) > now)
         .sort((a, b) => new Date(a.kickoff_at) - new Date(b.kickoff_at))[0];
+
+    const nextMatch = liveMatch || upcomingMatch;
+    const isLive = !!liveMatch;
 
     if (!nextMatch) return null;
 
@@ -46,11 +54,19 @@ export default function NextMatchCard({ matches, teams, predictions }) {
             }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
         >
-            <div style={{ height: '3px', background: CU.orange }} />
+            <div style={{ height: '3px', background: isLive ? '#ef4444' : CU.orange }} />
             <div className="p-5">
                 <div className="flex items-center gap-2 mb-4">
-                    <Calendar className="w-4 h-4" style={{ color: CU.orange }} />
-                    <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1rem', color: CU.charcoal }}>Next Match to Predict</span>
+                    <Calendar className="w-4 h-4" style={{ color: isLive ? '#ef4444' : CU.orange }} />
+                    <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1rem', color: CU.charcoal }}>
+                        {isLive ? 'Match In Progress' : 'Next Match to Predict'}
+                    </span>
+                    {isLive && (
+                        <span className="ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded-full" style={{ background: '#fee2e2' }}>
+                            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#ef4444' }} />
+                            <span style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 700, fontSize: '0.7rem', color: '#ef4444' }}>LIVE</span>
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex items-center justify-between gap-3 mb-4">
@@ -59,10 +75,14 @@ export default function NextMatchCard({ matches, teams, predictions }) {
                     <TeamSide team={away} />
                 </div>
 
-                <div className="text-center mb-4" style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.8rem', color: '#6b7280' }}>
-                    {kickoff.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                    {' · '}
-                    {kickoff.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                <div className="text-center mb-4" style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.8rem', color: isLive ? '#ef4444' : '#6b7280', fontWeight: isLive ? 700 : 400 }}>
+                    {isLive ? 'Playing now' : (
+                        <>
+                            {kickoff.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            {' · '}
+                            {kickoff.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        </>
+                    )}
                 </div>
 
                 <Link to="/ProdePredictions" className="block">
