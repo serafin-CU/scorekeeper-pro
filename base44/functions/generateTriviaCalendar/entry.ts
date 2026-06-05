@@ -27,6 +27,37 @@ const DIFFICULTIES = ["EASY","MEDIUM","HARD"];
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// Robustly pull the questions array out of whatever shape InvokeLLM returns:
+// - already an object with .questions
+// - the array itself at the root
+// - a JSON string (optionally wrapped in ```json ... ``` markdown fences)
+function extractQuestions(result) {
+  if (!result) return [];
+
+  let data = result;
+
+  // If it's a string, strip markdown fences and JSON.parse
+  if (typeof data === 'string') {
+    let text = data.trim();
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return [];
+    }
+  }
+
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.questions)) return data.questions;
+
+  // Sometimes wrapped under common keys
+  if (Array.isArray(data?.response?.questions)) return data.response.questions;
+  if (Array.isArray(data?.data?.questions)) return data.data.questions;
+  if (Array.isArray(data?.result?.questions)) return data.result.questions;
+
+  return [];
+}
+
 // Build array of YYYY-MM-DD date strings between start and end inclusive
 function buildDateRange(startStr, endStr) {
   const dates = [];
@@ -111,7 +142,7 @@ Return only the JSON object. No markdown, no preamble.`;
         continue;
       }
 
-      const questions = (result?.questions ?? []).slice(0, 5);
+      const questions = extractQuestions(result).slice(0, 5);
       let createdForThisDate = 0;
 
       for (const q of questions) {
