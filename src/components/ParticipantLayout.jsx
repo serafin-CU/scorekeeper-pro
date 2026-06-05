@@ -20,7 +20,6 @@ const ALL_NAV_ITEMS = [
     { name: 'Leaderboard', label: 'Standings', icon: Trophy },
     { name: 'Trivia', label: 'Trivia', icon: Brain },
     { name: 'AlbaChat', label: 'Alba 🤖', icon: MessageSquare },
-    { name: 'Rules', label: 'Rules', icon: FileText },
     { name: 'Profile', label: 'Profile', icon: User }
 ];
 
@@ -175,6 +174,17 @@ export default function ParticipantLayout({ children, currentPageName }) {
             <main>
                 {children}
             </main>
+            <footer className="mt-12 border-t border-slate-200 py-6">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+                    <Link
+                        to="/Rules"
+                        style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}
+                        className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
+                    >
+                        Rules
+                    </Link>
+                </div>
+            </footer>
             <AlbaChatWidget userName={currentUser?.display_name || currentUser?.full_name || ''} />
         </div>
     );
