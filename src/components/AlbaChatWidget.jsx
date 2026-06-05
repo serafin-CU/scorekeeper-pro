@@ -8,20 +8,16 @@ const CU = {
 };
 
 const ALBA_FAQ = {
-    welcome: (name) => `Hola${name ? ` ${name}` : ''}! 👋 I'm Alba, your UnityCup assistant. Ask me about scoring rules, squad building, the tournament schedule, or how UnityCup works!`,
+    welcome: (name) => `Hola${name ? ` ${name}` : ''}! 👋 I'm Alba, your UnityCup assistant. Ask me about scoring rules, Trivia, the tournament schedule, or how UnityCup works!`,
 
     responses: [
         {
             triggers: ['score', 'points', 'scoring', 'how do points work'],
-            response: "📊 UnityCup has two game modes:\n\n**Prode:** Exact score = 5 pts, Correct winner = 3 pts\n\n**Fantasy:** FWD goal = 4 pts, MID goal = 5 pts, DEF/GK goal = 6 pts, 60+ min = 1 pt, Yellow = -1 pt, Red = -3 pts. Captain gets 2x points!"
+            response: "📊 UnityCup has two games:\n\n**Prode (predictions):** Exact score = 5 pts, Correct winner = 3 pts, Wrong = 0 pts.\n\n**Trivia:** 5 questions a day, up to 100 points, one attempt per day."
         },
         {
-            triggers: ['squad', 'formation', 'team', 'players', 'how many', '4-3-3', 'build'],
-            response: "⚽ Your fantasy squad needs:\n• 11 starters (1 GK, 4 DEF, 3 MID, 3 FWD)\n• 3 bench players\n• 1 captain (2x points)\n• Budget: $150M\n\nGo to 'Build Squad' in the nav!"
-        },
-        {
-            triggers: ['transfer', 'change', 'edit', 'swap', 'lock', 'window', 'deadline'],
-            response: "🔄 Transfers are FREE! You can edit your squad anytime until 48 hours before the first match of each phase. After that, your squad locks."
+            triggers: ['squad', 'fantasy', 'formation', 'lineup', 'build squad', '4-3-3', 'captain', 'transfer', 'budget'],
+            response: "ℹ️ UnityCup doesn't have a squad or fantasy game. There are just two games here: 🎯 Prode (score predictions) and 🧠 Trivia (daily quiz). Want to know how either one works?"
         },
         {
             triggers: ['schedule', 'when', 'date', 'start', 'calendar', 'fixture', 'match'],
@@ -29,28 +25,32 @@ const ALBA_FAQ = {
         },
         {
             triggers: ['prode', 'predict', 'prediction', 'guess'],
-            response: "🎯 Prode is the prediction game! Predict the final score for each match. Exact score = 5 pts, Correct winner = 3 pts. Go to 'Prode' in the nav!"
+            response: "🎯 Prode is the prediction game! Predict the final score for each match. Exact score = 5 pts, Correct winner = 3 pts. Predictions lock at kickoff. Go to 'Prode' in the nav!"
+        },
+        {
+            triggers: ['trivia', 'quiz', 'question'],
+            response: "🧠 Trivia is a daily quiz: 5 questions a day, 30 seconds each, one attempt per day, up to 100 points. Your Trivia score shows on your Profile!"
         },
         {
             triggers: ['badge', 'achievement', 'award', 'trophy'],
-            response: "🏅 Badges:\n🛡️ Unbreakable XI — Keep 8+ starters between knockout rounds\n👑 The Originals — Keep 9+ R32 starters to the Final\n🎯 Perfect Matchday — Predict every winner in a matchday correctly"
+            response: "🏅 Badges:\n🎯 Perfect Matchday — predict the correct outcome for every match in a matchday. Badges show on your Profile."
         },
         {
-            triggers: ['captain', '2x', 'double', 'multiplier'],
-            response: "©️ Your Captain earns DOUBLE points! Pick someone likely to score or play 60+ minutes. Change captain anytime before the squad locks."
+            triggers: ['page', 'pages', 'where', 'nav', 'menu', 'sections'],
+            response: "🧭 UnityCup pages:\n🏠 Home • 🎯 Prode • 📊 Standings • 🧠 Trivia • 💬 Feed • 👤 Profile • 🌍 World Cup • 🏆 Leaderboard"
         },
         {
             triggers: ['rules', 'how to play', 'how does this work', 'help', 'what is this', 'explain'],
-            response: "🏆 Two ways to play:\n\n1️⃣ Prode — Predict match scores. Exact = 5pts, correct winner = 3pts.\n2️⃣ Fantasy — Build a squad of 14 real players. They earn points based on real match performance.\n\nBoth modes have separate leaderboards!"
+            response: "🏆 Two ways to play:\n\n1️⃣ Prode — Predict match scores. Exact = 5 pts, correct winner = 3 pts.\n2️⃣ Trivia — A daily 5-question quiz, up to 100 points.\n\nEach has its own leaderboard!"
         }
     ],
 
-    fallback: "🤔 I can help with: scoring rules, squad building, transfer windows, tournament schedule, badges, or how to play. Try asking about one of those!"
+    fallback: "🤔 I can help with: scoring rules, Prode predictions, Trivia, the tournament schedule, badges, or app pages. Try asking about one of those!"
 };
 
 const QUICK_REPLIES = [
     "How does scoring work?",
-    "Squad rules",
+    "How do I play Trivia?",
     "Tournament schedule",
     "What are badges?",
 ];
