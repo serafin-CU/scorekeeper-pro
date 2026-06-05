@@ -58,10 +58,19 @@ function MatchCard({ match, teamsMap, isLive }) {
                     <TeamSide team={away} />
                 </div>
 
-                <div className="text-center mb-4" style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.8rem', color: '#6b7280' }}>
-                    {kickoff.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                    {' · '}
-                    {kickoff.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                <div className="text-center mb-4" style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.8rem', color: isLive ? '#ef4444' : '#6b7280', fontWeight: isLive ? 700 : 400 }}>
+                    {isLive ? (
+                        <span className="inline-flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#ef4444' }} />
+                            LIVE
+                        </span>
+                    ) : (
+                        <>
+                            {kickoff.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            {' · '}
+                            {kickoff.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        </>
+                    )}
                 </div>
 
                 <Link to="/ProdePredictions" className="block">
