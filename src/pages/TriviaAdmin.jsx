@@ -226,9 +226,22 @@ export default function TriviaAdmin() {
     };
 
     const handleGenerate = async () => {
+        if (!window.confirm('This will DELETE all existing trivia questions and rebuild the full 39-day calendar. Continue?')) return;
         setGenerating(true);
         let totalCreated = 0;
         try {
+            // Wipe everything first so the rebuild is clean
+            setGenStatus('Clearing old questions…');
+            try {
+                await base44.functions.invoke('generateTriviaCalendar', { wipe: true });
+                queryClient.invalidateQueries({ queryKey: ['triviaQuestions'] });
+            } catch (err) {
+                toast.error(err.message || 'Failed to clear old questions. Stopping.');
+                setGenerating(false);
+                setGenStatus('');
+                return;
+            }
+
             while (true) {
                 let res;
                 try {
