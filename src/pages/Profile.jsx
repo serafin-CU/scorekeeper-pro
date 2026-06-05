@@ -14,7 +14,7 @@ const CU = {
 const DEPARTMENTS = [
     "Engineering", "Product", "CX", "Operations", "Marketing",
     "Design", "People", "Finance", "Culinary", "Leadership",
-    "Data & Analytics", "Sales"
+    "Data & Analytics", "Sales" "B2B", "Chef Success",
 ];
 
 export default function Profile() {
