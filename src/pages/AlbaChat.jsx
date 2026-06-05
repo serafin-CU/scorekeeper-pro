@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 
 const CU = {
     orange: '#FFB81C',
@@ -8,54 +9,48 @@ const CU = {
     green: '#218848',
 };
 
-const ALBA_FAQ = {
-    welcome: "Hey! 👋 I'm Alba, your UnityCup assistant. Ask me about scoring rules, the tournament schedule, or how UnityCup works!",
-    
-    responses: [
-        {
-            triggers: ['score', 'points', 'scoring', 'how do points work'],
-            response: "📊 UnityCup Prode (Predictions) scoring:\n\n• Exact score = 5 pts\n• Correct winner = 3 pts\n• Wrong prediction = 0 pts\n\nPredict every match and climb the leaderboard!"
-        },
-        {
-            triggers: ['schedule', 'when', 'date', 'start', 'calendar', 'fixture', 'match'],
-            response: "📅 FIFA World Cup 2026 Schedule:\n\n• Group Stage: June 11–27\n• Round of 32: June 28 – July 3\n• Round of 16: July 4–7\n• Quarterfinals: July 9–11\n• Semifinals: July 14–15\n• Third Place: July 18\n• Final: July 19 🏆\n\n48 teams, 104 matches across USA, Canada & Mexico!"
-        },
-        {
-            triggers: ['prode', 'predict', 'prediction', 'guess', 'lock', 'deadline'],
-            response: "🎯 Prode is the prediction game!\n\nPredict the final score of any upcoming match before it starts. Predictions lock the moment the match kicks off, so get them in early! You can predict as many matches as you want and save them all at once.\n\nScoring (awarded automatically after each match): Exact score = 5 pts, correct winner = 3 pts, wrong prediction = 0 pts.\n\nGo to 'Prode' in the nav to start predicting!"
-        },
-        {
-            triggers: ['badge', 'achievement', 'award', 'trophy'],
-            response: "🏅 UnityCup Badges:\n\n🎯 **Perfect Matchday** — Predict the correct outcome for every match in a matchday\n\nMore badges to come! Your badges appear on your Profile page."
-        },
-        {
-            triggers: ['trivia', 'quiz', 'question', 'daily quiz'],
-            response: "🧠 Trivia is the quiz game!\n\nAnswer World Cup trivia questions covering history, teams, players, and stats. Each correct answer earns Trivia Points, and games are timed — so answer fast and accurately!\n\nYour Trivia score shows up on your Profile. Head to 'Trivia' in the nav to play!"
-        },
-        {
-            triggers: ['feed', 'post', 'social', 'comment', 'community'],
-            response: "💬 The Feed is your social hub!\n\nShare posts, react to others, and chat about the tournament with the community. You can also see a preview of the latest posts on your Home dashboard.\n\nOpen 'Feed' in the nav to join the conversation!"
-        },
-        {
-            triggers: ['standings', 'table', 'ranking', 'leaderboard', 'position'],
-            response: "📊 Standings show how teams are doing!\n\nCheck group tables and the knockout bracket under 'Standings'. To see how YOU rank against other players, head to the Leaderboard.\n\nThe 'World Cup' page also has live fixtures, results, standings & news."
-        },
-        {
-            triggers: ['nav', 'page', 'navigate', 'where', 'menu', 'sections'],
-            response: "🧭 Here's what you'll find in UnityCup:\n\n• 🏠 **Home** — your stats, predictions & feed preview\n• 🎯 **Prode** — predict match scores\n• 📊 **Standings** — group & knockout tables\n• 🧠 **Trivia** — daily quiz games\n• 💬 **Feed** — social posts\n• 👤 **Profile** — your stats & badges\n• 🌍 **World Cup** — fixtures, results, standings & news\n• 🤖 **Alba** — that's me, your assistant!"
-        },
-        {
-            triggers: ['group', 'argentina', 'brazil', 'usa', 'mexico', 'england', 'france', 'spain', 'germany', 'who is in'],
-            response: "🌍 12 Groups, 48 Teams!\n\nHighlights:\n• Group A: Mexico, South Korea, South Africa\n• Group C: Brazil, Morocco, Scotland\n• Group D: USA, Paraguay, Australia\n• Group H: Spain, Uruguay, Saudi Arabia\n• Group I: France, Senegal, Norway\n• Group J: Argentina, Algeria, Austria\n• Group L: England, Croatia, Ghana\n\nCheck 'Prode' to see all fixtures by matchday!"
-        },
-        {
-            triggers: ['rules', 'how to play', 'how does this work', 'help', 'what is this', 'explain'],
-            response: "🏆 Welcome to UnityCup: FIFA World Cup 2026!\n\n**Prode** — Predict match scores before kickoff. Exact score = 5 pts, correct winner = 3 pts.\n**Trivia** — Play the daily quiz to earn points.\n**Feed** — Share posts with the community.\n**Standings** — Track group & knockout tables.\n\nCompete on the leaderboard and check the 'World Cup' page for live fixtures, results & news!\n\nNeed help with something specific? Ask me about scoring, the schedule, trivia, the feed, or any page!"
-        }
-    ],
-    
-    fallback: "🤔 I'm not sure about that one! I can help with:\n• Scoring rules\n• Tournament schedule\n• Trivia & Feed\n• Standings & badges\n• Getting around the app\n\nTry asking about one of those!"
-};
+const ALBA_WELCOME = "Hey! 👋 I'm Alba, your UnityCup assistant. Ask me about scoring rules, the tournament schedule, or how UnityCup works!";
+
+const ALBA_SYSTEM_PROMPT = `You are Alba, the friendly assistant for "UnityCup", a workplace FIFA World Cup 2026 prediction & games app. Answer conversationally, warmly, and concisely. You may use light emojis.
+
+Use ONLY the facts below. If a question is outside this knowledge (e.g. live scores, specific player stats, who will win, or anything not listed here), clearly say you don't have that information — do NOT guess and do NOT give an unrelated answer.
+
+== PRODE (PREDICTIONS) SCORING ==
+- Exact score = 5 pts
+- Correct winner = 3 pts
+- Wrong prediction = 0 pts
+Predictions lock the moment a match kicks off. You can predict as many matches as you want and save them all at once. Points are awarded automatically after each match.
+
+== TRIVIA RULES ==
+- 5 questions per day
+- 30 seconds per question
+- Up to 100 points maximum per day
+- One attempt per day
+Questions cover World Cup history, teams, players, and stats. Trivia score shows on your Profile.
+
+== TOURNAMENT SCHEDULE / STRUCTURE ==
+FIFA World Cup 2026 — 48 teams, 104 matches across USA, Canada & Mexico.
+- Group Stage: June 11–27
+- Round of 32: June 28 – July 3
+- Round of 16: July 4–7
+- Quarterfinals: July 9–11
+- Semifinals: July 14–15
+- Third Place: July 18
+- Final: July 19
+
+== APP PAGES ==
+- 🏠 Home — your stats, predictions & feed preview
+- 🎯 Prode — predict match scores before kickoff
+- 📊 Standings — group tables & knockout bracket
+- 🧠 Trivia — daily quiz games
+- 💬 Feed — social posts: share & react with the community
+- 👤 Profile — your stats & badges
+- 🌍 World Cup — live fixtures, results, standings & news
+- 🤖 Alba — that's you, the assistant
+- 🏆 Leaderboard — how you rank against other players
+
+== BADGES ==
+- 🎯 Perfect Matchday — predict the correct outcome for every match in a matchday. Badges appear on the Profile page.`;
 
 const QUICK_REPLIES = [
     "How does scoring work?",
@@ -64,18 +59,16 @@ const QUICK_REPLIES = [
     "Tournament schedule"
 ];
 
-function getAlbaResponse(userMessage) {
-    const lower = userMessage.toLowerCase();
-    
-    for (const item of ALBA_FAQ.responses) {
-        for (const trigger of item.triggers) {
-            if (lower.includes(trigger)) {
-                return item.response;
-            }
-        }
-    }
-    
-    return ALBA_FAQ.fallback;
+async function getAlbaResponse(userMessage, history) {
+    const conversation = history
+        .filter(m => m.content)
+        .map(m => `${m.role === 'user' ? 'User' : 'Alba'}: ${m.content}`)
+        .join('\n');
+
+    const prompt = `${ALBA_SYSTEM_PROMPT}\n\n== CONVERSATION SO FAR ==\n${conversation}\n\nUser: ${userMessage}\n\nReply as Alba:`;
+
+    const response = await base44.integrations.Core.InvokeLLM({ prompt });
+    return typeof response === 'string' ? response : (response?.response || "Sorry, I couldn't process that.");
 }
 
 function AlbaAvatar() {
@@ -151,7 +144,7 @@ export default function AlbaChat() {
     useEffect(() => {
         const welcomeMsg = {
             role: 'assistant',
-            content: ALBA_FAQ.welcome,
+            content: ALBA_WELCOME,
             showQuickReplies: true,
             onQuickReply: handleQuickReply
         };
@@ -176,17 +169,21 @@ export default function AlbaChat() {
         const userMsg = { role: 'user', content: messageText };
         setMessages(prev => [...prev, userMsg]);
 
-        setTimeout(() => {
-            const response = getAlbaResponse(messageText);
-            const albaMsg = {
-                role: 'assistant',
-                content: response,
-                showQuickReplies: true,
-                onQuickReply: handleQuickReply
-            };
-            setMessages(prev => [...prev, albaMsg]);
-            setSending(false);
-        }, 300);
+        let response;
+        try {
+            response = await getAlbaResponse(messageText, [...messages, userMsg]);
+        } catch (err) {
+            response = "Sorry, I'm having trouble responding right now. Please try again in a moment.";
+        }
+
+        const albaMsg = {
+            role: 'assistant',
+            content: response,
+            showQuickReplies: true,
+            onQuickReply: handleQuickReply
+        };
+        setMessages(prev => [...prev, albaMsg]);
+        setSending(false);
     }
 
     const handleKeyDown = (e) => {
