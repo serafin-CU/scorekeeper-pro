@@ -15,6 +15,7 @@ import ProdePredictions from './pages/ProdePredictions';
 import Profile from './pages/Profile';
 import Standings from './pages/Standings';
 import Trivia from './pages/Trivia';
+import Rules from './pages/Rules';
 import TriviaAdmin from './pages/TriviaAdmin';
 import WorldCup from './pages/WorldCup';
 import AdminWCDataSync from './pages/AdminWCDataSync';
@@ -89,6 +90,7 @@ const AuthenticatedApp = () => {
       <Route path="/Profile" element={<LayoutWrapper currentPageName="Profile"><Profile /></LayoutWrapper>} />
       <Route path="/Standings" element={<LayoutWrapper currentPageName="Standings"><Standings /></LayoutWrapper>} />
       <Route path="/Trivia" element={<LayoutWrapper currentPageName="Trivia"><Trivia /></LayoutWrapper>} />
+      <Route path="/Rules" element={<LayoutWrapper currentPageName="Rules"><Rules /></LayoutWrapper>} />
       <Route path="/TriviaAdmin" element={<LayoutWrapper currentPageName="TriviaAdmin"><TriviaAdmin /></LayoutWrapper>} />
       <Route path="/WorldCup" element={<LayoutWrapper currentPageName="WorldCup"><WorldCup /></LayoutWrapper>} />
       <Route path="/AdminWCDataSync" element={<LayoutWrapper currentPageName="AdminWCDataSync"><AdminWCDataSync /></LayoutWrapper>} />

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, LogOut, Shield, MessageSquare, Trophy, Target, LayoutDashboard, User, Eye, EyeOff, Brain, Newspaper, Globe } from 'lucide-react';
+import { Users, LogOut, Shield, MessageSquare, Trophy, Target, LayoutDashboard, User, Eye, EyeOff, Brain, Newspaper, Globe, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AlbaChatWidget from '@/components/AlbaChatWidget';
 
@@ -20,6 +20,7 @@ const ALL_NAV_ITEMS = [
     { name: 'Leaderboard', label: 'Standings', icon: Trophy },
     { name: 'Trivia', label: 'Trivia', icon: Brain },
     { name: 'AlbaChat', label: 'Alba 🤖', icon: MessageSquare },
+    { name: 'Rules', label: 'Rules', icon: FileText },
     { name: 'Profile', label: 'Profile', icon: User }
 ];
 
