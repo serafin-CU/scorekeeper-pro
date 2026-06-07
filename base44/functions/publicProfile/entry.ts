@@ -39,10 +39,36 @@ Deno.serve(async (req) => {
         const countedAttempts = triviaAttempts.filter(a => (a.daily_set_date || '') >= TRIVIA_START_DATE);
         const triviaPoints = countedAttempts.reduce((s, a) => s + (a.total_points || 0), 0);
 
-        // Per-day breakdown (date, points, correct count) sorted newest first
+        // Parse the theme from a TriviaQuestion source_note. Format:
+        //   "Day {N} – {date} – {theme}" using en-dash (–) separators.
+        // The theme is everything after the SECOND separator (may contain em-dash —).
+        function parseThemeFromSourceNote(sourceNote) {
+            if (!sourceNote) return null;
+            const firstSep = sourceNote.indexOf('–');
+            if (firstSep === -1) return null;
+            const afterDay = sourceNote.slice(firstSep + 1);
+            const secondSep = afterDay.indexOf('–');
+            if (secondSep === -1) return null;
+            return afterDay.slice(secondSep + 1).trim() || null;
+        }
+
+        // Look up each played day's theme via its TriviaDailySet -> first TriviaQuestion's source_note
+        const playedDates = [...new Set(countedAttempts.map(a => a.daily_set_date).filter(Boolean))];
+        const themeByDate = {};
+        await Promise.all(playedDates.map(async (date) => {
+            const sets = await base44.asServiceRole.entities.TriviaDailySet.filter({ date });
+            const set = sets?.[0];
+            const firstQId = set?.question_ids?.[0];
+            if (!firstQId) return;
+            const qs = await base44.asServiceRole.entities.TriviaQuestion.filter({ id: firstQId });
+            themeByDate[date] = parseThemeFromSourceNote(qs?.[0]?.source_note);
+        }));
+
+        // Per-day breakdown (date, theme, points, correct count) sorted newest first
         const triviaHistory = countedAttempts
             .map(a => ({
                 date: a.daily_set_date,
+                theme: themeByDate[a.daily_set_date] || null,
                 total_points: a.total_points || 0,
                 correct_count: a.correct_count ?? 0,
                 question_count: Array.isArray(a.answers) ? a.answers.length : 5

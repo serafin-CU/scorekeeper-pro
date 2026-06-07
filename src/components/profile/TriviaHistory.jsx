@@ -30,10 +30,15 @@ export default function TriviaHistory({ triviaPoints, history }) {
                             className="flex items-center justify-between px-4 py-3"
                             style={{ borderTop: i === 0 ? 'none' : '1px solid #f1f1f1' }}
                         >
-                            <div className="min-w-0">
+                            <div className="min-w-0 pr-3">
                                 <div className="text-sm font-semibold" style={{ fontFamily: "'Raleway', sans-serif", color: CU.charcoal }}>
                                     {r.date ? format(parseISO(r.date), 'EEE, MMM d') : '—'}
                                 </div>
+                                {r.theme && (
+                                    <div className="text-xs mt-0.5 truncate" style={{ fontFamily: "'Raleway', sans-serif", color: '#6b7280' }}>
+                                        {r.theme}
+                                    </div>
+                                )}
                                 <div className="text-xs mt-0.5" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
                                     {r.correct_count}/{r.question_count || 5} correct
                                 </div>
