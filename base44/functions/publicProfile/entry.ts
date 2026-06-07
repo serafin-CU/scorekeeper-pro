@@ -33,7 +33,21 @@ Deno.serve(async (req) => {
         ]);
 
         const prodePoints = ledger.filter(e => e.mode === 'PRODE').reduce((s, e) => s + (e.points || 0), 0);
-        const triviaPoints = triviaAttempts.reduce((s, a) => s + (a.total_points || 0), 0);
+
+        // Official launch date — pre-launch attempts are excluded from the public breakdown
+        const TRIVIA_START_DATE = '2026-06-05';
+        const countedAttempts = triviaAttempts.filter(a => (a.daily_set_date || '') >= TRIVIA_START_DATE);
+        const triviaPoints = countedAttempts.reduce((s, a) => s + (a.total_points || 0), 0);
+
+        // Per-day breakdown (date, points, correct count) sorted newest first
+        const triviaHistory = countedAttempts
+            .map(a => ({
+                date: a.daily_set_date,
+                total_points: a.total_points || 0,
+                correct_count: a.correct_count ?? 0,
+                question_count: Array.isArray(a.answers) ? a.answers.length : 5
+            }))
+            .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
         // Past predictions — ONLY for matches whose result is already known (no spoilers)
         let pastPredictions = [];
@@ -88,7 +102,8 @@ Deno.serve(async (req) => {
             favorite_team: teams?.[0] ? { name: teams[0].name, fifa_code: teams[0].fifa_code } : null,
             prode_points: prodePoints,
             trivia_points: triviaPoints,
-            trivia_games: triviaAttempts.length,
+            trivia_games: countedAttempts.length,
+            trivia_history: triviaHistory,
             badges: badges.map(b => ({ badge_type: b.badge_type, awarded_at: b.awarded_at })),
             posts: posts.map(p => ({
                 id: p.id,

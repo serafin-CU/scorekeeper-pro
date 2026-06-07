@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { CU } from '@/components/feed/feedConstants';
 import PastPredictions from './PastPredictions';
+import TriviaHistory from './TriviaHistory';
 
 const TABS = [
     { key: 'posts', label: 'Posts' },
@@ -29,22 +30,6 @@ function PostsPanel({ posts }) {
                     </div>
                 </div>
             ))}
-        </div>
-    );
-}
-
-function TriviaPanel({ triviaPoints }) {
-    return (
-        <div className="rounded-xl p-6 text-center" style={{ background: 'white', border: '1px solid #e5e7eb' }}>
-            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '2.5rem', color: CU.charcoal, lineHeight: 1 }}>
-                {triviaPoints ?? 0}
-            </div>
-            <div className="text-sm mt-1" style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, color: '#6b7280' }}>
-                Trivia Points
-            </div>
-            <p className="text-sm mt-4" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
-                More trivia stats coming soon! 🧠
-            </p>
         </div>
     );
 }
@@ -79,7 +64,7 @@ export default function ProfileTabs({ profile }) {
 
             {tab === 'posts' && <PostsPanel posts={profile.posts} />}
             {tab === 'predictions' && <PastPredictions predictions={profile.past_predictions} />}
-            {tab === 'trivia' && <TriviaPanel triviaPoints={profile.trivia_points} />}
+            {tab === 'trivia' && <TriviaHistory triviaPoints={profile.trivia_points} history={profile.trivia_history} />}
         </div>
     );
 }
