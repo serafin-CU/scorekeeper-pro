@@ -132,64 +132,6 @@ Deno.serve(async (req) => {
     const batchSize = Number.isInteger(body.batch_size) && body.batch_size > 0 ? body.batch_size : 5;
     const wipe = body.wipe === true;
 
-    // One-time / idempotent backfill: re-balance the correct-answer slot across
-    // all existing questions using the text-tracked shuffle. Safe to re-run.
-    if (body.rebalance === true) {
-      const offset = Number.isInteger(body.offset) && body.offset >= 0 ? body.offset : 0;
-      const chunk = Number.isInteger(body.chunk) && body.chunk > 0 ? body.chunk : 40;
-
-      const all = await base44.asServiceRole.entities.TriviaQuestion.list('', 5000);
-      const distOf = (arr) => {
-        const c = { 0: 0, 1: 0, 2: 0, 3: 0, other: 0 };
-        for (const q of arr) {
-          const i = q.correct_answer_index;
-          if (i === 0 || i === 1 || i === 2 || i === 3) c[i]++; else c.other++;
-        }
-        return c;
-      };
-      const slice = all.slice(offset, offset + chunk);
-      const malformed = [];
-      let rebalanced = 0;
-      for (const q of slice) {
-        const res = shuffleAnswer(q.options, q.correct_answer_index);
-        if (!res) {
-          malformed.push({ id: q.id, text: String(q.question_text).slice(0, 60) });
-          continue;
-        }
-        await base44.asServiceRole.entities.TriviaQuestion.update(q.id, {
-          options: res.options,
-          correct_answer_index: res.correct_answer_index
-        });
-        rebalanced++;
-        await sleep(150);
-      }
-      const nextOffset = offset + chunk;
-      const done = nextOffset >= all.length;
-      const after = distOf(all); // reflects post-update state since objects are mutated in DB; recompute fresh:
-      const pct = (c, t) => ({
-        A: t ? ((c[0] / t) * 100).toFixed(1) + '%' : '0%',
-        B: t ? ((c[1] / t) * 100).toFixed(1) + '%' : '0%',
-        C: t ? ((c[2] / t) * 100).toFixed(1) + '%' : '0%',
-        D: t ? ((c[3] / t) * 100).toFixed(1) + '%' : '0%'
-      });
-      let finalDist = null;
-      if (done) {
-        const fresh = await base44.asServiceRole.entities.TriviaQuestion.list('', 5000);
-        finalDist = { counts: distOf(fresh), percentages: pct(distOf(fresh), fresh.length), total: fresh.length };
-      }
-      return Response.json({
-        ok: true,
-        total: all.length,
-        processedRange: [offset, Math.min(nextOffset, all.length)],
-        rebalanced,
-        malformedCount: malformed.length,
-        malformed,
-        done,
-        nextOffset: done ? null : nextOffset,
-        finalDistribution: finalDist
-      });
-    }
-
     // Optional full wipe before regenerating
     if (wipe) {
       const all = await base44.asServiceRole.entities.TriviaQuestion.list();
