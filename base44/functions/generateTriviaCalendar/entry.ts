@@ -81,6 +81,24 @@ function noteFor(entry) {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// Fisher-Yates shuffle of the 4 options, keeping the correct answer's TEXT
+// in sync with correct_answer_index so the slot distribution is ~25% each.
+// Returns { options, correct_answer_index } or null if it cannot safely shuffle.
+function shuffleAnswer(options, correctIndex) {
+  const trimmed = options.map(o => String(o).trim());
+  if (trimmed.length !== 4) return null;
+  if (new Set(trimmed).size !== 4) return null; // duplicate texts → skip
+  const correctText = trimmed[correctIndex];
+  const arr = trimmed.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  const newIndex = arr.indexOf(correctText);
+  if (newIndex === -1) return null;
+  return { options: arr, correct_answer_index: newIndex };
+}
+
 // Normalize a question text for dedup comparison
 function normText(t) {
   return String(t || '').trim().toLowerCase().replace(/\s+/g, ' ').replace(/[?.!]+$/, '');
@@ -197,11 +215,16 @@ Return only the JSON object. No markdown, no preamble.`;
           continue;
         }
 
+        // Randomize the correct answer's slot (text-tracked, stays in sync)
+        const shuffledAns = shuffleAnswer(q.options, q.correct_answer_index);
+        const finalOptions = shuffledAns ? shuffledAns.options : q.options.map(o => String(o).trim());
+        const finalIndex = shuffledAns ? shuffledAns.correct_answer_index : q.correct_answer_index;
+
         try {
           await base44.asServiceRole.entities.TriviaQuestion.create({
             question_text:        q.question_text.trim(),
-            options:              q.options.map(o => String(o).trim()),
-            correct_answer_index: q.correct_answer_index,
+            options:              finalOptions,
+            correct_answer_index: finalIndex,
             category:             q.category,
             difficulty:           q.difficulty,
             source_note:          note,
