@@ -117,36 +117,27 @@ export default function Leaderboard() {
     });
     const allEntries = leaderboardData.entries || [];
 
-    const { data: users = [] } = useQuery({
-        queryKey: ['allUsers'],
-        queryFn: async () => {
-            try {
-                return await base44.entities.User.list();
-            } catch (error) {
-                console.warn('Leaderboard: failed to load users:', error);
-                return [];
-            }
-        }
-    });
-
     const getEntries = (mode) => {
         return [...allEntries].sort((a, b) => b.total_points - a.total_points);
     };
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: triviaAttempts = [] } = useQuery({
-        queryKey: ['triviaAttemptsToday', today],
-        queryFn: () => base44.entities.TriviaAttempt.filter({ daily_set_date: today }),
+    const { data: triviaBoard = { today: [], allTime: [] } } = useQuery({
+        queryKey: ['triviaLeaderboard', today],
+        queryFn: async () => {
+            const res = await base44.functions.invoke('triviaLeaderboard', { date: today });
+            return res.data;
+        },
         enabled: tab === 'TRIVIA'
     });
 
     const entries = getEntries(tab);
     const myRank = entries.findIndex(e => e.user_id === currentUser?.id) + 1;
 
-    const triviaRanked = [...triviaAttempts].sort((a, b) => b.total_points - a.total_points);
+    const triviaRanked = triviaBoard.today;
     const myTriviaRank = triviaRanked.findIndex(a => a.user_id === currentUser?.id) + 1;
-    const myTriviaPoints = triviaRanked.find(a => a.user_id === currentUser?.id)?.total_points ?? 0;
+    const myTriviaPoints = triviaRanked.find(a => a.user_id === currentUser?.id)?.points ?? 0;
 
     if (ledgerLoading) {
         return (
@@ -175,7 +166,7 @@ export default function Leaderboard() {
                     </div>
                 </div>
                 <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: '0.875rem', color: '#6b7280' }}>
-                    {(tab === 'TRIVIA' ? triviaAttempts.length : entries.length)} participant{(tab === 'TRIVIA' ? triviaAttempts.length : entries.length) !== 1 ? 's' : ''}
+                    {(tab === 'TRIVIA' ? triviaRanked.length : entries.length)} participant{(tab === 'TRIVIA' ? triviaRanked.length : entries.length) !== 1 ? 's' : ''}
                     {myRank > 0 && (
                         <> · You're ranked <span style={{ fontWeight: 700, color: CU.charcoal }}>#{myRank}</span></>
                     )}
@@ -230,8 +221,8 @@ export default function Leaderboard() {
             {/* Table — Trivia tab gets its own renderer */}
             {tab === 'TRIVIA' ? (
                 <TriviaLeaderboard
-                    todayAttempts={triviaAttempts}
-                    users={users}
+                    today={triviaBoard.today}
+                    allTime={triviaBoard.allTime}
                     currentUserId={currentUser?.id}
                 />
             ) : (
@@ -241,34 +232,9 @@ export default function Leaderboard() {
     );
 }
 
-function TriviaLeaderboard({ todayAttempts, users, currentUserId }) {
+function TriviaLeaderboard({ today, allTime, currentUserId }) {
     const [view, setView] = useState('TODAY');
-    const usersMap = Object.fromEntries(users.map(u => [u.id, u]));
-
-    const todayRanked = [...todayAttempts]
-        .map(a => {
-            const u = usersMap[a.user_id];
-            return {
-                user_id: a.user_id,
-                display_name: u?.display_name || u?.full_name || (u?.email ? u.email.split('@')[0] : null) || a.user_id.slice(-6),
-                department: u?.department || '—',
-                points: a.total_points,
-                correct: a.correct_count
-            };
-        })
-        .sort((a, b) => b.points - a.points);
-
-    const allTimeRanked = [...users]
-        .filter(u => (u.engagement_points ?? 0) > 0)
-        .map(u => ({
-            user_id: u.id,
-            display_name: u.display_name || u.full_name || (u.email ? u.email.split('@')[0] : null) || u.id.slice(-6),
-            department: u.department || '—',
-            points: u.engagement_points ?? 0
-        }))
-        .sort((a, b) => b.points - a.points);
-
-    const rows = view === 'TODAY' ? todayRanked : allTimeRanked;
+    const rows = view === 'TODAY' ? today : allTime;
 
     return (
         <div className="space-y-4">
