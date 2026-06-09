@@ -2,6 +2,36 @@
   "name": "User",
   "type": "object",
   "properties": {
+    "department": {
+      "type": "string",
+      "enum": [
+        "B2B",
+        "Brand Marketing",
+        "Business Operations",
+        "Chef Success",
+        "Creators Labs & GTM",
+        "Culinary Operations",
+        "Customer Experience",
+        "Data",
+        "Design",
+        "Engineering",
+        "Expansion",
+        "Finance",
+        "Food Safety",
+        "Fulfillment & Logistics - Corporate",
+        "Growth Marketing",
+        "Ingredients Club",
+        "Legal",
+        "Menu & Revenue Optimization",
+        "Operations",
+        "People",
+        "Product",
+        "Supply Chain",
+        "Sustainability",
+        "Workplace Security"
+      ],
+      "description": "User's CookUnity department/team"
+    },
     "predicted_winner_team_id": {
       "type": "string",
       "description": "Onboarding prediction: World Cup winning team (FK to teams.id)"

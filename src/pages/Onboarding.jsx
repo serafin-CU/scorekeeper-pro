@@ -13,9 +13,12 @@ const CU = {
 };
 
 const DEPARTMENTS = [
-    "Engineering", "Product", "CX", "Operations", "Marketing",
-    "Design", "People", "Finance", "Culinary", "Leadership",
-    "Data & Analytics", "Sales", "B2B", "Chef Success",
+    "B2B", "Brand Marketing", "Business Operations", "Chef Success",
+    "Creators Labs & GTM", "Culinary Operations", "Customer Experience",
+    "Data", "Design", "Engineering", "Expansion", "Finance", "Food Safety",
+    "Fulfillment & Logistics - Corporate", "Growth Marketing",
+    "Ingredients Club", "Legal", "Menu & Revenue Optimization", "Operations",
+    "People", "Product", "Supply Chain", "Sustainability", "Workplace Security",
 ];
 
 function ProgressDots({ current, total }) {
