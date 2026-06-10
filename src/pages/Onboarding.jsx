@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, Search, Upload, X } from 'lucide-react';
 import PredictionStep from '@/components/onboarding/PredictionStep';
+import { useAuth } from '@/lib/AuthContext';
 
 const CU = {
     orange: '#FFB81C',
@@ -335,6 +336,7 @@ function Completion({ displayName, department, preferredTeamId, avatarUrl, onFin
 export default function Onboarding() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { refreshUser } = useAuth();
     const [step, setStep] = useState(0);
     const [displayName, setDisplayName] = useState('');
     const [department, setDepartment] = useState('');
@@ -385,9 +387,9 @@ export default function Onboarding() {
     }
 
     async function handleFinish(path) {
-        // Ensure the parent (App.jsx) re-evaluates onboarding_completed and unmounts this overlay
+        // Refresh the auth context so App.jsx re-evaluates onboarding_completed and unmounts this overlay
+        await refreshUser();
         await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-        await queryClient.refetchQueries({ queryKey: ['currentUser'] });
         navigate(path);
     }
 
@@ -404,6 +406,7 @@ export default function Onboarding() {
                 predicted_top_assister: predictedTopAssister || '',
                 onboarding_completed: true
             });
+            await refreshUser();
             navigate('/');
         } catch (err) {
             console.error('Skip failed:', err);
