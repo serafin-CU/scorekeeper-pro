@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import TriviaRecords from '@/components/profile/TriviaRecords';
 
 const CU = {
     orange: '#FFB81C',
@@ -232,6 +233,9 @@ export default function Profile() {
                         )}
                     </div>
                 </div>
+
+                {/* Trivia Records */}
+                {currentUser?.id && <TriviaRecords userId={currentUser.id} />}
             </div>
         </div>
     );

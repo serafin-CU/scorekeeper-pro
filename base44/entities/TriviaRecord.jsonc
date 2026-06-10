@@ -1,0 +1,43 @@
+{
+  "name": "TriviaRecord",
+  "type": "object",
+  "description": "A lightweight per-day record of a user's completed daily trivia set. Used for streaks, sets-completed counts, and profile history.",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "FK reference to users.id"
+    },
+    "date": {
+      "type": "string",
+      "description": "YYYY-MM-DD \u2014 the day of the trivia set"
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Points earned that day"
+    },
+    "correct_answers": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of correct answers out of total"
+    },
+    "total_questions": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of questions in the set"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp when the set was completed"
+    }
+  },
+  "required": [
+    "user_id",
+    "date",
+    "score",
+    "correct_answers",
+    "total_questions",
+    "completed_at"
+  ]
+}

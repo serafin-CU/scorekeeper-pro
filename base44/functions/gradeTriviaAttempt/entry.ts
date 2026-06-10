@@ -134,6 +134,26 @@ Deno.serve(async (req) => {
       completed_at:   new Date().toISOString()
     });
 
+    // Step 5b: Write TriviaRecord (idempotent per user+date)
+    try {
+      const existingRecords = await base44.asServiceRole.entities.TriviaRecord.filter({
+        user_id: userId,
+        date
+      });
+      if (existingRecords.length === 0) {
+        await base44.asServiceRole.entities.TriviaRecord.create({
+          user_id:         userId,
+          date,
+          score:           totalPoints,
+          correct_answers: correctCount,
+          total_questions: gradedAnswers.length,
+          completed_at:    new Date().toISOString()
+        });
+      }
+    } catch (recordErr) {
+      console.warn(`[gradeTriviaAttempt] TriviaRecord not written: ${recordErr.message}`);
+    }
+
     // Step 6: Write PointsLedger entry (only if points were earned)
     let ledgerEntry = null;
     if (totalPoints > 0) {

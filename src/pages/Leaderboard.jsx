@@ -289,8 +289,21 @@ function TriviaLeaderboard({ today, allTime, currentUserId }) {
                                                   style={{ background: CU.orange + '30', color: CU.charcoal, fontWeight: 700 }}>you</span>
                                         )}
                                     </div>
-                                    <div className="text-xs" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>{row.department}</div>
+                                    <div className="text-xs flex items-center gap-2 mt-0.5" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
+                                        <span>{row.department}</span>
+                                        {row.streak > 0 && (
+                                            <span className="px-1.5 py-0.5 rounded-full" style={{ background: CU.orange + '20', color: CU.charcoal, fontWeight: 600 }}>
+                                                🔥 {row.streak} {row.streak === 1 ? 'day' : 'days'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
+                                {typeof row.sets_completed === 'number' && (
+                                    <div className="text-xs text-center mr-1" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
+                                        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1rem', color: CU.charcoal }}>{row.sets_completed}</div>
+                                        <div>sets</div>
+                                    </div>
+                                )}
                                 <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: '1.2rem', color: CU.charcoal }}>
                                     {row.points}
                                 </div>
