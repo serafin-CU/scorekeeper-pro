@@ -20,6 +20,7 @@ const ALL_NAV_ITEMS = [
     { name: 'Leaderboard', label: 'Standings', icon: Trophy },
     { name: 'Trivia', label: 'Trivia', icon: Brain },
     { name: 'AlbaChat', label: 'Alba 🤖', icon: MessageSquare },
+    { name: 'Rules', label: 'Rules', icon: FileText },
     { name: 'Profile', label: 'Profile', icon: User }
 ];
 
