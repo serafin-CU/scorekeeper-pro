@@ -173,7 +173,7 @@ export default function ParticipantLayout({ children, currentPageName }) {
                     </div>
                 </div>
             </nav>
-            <main className="pb-20 md:pb-0">
+            <main>
                 {children}
             </main>
 
