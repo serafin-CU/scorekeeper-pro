@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Users, LogOut, Shield, MessageSquare, Trophy, Target, LayoutDashboard, User, Eye, EyeOff, Brain, Newspaper, Globe, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AlbaChatWidget from '@/components/AlbaChatWidget';
+import MobileNav from '@/components/MobileNav';
 
 const CU = {
     orange: '#FFB81C',
@@ -172,9 +173,11 @@ export default function ParticipantLayout({ children, currentPageName }) {
                     </div>
                 </div>
             </nav>
-            <main>
+            <main className="pb-20 md:pb-0">
                 {children}
             </main>
+
+            <MobileNav items={navItems} currentPageName={currentPageName} />
             <footer className="mt-12 border-t border-slate-200 py-6">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
                     <Link

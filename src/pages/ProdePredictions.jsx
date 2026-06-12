@@ -88,7 +88,7 @@ function ScoreStepper({ value, onChange, disabled }) {
             <button
                 onClick={decrement}
                 disabled={disabled || numVal === null || numVal <= 0}
-                className="w-8 h-10 flex items-center justify-center rounded-l-lg text-lg font-bold transition-colors"
+                className="w-7 sm:w-8 h-10 flex items-center justify-center rounded-l-lg text-lg font-bold transition-colors"
                 style={{ 
                     background: disabled ? '#e5e7eb' : CU.charcoal, 
                     color: 'white',
@@ -107,7 +107,7 @@ function ScoreStepper({ value, onChange, disabled }) {
                     onChange={handleKeyInput}
                     onBlur={() => setEditing(false)}
                     onKeyDown={e => { if (e.key === 'Enter') setEditing(false); }}
-                    className="w-12 h-10 text-center text-xl font-bold border-t border-b outline-none"
+                    className="w-9 sm:w-12 h-10 text-center text-xl font-bold border-t border-b outline-none"
                     style={{ 
                         fontFamily: "'DM Serif Display', serif",
                         borderColor: CU.orange,
@@ -118,7 +118,7 @@ function ScoreStepper({ value, onChange, disabled }) {
             ) : (
                 <div 
                     onClick={() => { if (!disabled) setEditing(true); }}
-                    className="w-12 h-10 flex items-center justify-center text-xl font-bold border-t border-b"
+                    className="w-9 sm:w-12 h-10 flex items-center justify-center text-xl font-bold border-t border-b"
                     style={{ 
                         fontFamily: "'DM Serif Display', serif",
                         borderColor: '#e5e7eb',
@@ -133,7 +133,7 @@ function ScoreStepper({ value, onChange, disabled }) {
             <button
                 onClick={increment}
                 disabled={disabled}
-                className="w-8 h-10 flex items-center justify-center rounded-r-lg text-lg font-bold transition-colors"
+                className="w-7 sm:w-8 h-10 flex items-center justify-center rounded-r-lg text-lg font-bold transition-colors"
                 style={{ 
                     background: disabled ? '#e5e7eb' : CU.charcoal, 
                     color: 'white',
@@ -259,22 +259,22 @@ function MatchRow({ match, teams, localPrediction, savedPrediction, onUpdate, is
             </div>
 
             {/* Teams + Score */}
-            <div className="flex items-center gap-2 px-4 pb-4 pt-1">
+            <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 pb-4 pt-1">
                 {/* Home team */}
-                <div className="flex-1 flex flex-col items-end text-right pr-2 gap-1">
+                <div className="flex-1 min-w-0 flex flex-col items-end text-right pr-1 sm:pr-2 gap-1">
                     {homeTeam?.logo_url && (
                         <img src={homeTeam.logo_url} alt={homeName} className="w-8 h-8 object-contain" />
                     )}
                     <div className="text-lg font-bold" style={{ fontFamily: "'DM Serif Display', serif", color: CU.charcoal }}>
                         {homeName}
                     </div>
-                    <div className="text-xs truncate" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
+                    <div className="text-xs truncate w-full" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
                         {homeFullName}
                     </div>
                 </div>
 
                 {/* Score input */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                     <ScoreStepper
                         value={localPrediction?.home ?? ''}
                         onChange={v => onUpdate(match.id, 'home', v)}
@@ -289,14 +289,14 @@ function MatchRow({ match, teams, localPrediction, savedPrediction, onUpdate, is
                 </div>
 
                 {/* Away team */}
-                <div className="flex-1 flex flex-col items-start pl-2 gap-1">
+                <div className="flex-1 min-w-0 flex flex-col items-start pl-1 sm:pl-2 gap-1">
                     {awayTeam?.logo_url && (
                         <img src={awayTeam.logo_url} alt={awayName} className="w-8 h-8 object-contain" />
                     )}
                     <div className="text-lg font-bold" style={{ fontFamily: "'DM Serif Display', serif", color: CU.charcoal }}>
                         {awayName}
                     </div>
-                    <div className="text-xs truncate" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
+                    <div className="text-xs truncate w-full" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
                         {awayFullName}
                     </div>
                 </div>

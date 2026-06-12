@@ -53,15 +53,15 @@ export default function FinalMatchRow({ match, teams, savedPrediction, result })
             </div>
 
             {/* Teams + actual result */}
-            <div className="flex items-center gap-2 px-4 pb-3 pt-1">
-                <div className="flex-1 flex flex-col items-end text-right pr-2 gap-1">
+            <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 pb-3 pt-1">
+                <div className="flex-1 min-w-0 flex flex-col items-end text-right pr-1 sm:pr-2 gap-1">
                     {homeTeam?.logo_url && (
                         <img src={homeTeam.logo_url} alt={homeName} className="w-8 h-8 object-contain" />
                     )}
                     <div className="text-lg font-bold" style={{ fontFamily: "'DM Serif Display', serif", color: CU.charcoal }}>
                         {homeName}
                     </div>
-                    <div className="text-xs truncate" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
+                    <div className="text-xs truncate w-full" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
                         {homeFullName}
                     </div>
                 </div>
@@ -76,21 +76,21 @@ export default function FinalMatchRow({ match, teams, savedPrediction, result })
                     </div>
                 </div>
 
-                <div className="flex-1 flex flex-col items-start pl-2 gap-1">
+                <div className="flex-1 min-w-0 flex flex-col items-start pl-1 sm:pl-2 gap-1">
                     {awayTeam?.logo_url && (
                         <img src={awayTeam.logo_url} alt={awayName} className="w-8 h-8 object-contain" />
                     )}
                     <div className="text-lg font-bold" style={{ fontFamily: "'DM Serif Display', serif", color: CU.charcoal }}>
                         {awayName}
                     </div>
-                    <div className="text-xs truncate" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
+                    <div className="text-xs truncate w-full" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
                         {awayFullName}
                     </div>
                 </div>
             </div>
 
             {/* Prediction outcome footer */}
-            <div className="px-4 pb-3 flex items-center justify-center gap-2 text-xs" style={{ fontFamily: "'Raleway', sans-serif" }}>
+            <div className="px-4 pb-3 flex flex-wrap items-center justify-center gap-2 text-xs" style={{ fontFamily: "'Raleway', sans-serif" }}>
                 {savedPrediction ? (
                     <>
                         <span style={{ color: '#9ca3af' }}>
