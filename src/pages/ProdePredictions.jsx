@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle, Clock, Lock, Loader2, Save, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import FinalMatchRow from '@/components/prode/FinalMatchRow';
 
 /* ── CookUnity Brand Tokens ─────────────────────────────── */
 const CU = {
@@ -333,6 +334,11 @@ export default function ProdePredictions() {
         queryFn: () => base44.entities.Team.list()
     });
 
+    const { data: finalResults = [] } = useQuery({
+        queryKey: ['matchResultsFinal'],
+        queryFn: () => base44.entities.MatchResultFinal.list()
+    });
+
     const { data: predictions = [] } = useQuery({
         queryKey: ['prodePredictions', currentUser?.id],
         queryFn: async () => {
@@ -347,6 +353,7 @@ export default function ProdePredictions() {
 
     const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]));
     const predictionsMap = Object.fromEntries(predictions.map(p => [p.match_id, p]));
+    const resultsMap = Object.fromEntries(finalResults.map(r => [r.match_id, r]));
 
     // Group matches by phase
     const phases = {};
@@ -552,6 +559,17 @@ export default function ProdePredictions() {
                         {/* ── Match list ───────────────────────── */}
                         <div className="space-y-3">
                             {currentMatches.map(match => {
+                                if (match.status === 'FINAL') {
+                                    return (
+                                        <FinalMatchRow
+                                            key={match.id}
+                                            match={match}
+                                            teams={teamsMap}
+                                            savedPrediction={predictionsMap[match.id]}
+                                            result={resultsMap[match.id]}
+                                        />
+                                    );
+                                }
                                 const isLocked = isMatchLocked(match);
                                 return (
                                     <MatchRow
