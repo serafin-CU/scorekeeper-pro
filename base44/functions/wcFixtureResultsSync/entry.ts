@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
 
             let updated = 0;
             let finalized = 0;
+            let prodeScored = 0;
             let errors = [];
             const results = [];
 
@@ -122,7 +123,7 @@ Deno.serve(async (req) => {
                         }
                     }
 
-                    await base44.entities.MatchResultFinal.create({
+                    const matchResult = await base44.entities.MatchResultFinal.create({
                         match_id: ourMatch.id,
                         home_goals: fixture.goals.home,
                         away_goals: fixture.goals.away,
@@ -136,6 +137,14 @@ Deno.serve(async (req) => {
                         away: fixture.teams.away.name,
                         score: `${fixture.goals.home}-${fixture.goals.away}`
                     });
+
+                    // Score Prode predictions for this newly finalized match
+                    try {
+                        const scored = await scoreProdeForMatch(base44, ourMatch.id, matchResult);
+                        prodeScored += scored;
+                    } catch (scoreErr) {
+                        errors.push(`Prode scoring failed for ${ourMatch.id}: ${scoreErr.message}`);
+                    }
                 }
             }
 
@@ -144,6 +153,7 @@ Deno.serve(async (req) => {
                 action: 'sync_fixture_results',
                 matches_updated: updated,
                 results_finalized: finalized,
+                prode_predictions_scored: prodeScored,
                 errors: errors.length > 0 ? errors : undefined,
                 results
             });
@@ -156,3 +166,52 @@ Deno.serve(async (req) => {
         return Response.json({ error: error.message }, { status: 500 });
     }
 });
+
+/**
+ * Score all Prode predictions for a finalized match. Idempotent per user+match.
+ * Mirrors the scoring rules in jobRunner: exact score = 5, correct outcome = 3.
+ */
+async function scoreProdeForMatch(base44, matchId, finalResult) {
+    const predictions = await base44.asServiceRole.entities.ProdePrediction.filter({ match_id: matchId });
+    let scoredCount = 0;
+
+    for (const pred of predictions) {
+        let points = 0;
+        const breakdown = { exact_score: 0, correct_outcome: 0, total: 0 };
+
+        if (pred.pred_home_goals === finalResult.home_goals &&
+            pred.pred_away_goals === finalResult.away_goals) {
+            breakdown.exact_score = 5;
+            points += 5;
+        } else {
+            const predWinner = pred.pred_home_goals > pred.pred_away_goals ? 'home' :
+                pred.pred_home_goals < pred.pred_away_goals ? 'away' : 'draw';
+            const actualWinner = finalResult.home_goals > finalResult.away_goals ? 'home' :
+                finalResult.home_goals < finalResult.away_goals ? 'away' : 'draw';
+            if (predWinner === actualWinner) {
+                breakdown.correct_outcome = 3;
+                points += 3;
+            }
+        }
+        breakdown.total = points;
+
+        const sourceId = 'PRODE:MATCH:' + matchId + ':' + pred.user_id;
+        const existing = await base44.asServiceRole.entities.PointsLedger.filter({
+            user_id: pred.user_id,
+            source_id: sourceId
+        });
+        if (existing.length > 0) continue;
+
+        await base44.asServiceRole.entities.PointsLedger.create({
+            user_id: pred.user_id,
+            mode: 'PRODE',
+            source_type: 'MATCH',
+            source_id: sourceId,
+            points,
+            breakdown_json: JSON.stringify(breakdown)
+        });
+        scoredCount++;
+    }
+
+    return scoredCount;
+}
