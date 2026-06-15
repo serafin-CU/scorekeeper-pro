@@ -25,6 +25,34 @@ const QUESTION_SCHEMA = {
   required: ["questions"]
 };
 
+const VERIFIED_FACTS = `
+=== FIFA WORLD CUP 2026 — VERIFIED FORMAT FACTS (USE THESE EXACTLY) ===
+- The 2026 tournament has 48 teams (expanded from 32).
+- There are EXACTLY 12 groups, labeled A through L (so Groups I and J exist for the first time).
+- Each group contains EXACTLY 4 teams. (NOT 3 — the 3-team-per-group idea was an ABANDONED proposal and is FALSE.)
+- 4 teams per group x 12 groups = 48 teams total.
+- The top 2 teams from each of the 12 groups advance = 24 teams.
+- The 8 best third-placed teams ALSO advance = 8 teams. Total advancing = 32 teams (a Round of 32).
+- 12 groups produce 12 third-placed teams; only 8 advance, so EXACTLY 4 third-placed teams are eliminated.
+- The knockout stage begins with a Round of 32 (new round, did not exist in the 32-team format).
+- The tournament has 104 matches in total.
+- Hosts: United States, Canada, and Mexico (three host nations).
+- The final will be held at MetLife Stadium, East Rutherford, New Jersey, USA.
+
+=== HISTORICAL FORMAT TIMELINE (VERIFIED) ===
+- The 32-team format with 8 groups of 4 was first used at the 1998 FIFA World Cup (France).
+- The 24-team format was used from 1982 to 1994.
+- The 2026 World Cup is the FIRST to use 48 teams / 12 groups of 4.
+
+=== VERIFIED HISTORICAL FACTS ===
+- 1986 World Cup opening match: Italy 1-1 Bulgaria, at Estadio Azteca, Mexico City, 31 May 1986.
+- 1958 final: Brazil 5-2 Sweden (Pele, aged 17).
+- 1966 final: England beat West Germany 4-2 (a.e.t.); Geoff Hurst hat-trick; linesman Tofiq Bahramov.
+- 2014 final: Germany 1-0 Argentina; Mario Gotze scored in the 113th minute from Andre Schurrle's cross.
+- 2022 final: Argentina beat France (3-3 a.e.t., 4-2 on penalties); Messi scored in the final.
+=== END VERIFIED FACTS ===
+`.trim();
+
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 Deno.serve(async (req) => {
@@ -64,12 +92,17 @@ Deno.serve(async (req) => {
 
 Focus this batch on category: ${cat}, difficulty: ${diff}.
 
+CRITICAL — SOURCE OF TRUTH:
+You are given a VERIFIED FACTS sheet below. For ANY question touching the 2026 format, group structure, advancement rules, host nations, match counts, or the historical facts listed, you MUST use ONLY the verified facts. Your own internal knowledge about the 2026 format is UNRELIABLE and likely WRONG — defer to the facts sheet. In particular: the 2026 World Cup has 12 groups of EXACTLY 4 teams each (NEVER 3). If a verified fact contradicts what you "remember", the verified fact wins. Do NOT invent facts not derivable from the sheet for 2026/format topics.
+
+${VERIFIED_FACTS}
+
 Rules:
 - Every question must have EXACTLY 4 answer options.
 - Exactly ONE option is correct. The others are plausible but wrong.
 - No opinion or prediction questions — only verifiable facts.
-- For HOST_2026: focus on the 2026 host cities, stadiums, and format changes (48 teams, 104 matches, 16 groups etc).
-- For GROUP_STAGE: group stage rules, format, tiebreakers, advancement criteria.
+- For HOST_2026: focus on the 2026 host cities, stadiums, and format changes — use the verified facts (48 teams, 12 groups of 4, 104 matches, Round of 32).
+- For GROUP_STAGE: group stage rules, format, tiebreakers, advancement criteria — for 2026 use the verified facts exactly.
 - For KNOCKOUT_HISTORY: historical WC knockout results, records, upsets since 1930.
 - For PLAYERS_RECORDS: goalscorers, caps, awards, Ballon d'Or, Golden Boot, individual records.
 - For RULES_FORMAT: FIFA Laws of the Game, VAR, offside, card rules, substitutions, extra time.
