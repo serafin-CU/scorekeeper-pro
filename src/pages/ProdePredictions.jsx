@@ -3,7 +3,7 @@ import WorldCupBanner from '@/components/WorldCupBanner';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, Clock, Lock, Loader2, Save, AlertCircle } from 'lucide-react';
+import { CheckCircle, Clock, Lock, Loader2, Save, AlertCircle, ChevronDown, History } from 'lucide-react';
 import { toast } from 'sonner';
 import FinalMatchRow from '@/components/prode/FinalMatchRow';
 
@@ -317,6 +317,7 @@ export default function ProdePredictions() {
     const [selectedPhase, setSelectedPhase] = useState(null);
     const [localEdits, setLocalEdits] = useState({});      // { match_id: { home: N, away: N } }
     const [saving, setSaving] = useState(false);
+    const [showPast, setShowPast] = useState(false);
     const queryClient = useQueryClient();
 
     const { data: currentUser } = useQuery({
@@ -410,6 +411,12 @@ export default function ProdePredictions() {
 
     const currentMatches = phases[selectedPhase] || [];
     const now = new Date();
+
+    // Split into recent/upcoming vs. past (kickoff more than 24h ago) for collapsible view
+    const PAST_CUTOFF = Date.now() - 24 * 60 * 60 * 1000;
+    const upcomingMatches = currentMatches.filter(m => new Date(m.kickoff_at).getTime() >= PAST_CUTOFF);
+    const pastMatches = currentMatches.filter(m => new Date(m.kickoff_at).getTime() < PAST_CUTOFF);
+
     const isMatchLocked = (match) =>
         Date.now() >= new Date(match.kickoff_at).getTime() - 2 * 60 * 60 * 1000 ||
         match.status === 'FINAL';
@@ -482,6 +489,31 @@ export default function ProdePredictions() {
 
         queryClient.invalidateQueries(['prodePredictions']);
         setSaving(false);
+    };
+
+    const renderMatch = (match) => {
+        if (match.status === 'FINAL') {
+            return (
+                <FinalMatchRow
+                    key={match.id}
+                    match={match}
+                    teams={teamsMap}
+                    savedPrediction={predictionsMap[match.id]}
+                    result={resultsMap[match.id]}
+                />
+            );
+        }
+        return (
+            <MatchRow
+                key={match.id}
+                match={match}
+                teams={teamsMap}
+                localPrediction={localEdits[match.id]}
+                savedPrediction={predictionsMap[match.id]}
+                onUpdate={handleUpdate}
+                isLocked={isMatchLocked(match)}
+            />
+        );
     };
 
     if (matchesLoading) {
@@ -558,31 +590,32 @@ export default function ProdePredictions() {
 
                         {/* ── Match list ───────────────────────── */}
                         <div className="space-y-3">
-                            {currentMatches.map(match => {
-                                if (match.status === 'FINAL') {
-                                    return (
-                                        <FinalMatchRow
-                                            key={match.id}
-                                            match={match}
-                                            teams={teamsMap}
-                                            savedPrediction={predictionsMap[match.id]}
-                                            result={resultsMap[match.id]}
+                            {upcomingMatches.map(match => renderMatch(match))}
+
+                            {/* ── Collapsible past matches (24h+ old) ── */}
+                            {pastMatches.length > 0 && (
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={() => setShowPast(p => !p)}
+                                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-colors"
+                                        style={{
+                                            borderColor: '#e5e7eb',
+                                            color: CU.charcoal,
+                                            background: '#fafafa',
+                                            fontFamily: "'Raleway', sans-serif"
+                                        }}
+                                    >
+                                        <History className="w-4 h-4" style={{ color: '#9ca3af' }} />
+                                        {showPast ? 'Hide' : 'Show'} {pastMatches.length} past match{pastMatches.length > 1 ? 'es' : ''}
+                                        <ChevronDown
+                                            className="w-4 h-4 transition-transform"
+                                            style={{ color: '#9ca3af', transform: showPast ? 'rotate(180deg)' : 'none' }}
                                         />
-                                    );
-                                }
-                                const isLocked = isMatchLocked(match);
-                                return (
-                                    <MatchRow
-                                        key={match.id}
-                                        match={match}
-                                        teams={teamsMap}
-                                        localPrediction={localEdits[match.id]}
-                                        savedPrediction={predictionsMap[match.id]}
-                                        onUpdate={handleUpdate}
-                                        isLocked={isLocked}
-                                    />
-                                );
-                            })}
+                                    </button>
+                                    {showPast && pastMatches.map(match => renderMatch(match))}
+                                </div>
+                            )}
+
                             {/* TBD placeholders for knockout slots not yet drawn */}
                             {KNOCKOUT_SLOT_COUNT[selectedPhase] != null &&
                                 Array.from({ length: Math.max(0, KNOCKOUT_SLOT_COUNT[selectedPhase] - currentMatches.length) })
