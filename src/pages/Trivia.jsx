@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Brain, CheckCircle2, XCircle, Loader2, ChevronRight, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import UnderReviewView from '@/components/trivia/UnderReviewView';
 
 const CU = {
     orange: '#FFB81C',
@@ -88,6 +89,9 @@ export default function Trivia() {
         queryKey: ['currentUser'],
         queryFn: () => base44.auth.me()
     });
+
+    const UNDER_REVIEW = true; // toggle off to re-enable Trivia for everyone
+    const isAdmin = currentUser?.role === 'admin';
 
     const today = new Date().toISOString().slice(0, 10);
 
@@ -233,6 +237,10 @@ export default function Trivia() {
     }
 
     // ── RENDER ────────────────────────────────────────────────────────────────
+
+    if (UNDER_REVIEW && !isAdmin) {
+        return <UnderReviewView />;
+    }
 
     if (status === 'LOADING_CHECK' || !currentUser) {
         return (
