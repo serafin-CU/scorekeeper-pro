@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle, Clock, Lock, Loader2, Save, AlertCircle, ChevronDown, History } from 'lucide-react';
 import { toast } from 'sonner';
 import FinalMatchRow from '@/components/prode/FinalMatchRow';
+import PredictionDistribution from '@/components/prode/PredictionDistribution';
 
 /* ── CookUnity Brand Tokens ─────────────────────────────── */
 const CU = {
@@ -308,6 +309,9 @@ function MatchRow({ match, teams, localPrediction, savedPrediction, onUpdate, is
                     Your prediction: {savedPrediction.pred_home_goals} – {savedPrediction.pred_away_goals}
                 </div>
             )}
+
+            {/* All-users prediction distribution (locked matches only) */}
+            {isLocked && <PredictionDistribution matchId={match.id} />}
         </div>
     );
 }
