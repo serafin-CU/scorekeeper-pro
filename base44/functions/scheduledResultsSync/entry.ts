@@ -83,8 +83,17 @@ Deno.serve(async (req) => {
             }
 
             const existing = await svc.entities.MatchResultFinal.filter({ match_id: ourMatch.id });
-            if (existing.length > 0 && existing[0].manually_overridden) continue;
+            if (existing.length > 0 && existing[0].manually_overridden) {
+                // Still attempt scoring in case the manual result wasn't fully scored.
+                try {
+                    prodeScored += await scoreProdeForMatch(svc, ourMatch.id, existing[0]);
+                } catch (scoreErr) {
+                    errors.push(`Prode scoring failed for ${ourMatch.id}: ${scoreErr.message}`);
+                }
+                continue;
+            }
 
+            let matchResult;
             if (existing.length === 0) {
                 let mvpPlayerId = null;
                 if (fixture.players && fixture.players.length > 0) {
@@ -95,7 +104,7 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                const matchResult = await svc.entities.MatchResultFinal.create({
+                matchResult = await svc.entities.MatchResultFinal.create({
                     match_id: ourMatch.id,
                     home_goals: fixture.goals.home,
                     away_goals: fixture.goals.away,
@@ -109,12 +118,17 @@ Deno.serve(async (req) => {
                     away: fixture.teams.away.name,
                     score: `${fixture.goals.home}-${fixture.goals.away}`
                 });
+            } else {
+                matchResult = existing[0];
+            }
 
-                try {
-                    prodeScored += await scoreProdeForMatch(svc, ourMatch.id, matchResult);
-                } catch (scoreErr) {
-                    errors.push(`Prode scoring failed for ${ourMatch.id}: ${scoreErr.message}`);
-                }
+            // Self-healing: score on every run. scoreProdeForMatch is idempotent
+            // (skips predictions that already have a ledger entry), so a previously
+            // half-scored match (e.g. timed out mid-loop) gets completed here.
+            try {
+                prodeScored += await scoreProdeForMatch(svc, ourMatch.id, matchResult, ourMatch.kickoff_at);
+            } catch (scoreErr) {
+                errors.push(`Prode scoring failed for ${ourMatch.id}: ${scoreErr.message}`);
             }
         }
 
@@ -132,11 +146,17 @@ Deno.serve(async (req) => {
     }
 });
 
-async function scoreProdeForMatch(svc, matchId, finalResult) {
+async function scoreProdeForMatch(svc, matchId, finalResult, kickoffAt) {
     const predictions = await svc.entities.ProdePrediction.filter({ match_id: matchId });
+    const kickoff = kickoffAt ? new Date(kickoffAt).getTime() : null;
     let scoredCount = 0;
 
     for (const pred of predictions) {
+        // Guard: never score a prediction submitted at/after kickoff (lock bypass).
+        if (kickoff && pred.submitted_at && new Date(pred.submitted_at).getTime() >= kickoff) {
+            continue;
+        }
+
         let points = 0;
         const breakdown = { exact_score: 0, correct_outcome: 0, total: 0 };
 
@@ -172,7 +192,6 @@ async function scoreProdeForMatch(svc, matchId, finalResult) {
             breakdown_json: JSON.stringify(breakdown)
         });
         scoredCount++;
-        await new Promise(r => setTimeout(r, 300));
     }
 
     return scoredCount;
