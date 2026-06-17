@@ -90,7 +90,7 @@ export default function Trivia() {
         queryFn: () => base44.auth.me()
     });
 
-    const UNDER_REVIEW = true; // toggle off to re-enable Trivia for everyone
+    const UNDER_REVIEW = false; // toggle off to re-enable Trivia for everyone
     const isAdmin = currentUser?.role === 'admin';
 
     const today = new Date().toISOString().slice(0, 10);
