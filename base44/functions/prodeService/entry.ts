@@ -35,6 +35,8 @@ Deno.serve(async (req) => {
                 return await getLeaderboardRank(base44, user, body);
             case 'get_leaderboard':
                 return await getLeaderboard(base44, user, body);
+            case 'get_prediction_distribution':
+                return await getPredictionDistribution(base44, user, body);
             default:
                 return Response.json({ error: 'Invalid action' }, { status: 400 });
         }
@@ -181,6 +183,55 @@ async function getLeaderboard(base44, user, body) {
 
     const entries = Object.values(aggregated).sort((a, b) => b.total_points - a.total_points);
     return Response.json({ entries });
+}
+
+/**
+ * Aggregate the distribution of all users' score predictions for a single match.
+ * Only allowed once the match is locked (kickoff passed) or finalized, so it can
+ * never leak in-progress predictions before lock. Returns scorelines sorted by
+ * popularity with counts and percentages.
+ */
+async function getPredictionDistribution(base44, user, body) {
+    const { match_id } = body;
+    if (!match_id) {
+        return Response.json({ error: 'match_id is required' }, { status: 400 });
+    }
+
+    const matches = await base44.asServiceRole.entities.Match.filter({ id: match_id });
+    if (matches.length === 0) {
+        return Response.json({ error: 'Match not found' }, { status: 404 });
+    }
+    const match = matches[0];
+
+    // Privacy guard: only reveal distribution after the match is locked/final.
+    const locked = match.status === 'FINAL' || new Date() >= new Date(match.kickoff_at);
+    if (!locked) {
+        return Response.json({ error: 'Distribution available only after kickoff' }, { status: 403 });
+    }
+
+    const predictions = await base44.asServiceRole.entities.ProdePrediction.filter({ match_id });
+    const total = predictions.length;
+
+    const counts = {};
+    for (const p of predictions) {
+        const key = `${p.pred_home_goals}-${p.pred_away_goals}`;
+        counts[key] = (counts[key] || 0) + 1;
+    }
+
+    const distribution = Object.entries(counts)
+        .map(([scoreline, count]) => {
+            const [home, away] = scoreline.split('-').map(Number);
+            return {
+                scoreline,
+                home,
+                away,
+                count,
+                percent: total > 0 ? Math.round((count / total) * 1000) / 10 : 0
+            };
+        })
+        .sort((a, b) => b.count - a.count);
+
+    return Response.json({ success: true, total, distribution });
 }
 
 /**

@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
+import PredictionDistribution from '@/components/prode/PredictionDistribution';
 
 const CU = {
     orange: '#FFB81C',
@@ -110,6 +111,12 @@ export default function FinalMatchRow({ match, teams, savedPrediction, result })
                     <span style={{ color: '#d1d5db' }}>No prediction submitted</span>
                 )}
             </div>
+
+            {/* All-users prediction distribution */}
+            <PredictionDistribution
+                matchId={match.id}
+                actualScoreline={result ? `${result.home_goals}-${result.away_goals}` : null}
+            />
         </div>
     );
 }
