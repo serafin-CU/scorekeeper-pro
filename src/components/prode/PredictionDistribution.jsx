@@ -20,6 +20,7 @@ export default function PredictionDistribution({ matchId, actualScoreline }) {
     const [loaded, setLoaded] = useState(false);
     const [total, setTotal] = useState(0);
     const [rows, setRows] = useState([]);
+    const [errorMsg, setErrorMsg] = useState(null);
 
     const toggle = async () => {
         const next = !open;
@@ -33,9 +34,13 @@ export default function PredictionDistribution({ matchId, actualScoreline }) {
                 });
                 setRows(res.data?.distribution || []);
                 setTotal(res.data?.total || 0);
+                setErrorMsg(null);
                 setLoaded(true);
             } catch (err) {
-                console.error('[PredictionDistribution] failed:', err);
+                const status = err?.response?.status;
+                setErrorMsg(status === 403
+                    ? 'Distribution unlocks once predictions close.'
+                    : 'Could not load distribution.');
             }
             setLoading(false);
         }
@@ -64,6 +69,10 @@ export default function PredictionDistribution({ matchId, actualScoreline }) {
                         <div className="flex items-center justify-center py-4">
                             <Loader2 className="w-4 h-4 animate-spin" style={{ color: CU.orange }} />
                         </div>
+                    ) : errorMsg ? (
+                        <p className="text-center text-xs py-3" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
+                            {errorMsg}
+                        </p>
                     ) : rows.length === 0 ? (
                         <p className="text-center text-xs py-3" style={{ fontFamily: "'Raleway', sans-serif", color: '#9ca3af' }}>
                             No predictions for this match.

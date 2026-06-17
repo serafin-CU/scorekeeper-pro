@@ -203,10 +203,12 @@ async function getPredictionDistribution(base44, user, body) {
     }
     const match = matches[0];
 
-    // Privacy guard: only reveal distribution after the match is locked/final.
-    const locked = match.status === 'FINAL' || new Date() >= new Date(match.kickoff_at);
+    // Privacy guard: reveal distribution only once the match is locked for editing.
+    // Predictions lock 2h before kickoff, so mirror that same window here.
+    const LOCK_MS = 2 * 60 * 60 * 1000;
+    const locked = match.status === 'FINAL' || Date.now() >= new Date(match.kickoff_at).getTime() - LOCK_MS;
     if (!locked) {
-        return Response.json({ error: 'Distribution available only after kickoff' }, { status: 403 });
+        return Response.json({ error: 'Distribution available only after predictions lock' }, { status: 403 });
     }
 
     const predictions = await base44.asServiceRole.entities.ProdePrediction.filter({ match_id });
