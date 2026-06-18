@@ -5,13 +5,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * predictions were never scored into PointsLedger. Idempotent per user+match.
  * Scoring rules: exact score = 5, correct outcome (winner/draw) = 3.
  *
- * Admin only. POST {}
+ * Runnable by an admin (manual) OR unattended by a scheduled automation
+ * (no user context). Idempotent, so safe to run repeatedly.
+ * POST {}
  */
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        const user = await base44.auth.me();
-        if (user?.role !== 'admin') {
+        // Allow admin-triggered runs, but also unattended scheduled runs (no user).
+        let user = null;
+        try { user = await base44.auth.me(); } catch (_) { user = null; }
+        if (user && user.role !== 'admin') {
             return Response.json({ error: 'Admin access required' }, { status: 403 });
         }
 
@@ -68,7 +72,6 @@ Deno.serve(async (req) => {
                 });
                 scoredKeys.add(sourceId);
                 scored++;
-                await new Promise(r => setTimeout(r, 300));
             }
 
             totalScored += scored;
