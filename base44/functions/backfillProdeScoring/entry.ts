@@ -21,9 +21,18 @@ Deno.serve(async (req) => {
 
         const finals = await base44.asServiceRole.entities.MatchResultFinal.list('-finalized_at', 1000);
 
-        // Load all existing PRODE ledger entries once and dedupe in memory.
-        const existingLedger = await base44.asServiceRole.entities.PointsLedger.filter({ mode: 'PRODE' });
-        const scoredKeys = new Set(existingLedger.map(e => e.source_id));
+        // Load ALL existing PRODE ledger entries via pagination (a single filter()
+        // is capped at 5000, which silently hides entries once the ledger grows past
+        // that — causing duplicate ledger rows to be created on every run).
+        const scoredKeys = new Set();
+        let skip = 0;
+        while (true) {
+            const batch = await base44.asServiceRole.entities.PointsLedger.filter({ mode: 'PRODE' }, '-created_date', 1000, skip);
+            for (const e of batch) scoredKeys.add(e.source_id);
+            if (batch.length < 1000) break;
+            skip += 1000;
+            if (skip > 100000) break;
+        }
 
         let totalScored = 0;
         let totalSkipped = 0;
