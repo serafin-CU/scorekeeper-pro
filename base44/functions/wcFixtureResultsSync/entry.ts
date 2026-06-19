@@ -9,6 +9,16 @@ const API_BASE = 'https://v3.football.api-sports.io';
 const LEAGUE_ID = 1;
 const SEASON = 2026;
 
+// Canonicalizes team names that differ between our DB and the api-sports feed.
+const TEAM_NAME_ALIASES = {
+"czechia": "czech republic",
+"czech republic": "czech republic",
+};
+function normalizeTeamName(name) {
+const lower = (name || "").toLowerCase().trim();
+return TEAM_NAME_ALIASES[lower] || lower;
+}
+
 function apiHeaders() {
     return {
         'x-apisports-key': Deno.env.get('API_FUTBOL'),
@@ -75,8 +85,8 @@ Deno.serve(async (req) => {
 
                 // Find our match by team names and kickoff
                 const kickoffDate = new Date(f.date);
-                const homeApiName = fixture.teams.home.name.toLowerCase();
-                const awayApiName = fixture.teams.away.name.toLowerCase();
+                const homeApiName = normalizeTeamName(fixture.teams.home.name);
+                const awayApiName = normalizeTeamName(fixture.teams.away.name);
 
                 const ourMatch = ourMatches.find(m => {
                     const mHome = teamById[m.home_team_id];
@@ -84,8 +94,8 @@ Deno.serve(async (req) => {
                     if (!mHome || !mAway) return false;
 
                     const nameMatch = 
-                        mHome.name.toLowerCase() === homeApiName && 
-                        mAway.name.toLowerCase() === awayApiName;
+                        normalizeTeamName(mHome.name) === homeApiName &&
+                        normalizeTeamName(mAway.name) === awayApiName;
                     const timeDiff = Math.abs(new Date(m.kickoff_at) - kickoffDate) / 60000;
                     return nameMatch && timeDiff < 30;
                 });
