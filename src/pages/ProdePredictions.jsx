@@ -563,7 +563,12 @@ export default function ProdePredictions() {
                     </div>
                     <span style={{ color: '#d1d5db' }}>{totalMatches} total</span>
                 </div>
-
+        {/* — Scoring delay notice — */}
+                <div className="flex items-center gap-2 text-sm mb-5 px-3 py-2 rounded-lg" style={{ backgroundColor: CU.orange + '20', color: CU.charcoal }}>
+                          <Clock className="w-4 h-4" style={{ color: CU.orange }} />
+                                    <span>Scores are being calculated and will be ready within the next 20 minutes.</span>
+                                            </div>
+                                            
                 {/* ── Phase selector ───────────────────────── */}
                 {availablePhases.length > 0 ? (
                     <>
