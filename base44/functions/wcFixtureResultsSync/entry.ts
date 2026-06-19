@@ -148,13 +148,7 @@ Deno.serve(async (req) => {
                         score: `${fixture.goals.home}-${fixture.goals.away}`
                     });
 
-                    // Score Prode predictions for this newly finalized match
-                    try {
-                        const scored = await scoreProdeForMatch(base44, ourMatch.id, matchResult);
-                        prodeScored += scored;
-                    } catch (scoreErr) {
-                        errors.push(`Prode scoring failed for ${ourMatch.id}: ${scoreErr.message}`);
-                    }
+                    // Prode scoring is handled exclusively by the backfillProdeScoring safety-net automation (runs every ~10 min) to avoid inline timeouts.
                 }
             }
 
