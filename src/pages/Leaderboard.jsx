@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Trophy, Medal, Loader2, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
+import AuthorLink from '@/components/AuthorLink';
 
 const CU = {
     orange: '#FFB81C',
@@ -64,10 +65,9 @@ function LeaderboardTable({ entries, currentUserId, mode }) {
                                 color: isMe ? CU.charcoal : CU.charcoal
                             }}>
                                 {rank === 1 && <span className="mr-1">🏆</span>}
-                                {isMe
-                                ? <Link to="/Profile" style={{ color: 'inherit', textDecoration: 'none' }}>{entry.display_name || (entry.email ? entry.email.split('@')[0] : entry.user_id.slice(-8))}</Link>
-                                : <span>{entry.display_name || (entry.email ? entry.email.split('@')[0] : entry.user_id.slice(-8))}</span>
-                            }
+                                <AuthorLink userId={entry.user_id} className="hover:underline" style={{ color: 'inherit' }}>
+                                    {entry.display_name || (entry.email ? entry.email.split('@')[0] : entry.user_id.slice(-8))}
+                                </AuthorLink>
                                 {isMe && (
                                     <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
                                           style={{ background: CU.orange + '30', color: CU.charcoal, fontWeight: 700 }}>
@@ -280,10 +280,9 @@ function TriviaLeaderboard({ today, allTime, currentUserId }) {
                                 <div className="flex-1 min-w-0">
                                     <div className="text-sm truncate" style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, color: CU.charcoal }}>
                                         {rank === 1 && <span className="mr-1">🏆</span>}
-                                        {isMe
-                                            ? <Link to="/Profile" style={{ color: 'inherit', textDecoration: 'none' }}>{row.display_name}</Link>
-                                            : <span>{row.display_name}</span>
-                                        }
+                                        <AuthorLink userId={row.user_id} className="hover:underline" style={{ color: 'inherit' }}>
+                                            {row.display_name}
+                                        </AuthorLink>
                                         {isMe && (
                                             <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
                                                   style={{ background: CU.orange + '30', color: CU.charcoal, fontWeight: 700 }}>you</span>
