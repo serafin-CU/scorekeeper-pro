@@ -132,7 +132,17 @@ async function getUserPredictions(base44, user, body) {
  * Returns { rank, totalUsers, userPoints }. rank is null if user has no points.
  */
 async function getLeaderboardRank(base44, user, body) {
-    const entries = await base44.asServiceRole.entities.PointsLedger.filter({ mode: 'PRODE' });
+    // Paginate the full ledger — a single filter() caps at 5000 rows and would
+    // under-count ranks once the ledger grows past that.
+    const entries = [];
+    let skip = 0;
+    while (true) {
+        const batch = await base44.asServiceRole.entities.PointsLedger.filter({ mode: 'PRODE' }, '-created_date', 1000, skip);
+        entries.push(...batch);
+        if (batch.length < 1000) break;
+        skip += 1000;
+        if (skip > 200000) break;
+    }
 
     const pointsByUser = {};
     for (const e of entries) {
@@ -156,8 +166,24 @@ async function getLeaderboardRank(base44, user, body) {
  * Returns { entries } sorted by total_points descending.
  */
 async function getLeaderboard(base44, user, body) {
+    // Load the FULL PRODE ledger via pagination. A single filter() is capped at
+    // 5000 rows, which silently drops entries once the ledger grows past that —
+    // causing under-counted leaderboard totals for everyone.
+    const loadLedger = async () => {
+        const all = [];
+        let skip = 0;
+        while (true) {
+            const batch = await base44.asServiceRole.entities.PointsLedger.filter({ mode: 'PRODE' }, '-created_date', 1000, skip);
+            all.push(...batch);
+            if (batch.length < 1000) break;
+            skip += 1000;
+            if (skip > 200000) break;
+        }
+        return all;
+    };
+
     const [ledger, users] = await Promise.all([
-        base44.asServiceRole.entities.PointsLedger.filter({ mode: 'PRODE' }),
+        loadLedger(),
         base44.asServiceRole.entities.User.list()
     ]);
 
