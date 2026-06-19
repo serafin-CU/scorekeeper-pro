@@ -141,7 +141,7 @@ async function getLeaderboardRank(base44, user, body) {
         entries.push(...batch);
         if (batch.length < 1000) break;
         skip += 1000;
-        if (skip > 200000) break;
+        if (skip > 500000) break;
     }
 
     const pointsByUser = {};
@@ -177,7 +177,7 @@ async function getLeaderboard(base44, user, body) {
             all.push(...batch);
             if (batch.length < 1000) break;
             skip += 1000;
-            if (skip > 200000) break;
+            if (skip > 500000) break;
         }
         return all;
     };
@@ -237,7 +237,17 @@ async function getPredictionDistribution(base44, user, body) {
         return Response.json({ error: 'Distribution available only after predictions lock' }, { status: 403 });
     }
 
-    const predictions = await base44.asServiceRole.entities.ProdePrediction.filter({ match_id });
+    // Paginate — a single match's prediction count can exceed the 5000 filter cap
+    // when there are thousands of users, which would undercount the distribution.
+    const predictions = [];
+    let pSkip = 0;
+    while (true) {
+        const batch = await base44.asServiceRole.entities.ProdePrediction.filter({ match_id }, '-submitted_at', 1000, pSkip);
+        predictions.push(...batch);
+        if (batch.length < 1000) break;
+        pSkip += 1000;
+        if (pSkip > 500000) break;
+    }
     const total = predictions.length;
 
     const counts = {};
@@ -385,8 +395,17 @@ async function scoreMatch(base44, user, body) {
     }
 
     try {
-        // Get all predictions for this match
-        const predictions = await base44.asServiceRole.entities.ProdePrediction.filter({ match_id });
+        // Get all predictions for this match (paginate — a popular match can have
+        // more than the 5000 filter cap, which would leave some users unscored).
+        const predictions = [];
+        let predSkip = 0;
+        while (true) {
+            const batch = await base44.asServiceRole.entities.ProdePrediction.filter({ match_id }, '-submitted_at', 1000, predSkip);
+            predictions.push(...batch);
+            if (batch.length < 1000) break;
+            predSkip += 1000;
+            if (predSkip > 500000) break;
+        }
 
         let scored_count = 0;
 
