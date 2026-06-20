@@ -477,6 +477,16 @@ export default function ProdePredictions() {
                     pred_home_goals: Number(local.home),
                     pred_away_goals: Number(local.away)
                 });
+                base44.analytics.track({
+                    eventName: 'prediction_submitted',
+                    properties: {
+                        match_id: match.id,
+                        phase: match.phase,
+                        pred_home_goals: Number(local.home),
+                        pred_away_goals: Number(local.away),
+                        is_new: isNew
+                    }
+                });
                 saved++;
             } catch (err) {
                 errors++;
