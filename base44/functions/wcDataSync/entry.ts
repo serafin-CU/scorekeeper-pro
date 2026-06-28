@@ -131,6 +131,36 @@ Deno.serve(async (req) => {
         const body = await req.json();
         const { action } = body;
 
+        // ── PROBE KNOCKOUT FIXTURES (read-only) ─────────────────────────────
+        // Inspects what the API currently exposes for knockout rounds so we can
+        // decide what to import. Does not write anything.
+        if (action === 'probe_knockout') {
+            const fixtures = await apiFetch(`/fixtures?league=${LEAGUE_ID}&season=${SEASON}`);
+            const rounds = {};
+            for (const f of fixtures) {
+                const r = f.league.round;
+                rounds[r] = (rounds[r] || 0) + 1;
+            }
+            const knockout = fixtures
+                .filter(f => /round of|1\/|final|quarter|semi/i.test(f.league.round))
+                .map(f => ({
+                    round: f.league.round,
+                    phase: mapRoundToPhase(f.league.round),
+                    home: f.teams.home.name,
+                    away: f.teams.away.name,
+                    status: f.fixture.status.short,
+                    date: f.fixture.date
+                }));
+            return Response.json({
+                ok: true,
+                action: 'probe_knockout',
+                total_fixtures: fixtures.length,
+                rounds,
+                knockout_count: knockout.length,
+                knockout
+            });
+        }
+
         // ── STATUS ──────────────────────────────────────────────────────────
         if (action === 'status') {
             const res = await fetch(`${API_BASE}/status`, { headers: apiHeaders() });
