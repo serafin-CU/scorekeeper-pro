@@ -68,6 +68,12 @@ Deno.serve(async (req) => {
 
             const ourMatches = await base44.asServiceRole.entities.Match.list();
 
+            // Load all finalized results once and index by match_id — avoids a per-match
+            // .filter() call (the rate-limit saturation that auto-paused this automation).
+            const allResults = await base44.asServiceRole.entities.MatchResultFinal.list();
+            const resultByMatchId = {};
+            for (const r of allResults) resultByMatchId[r.match_id] = r;
+
             let updated = 0;
             let finalized = 0;
             let prodeScored = 0;
@@ -116,12 +122,12 @@ Deno.serve(async (req) => {
                 }
 
                 // Create/update MatchResultFinal — skip if an admin has manually overridden this result
-                const existing = await base44.asServiceRole.entities.MatchResultFinal.filter({ match_id: ourMatch.id });
-                if (existing.length > 0 && existing[0].manually_overridden) {
+                const existing = resultByMatchId[ourMatch.id];
+                if (existing && existing.manually_overridden) {
                     console.log(`[wcFixtureResultsSync] Skipping ${fixture.teams.home.name} vs ${fixture.teams.away.name} — manually overridden by admin`);
                     continue;
                 }
-                if (existing.length === 0) {
+                if (!existing) {
                     // Try to find MVP player if available
                     let mvpPlayerId = null;
                     if (fixture.players && fixture.players.length > 0) {
