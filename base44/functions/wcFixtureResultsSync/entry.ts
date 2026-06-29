@@ -43,14 +43,18 @@ async function apiFetch(path) {
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        const user = await base44.auth.me();
 
-        if (user?.role !== 'admin') {
+        // Allow admin manual runs; allow unattended automation runs (no user).
+        let user = null;
+        try { user = await base44.auth.me(); } catch (_) { /* unattended automation */ }
+        if (user && user.role !== 'admin') {
             return Response.json({ error: 'Admin access required' }, { status: 403 });
         }
 
-        const body = await req.json();
-        const { action } = body;
+        // Default to sync_fixture_results when invoked with no body (scheduled automation).
+        let body = {};
+        try { body = await req.json(); } catch (_) { /* no body — scheduled run */ }
+        const action = body.action || 'sync_fixture_results';
 
         // ── SYNC FIXTURE RESULTS ────────────────────────────────────────────
         if (action === 'sync_fixture_results') {
@@ -58,11 +62,11 @@ Deno.serve(async (req) => {
             const fixtures = await apiFetch(`/fixtures?league=${LEAGUE_ID}&season=${SEASON}`);
 
             // Get all our teams and matches
-            const ourTeams = await base44.entities.Team.list();
+            const ourTeams = await base44.asServiceRole.entities.Team.list();
             const teamById = {};
             for (const t of ourTeams) teamById[t.id] = t;
 
-            const ourMatches = await base44.entities.Match.list();
+            const ourMatches = await base44.asServiceRole.entities.Match.list();
 
             let updated = 0;
             let finalized = 0;
@@ -107,12 +111,12 @@ Deno.serve(async (req) => {
 
                 // Update match status if needed
                 if (ourMatch.status !== 'FINAL') {
-                    await base44.entities.Match.update(ourMatch.id, { status: 'FINAL' });
+                    await base44.asServiceRole.entities.Match.update(ourMatch.id, { status: 'FINAL' });
                     updated++;
                 }
 
                 // Create/update MatchResultFinal — skip if an admin has manually overridden this result
-                const existing = await base44.entities.MatchResultFinal.filter({ match_id: ourMatch.id });
+                const existing = await base44.asServiceRole.entities.MatchResultFinal.filter({ match_id: ourMatch.id });
                 if (existing.length > 0 && existing[0].manually_overridden) {
                     console.log(`[wcFixtureResultsSync] Skipping ${fixture.teams.home.name} vs ${fixture.teams.away.name} — manually overridden by admin`);
                     continue;
@@ -124,7 +128,7 @@ Deno.serve(async (req) => {
                         // Find player with "MoM" (Man of the Match) award
                         const momPlayer = fixture.players.find(p => p.statistics?.some(s => s.games?.rating >= 8));
                         if (momPlayer) {
-                            const ourPlayers = await base44.entities.Player.filter({
+                            const ourPlayers = await base44.asServiceRole.entities.Player.filter({
                                 full_name: momPlayer.player.name
                             });
                             if (ourPlayers.length > 0) {
@@ -133,7 +137,7 @@ Deno.serve(async (req) => {
                         }
                     }
 
-                    const matchResult = await base44.entities.MatchResultFinal.create({
+                    const matchResult = await base44.asServiceRole.entities.MatchResultFinal.create({
                         match_id: ourMatch.id,
                         home_goals: fixture.goals.home,
                         away_goals: fixture.goals.away,
