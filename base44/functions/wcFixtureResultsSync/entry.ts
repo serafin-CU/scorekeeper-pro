@@ -56,6 +56,22 @@ Deno.serve(async (req) => {
         try { body = await req.json(); } catch (_) { /* no body — scheduled run */ }
         const action = body.action || 'sync_fixture_results';
 
+        // ── DIAGNOSE (temporary) — inspect raw API fixtures for a team substring ──
+        if (action === 'diagnose') {
+            const needle = (body.team || 'german').toLowerCase();
+            const fixtures = await apiFetch(`/fixtures?league=${LEAGUE_ID}&season=${SEASON}`);
+            const hits = fixtures
+                .filter(f => f.teams.home.name.toLowerCase().includes(needle) || f.teams.away.name.toLowerCase().includes(needle))
+                .map(f => ({
+                    home: f.teams.home.name,
+                    away: f.teams.away.name,
+                    date: f.fixture.date,
+                    status: f.fixture.status.short,
+                    goals: f.goals
+                }));
+            return Response.json({ ok: true, total: fixtures.length, hits });
+        }
+
         // ── SYNC FIXTURE RESULTS ────────────────────────────────────────────
         if (action === 'sync_fixture_results') {
             // Fetch all fixtures
