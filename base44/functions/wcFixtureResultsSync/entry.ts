@@ -28,16 +28,31 @@ function apiHeaders() {
 
 async function apiFetch(path) {
     const url = `${API_BASE}${path}`;
-    console.log(`[wcFixtureResultsSync] GET ${url}`);
-    const res = await fetch(url, { headers: apiHeaders() });
-    if (!res.ok) {
-        throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+    // Up to 3 attempts with backoff to ride out api-sports per-minute rate limits
+    // (other syncs sharing the same key can saturate the minute window).
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        console.log(`[wcFixtureResultsSync] GET ${url} (attempt ${attempt})`);
+        const res = await fetch(url, { headers: apiHeaders() });
+        const json = await res.json().catch(() => ({}));
+        const rateLimited = res.status === 429 ||
+            (json.errors && JSON.stringify(json.errors).toLowerCase().includes('rate'));
+
+        if (rateLimited && attempt < maxAttempts) {
+            const waitMs = attempt * 20000; // 20s, then 40s
+            console.log(`[wcFixtureResultsSync] Rate limited, waiting ${waitMs}ms before retry`);
+            await new Promise(r => setTimeout(r, waitMs));
+            continue;
+        }
+        if (!res.ok) {
+            throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+        }
+        if (json.errors && Object.keys(json.errors).length > 0) {
+            throw new Error(`API error: ${JSON.stringify(json.errors)}`);
+        }
+        return json.response;
     }
-    const json = await res.json();
-    if (json.errors && Object.keys(json.errors).length > 0) {
-        throw new Error(`API error: ${JSON.stringify(json.errors)}`);
-    }
-    return json.response;
+    throw new Error('API request failed after retries (rate limited)');
 }
 
 Deno.serve(async (req) => {
@@ -84,6 +99,21 @@ Deno.serve(async (req) => {
 
             const ourMatches = await base44.asServiceRole.entities.Match.list();
 
+            // Index our (non-final) matches by the normalized "home|away" team-name pair.
+            // Matching purely on the team pair (not kickoff time) makes the sync resilient to
+            // reschedules / timezone drift — the bug that left matches like GER-PAR unsynced.
+            const matchByPair = {};
+            for (const m of ourMatches) {
+                const mHome = teamById[m.home_team_id];
+                const mAway = teamById[m.away_team_id];
+                if (!mHome || !mAway) continue;
+                const key = `${normalizeTeamName(mHome.name)}|${normalizeTeamName(mAway.name)}`;
+                // Prefer a not-yet-final match if duplicates exist
+                if (!matchByPair[key] || matchByPair[key].status === 'FINAL') {
+                    matchByPair[key] = m;
+                }
+            }
+
             // Load all finalized results once and index by match_id — avoids a per-match
             // .filter() call (the rate-limit saturation that auto-paused this automation).
             const allResults = await base44.asServiceRole.entities.MatchResultFinal.list();
@@ -109,22 +139,10 @@ Deno.serve(async (req) => {
                     continue;
                 }
 
-                // Find our match by team names and kickoff
-                const kickoffDate = new Date(f.date);
+                // Match by team pair only (kickoff time ignored — see matchByPair above).
                 const homeApiName = normalizeTeamName(fixture.teams.home.name);
                 const awayApiName = normalizeTeamName(fixture.teams.away.name);
-
-                const ourMatch = ourMatches.find(m => {
-                    const mHome = teamById[m.home_team_id];
-                    const mAway = teamById[m.away_team_id];
-                    if (!mHome || !mAway) return false;
-
-                    const nameMatch = 
-                        normalizeTeamName(mHome.name) === homeApiName &&
-                        normalizeTeamName(mAway.name) === awayApiName;
-                    const timeDiff = Math.abs(new Date(m.kickoff_at) - kickoffDate) / 60000;
-                    return nameMatch && timeDiff < 30;
-                });
+                const ourMatch = matchByPair[`${homeApiName}|${awayApiName}`];
 
                 if (!ourMatch) {
                     errors.push(`No match found for ${fixture.teams.home.name} vs ${fixture.teams.away.name}`);
