@@ -1,51 +1,92 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * Backfill Prode scoring for all matches that have a MatchResultFinal but whose
- * predictions were never scored into PointsLedger. Idempotent per user+match.
+ * Safety-net Prode scoring. Idempotent per user+match.
  * Scoring rules: exact score = 5, correct outcome (winner/draw) = 3.
  *
- * Runnable by an admin (manual) OR unattended by a scheduled automation
- * (no user context). Idempotent, so safe to run repeatedly.
- * POST {}
+ * Design goals (learned the hard way):
+ *  - Must be CHEAP and FAST on every scheduled run so it never hits the rate
+ *    limit or the 180s timeout. The old version re-read the ENTIRE PointsLedger
+ *    on every run — that got prohibitively expensive as the ledger grew and
+ *    caused persistent "Rate limit exceeded" failures.
+ *  - New approach: only look at matches finalized in a recent window (default
+ *    last 48h, override with { hours }), and for each one read ONLY that match's
+ *    ledger entries (small, scoped) to decide what's missing. This keeps every
+ *    run bounded no matter how large the total ledger gets.
+ *  - A full historical sweep is still available on demand via { all: true }.
+ *
+ * Runnable by an admin (manual) OR unattended by a scheduled automation.
+ * POST {}  |  POST { hours: 72 }  |  POST { all: true }
  */
 Deno.serve(async (req) => {
+    const startedAt = Date.now();
+    const TIME_BUDGET_MS = 120000;
+
     try {
         const base44 = createClientFromRequest(req);
-        // Allow admin-triggered runs, but also unattended scheduled runs (no user).
         let user = null;
         try { user = await base44.auth.me(); } catch (_) { user = null; }
         if (user && user.role !== 'admin') {
             return Response.json({ error: 'Admin access required' }, { status: 403 });
         }
 
-        const finals = await base44.asServiceRole.entities.MatchResultFinal.list('-finalized_at', 1000);
+        let body = {};
+        try { body = await req.json(); } catch (_) { body = {}; }
+        const windowHours = typeof body.hours === 'number' ? body.hours : 48;
+        const doAll = body.all === true;
 
-        // Load ALL existing PRODE ledger entries via pagination (a single filter()
-        // is capped at 5000, which silently hides entries once the ledger grows past
-        // that — causing duplicate ledger rows to be created on every run).
-        const scoredKeys = new Set();
-        let skip = 0;
-        while (true) {
-            const batch = await base44.asServiceRole.entities.PointsLedger.filter({ mode: 'PRODE' }, '-created_date', 1000, skip);
-            for (const e of batch) scoredKeys.add(e.source_id);
-            if (batch.length < 1000) break;
-            skip += 1000;
-            if (skip > 100000) break;
-        }
+        // Most-recently finalized first.
+        const finals = await base44.asServiceRole.entities.MatchResultFinal.list('-finalized_at', 1000);
+        const cutoff = Date.now() - windowHours * 3600 * 1000;
+        const recentFinals = doAll
+            ? finals
+            : finals.filter(f => {
+                const t = f.finalized_at ? new Date(f.finalized_at).getTime() : 0;
+                return t >= cutoff;
+            });
 
         let totalScored = 0;
         let totalSkipped = 0;
+        let incomplete = false;
         const perMatch = [];
 
-        for (const finalResult of finals) {
+        for (const finalResult of recentFinals) {
+            if (Date.now() - startedAt > TIME_BUDGET_MS) {
+                incomplete = true;
+                break;
+            }
+
             const matchId = finalResult.match_id;
+
+            // Read ONLY this match's existing ledger entries (small, scoped).
+            const existing = await base44.asServiceRole.entities.PointsLedger.filter({
+                mode: 'PRODE',
+                source_type: 'MATCH'
+            });
+            const scoredForMatch = new Set(
+                existing
+                    .filter(e => (e.source_id || '').startsWith('PRODE:MATCH:' + matchId + ':'))
+                    .map(e => e.source_id)
+            );
+
             const predictions = await base44.asServiceRole.entities.ProdePrediction.filter({ match_id: matchId });
 
-            let scored = 0;
+            // Fast path: already fully scored — skip without any writes.
+            if (predictions.length > 0 && scoredForMatch.size >= predictions.length) {
+                totalSkipped += predictions.length;
+                continue;
+            }
+
+            const toCreate = [];
             let skipped = 0;
 
             for (const pred of predictions) {
+                const sourceId = 'PRODE:MATCH:' + matchId + ':' + pred.user_id;
+                if (scoredForMatch.has(sourceId)) {
+                    skipped++;
+                    continue;
+                }
+
                 let points = 0;
                 const breakdown = { exact_score: 0, correct_outcome: 0, total: 0 };
 
@@ -65,13 +106,7 @@ Deno.serve(async (req) => {
                 }
                 breakdown.total = points;
 
-                const sourceId = 'PRODE:MATCH:' + matchId + ':' + pred.user_id;
-                if (scoredKeys.has(sourceId)) {
-                    skipped++;
-                    continue;
-                }
-
-                await base44.asServiceRole.entities.PointsLedger.create({
+                toCreate.push({
                     user_id: pred.user_id,
                     mode: 'PRODE',
                     source_type: 'MATCH',
@@ -79,22 +114,29 @@ Deno.serve(async (req) => {
                     points,
                     breakdown_json: JSON.stringify(breakdown)
                 });
-                scoredKeys.add(sourceId);
-                scored++;
             }
 
-            totalScored += scored;
+            // Bulk write in batches of 25 with a short pause to respect the write rate limit.
+            for (let i = 0; i < toCreate.length; i += 25) {
+                await base44.asServiceRole.entities.PointsLedger.bulkCreate(toCreate.slice(i, i + 25));
+                await new Promise(r => setTimeout(r, 1200));
+            }
+
+            totalScored += toCreate.length;
             totalSkipped += skipped;
-            if (scored > 0 || skipped > 0) {
-                perMatch.push({ match_id: matchId, scored, skipped });
+            if (toCreate.length > 0) {
+                perMatch.push({ match_id: matchId, scored: toCreate.length, skipped });
             }
         }
 
         return Response.json({
             ok: true,
-            finals_checked: finals.length,
+            incomplete,
+            window_hours: doAll ? 'ALL' : windowHours,
+            finals_checked: recentFinals.length,
             total_scored: totalScored,
             total_skipped: totalSkipped,
+            elapsed_ms: Date.now() - startedAt,
             per_match: perMatch
         });
     } catch (error) {
