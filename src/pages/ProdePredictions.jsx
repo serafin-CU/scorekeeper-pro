@@ -375,27 +375,12 @@ export default function ProdePredictions() {
         phases[p]?.length > 0 || p in KNOCKOUT_SLOT_COUNT
     );
 
-    // Auto-select first phase with upcoming matches
+    // Default to Quarterfinals (now open for predictions) on first load
     useEffect(() => {
-        if (availablePhases.length === 0) return;
-
-        const now = new Date();
-        const phaseWithUpcoming = availablePhases.find(p =>
-            (phases[p] || []).some(m => new Date(m.kickoff_at) > now)
-        );
-
-        const currentIsKnockoutPlaceholder =
-            selectedPhase && KNOCKOUT_SLOT_COUNT[selectedPhase] !== undefined;
-        const upcomingIsGroupPhase =
-            phaseWithUpcoming && KNOCKOUT_SLOT_COUNT[phaseWithUpcoming] === undefined;
-
-        const shouldAutoSet =
-            !selectedPhase ||
-            (currentIsKnockoutPlaceholder && upcomingIsGroupPhase);
-
-        if (shouldAutoSet && phaseWithUpcoming) {
-            setSelectedPhase(phaseWithUpcoming);
-        } else if (!selectedPhase) {
+        if (availablePhases.length === 0 || selectedPhase) return;
+        if (availablePhases.includes('QUARTERFINALS')) {
+            setSelectedPhase('QUARTERFINALS');
+        } else {
             setSelectedPhase(availablePhases[0]);
         }
     }, [availablePhases.length, matches.length]);
