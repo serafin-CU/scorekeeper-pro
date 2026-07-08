@@ -318,7 +318,7 @@ function MatchRow({ match, teams, localPrediction, savedPrediction, onUpdate, is
 
 /* ── Main page ───────────────────────────────────────────── */
 export default function ProdePredictions() {
-    const [selectedPhase, setSelectedPhase] = useState(null);
+    const [selectedPhase, setSelectedPhase] = useState('QUARTERFINALS');
     const [localEdits, setLocalEdits] = useState({});      // { match_id: { home: N, away: N } }
     const [saving, setSaving] = useState(false);
     const [showPast, setShowPast] = useState(false);
