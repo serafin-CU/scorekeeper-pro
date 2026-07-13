@@ -318,7 +318,7 @@ function MatchRow({ match, teams, localPrediction, savedPrediction, onUpdate, is
 
 /* ── Main page ───────────────────────────────────────────── */
 export default function ProdePredictions() {
-    const [selectedPhase, setSelectedPhase] = useState('QUARTERFINALS');
+    const [selectedPhase, setSelectedPhase] = useState('SEMIFINALS');
     const [localEdits, setLocalEdits] = useState({});      // { match_id: { home: N, away: N } }
     const [saving, setSaving] = useState(false);
     const [showPast, setShowPast] = useState(false);
@@ -378,8 +378,8 @@ export default function ProdePredictions() {
     // Default to Quarterfinals (now open for predictions) on first load
     useEffect(() => {
         if (availablePhases.length === 0 || selectedPhase) return;
-        if (availablePhases.includes('QUARTERFINALS')) {
-            setSelectedPhase('QUARTERFINALS');
+        if (availablePhases.includes('SEMIFINALS')) {
+            setSelectedPhase('SEMIFINALS');
         } else {
             setSelectedPhase(availablePhases[0]);
         }
