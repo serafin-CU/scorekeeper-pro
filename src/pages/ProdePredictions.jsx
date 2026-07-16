@@ -29,11 +29,15 @@ const PHASE_LABELS = {
     ROUND_OF_16: 'Round of 16',
     QUARTERFINALS: 'Quarterfinals',
     SEMIFINALS: 'Semifinals',
-    THIRD_PLACE: '3rd Place',
-    FINAL: 'Final'
+    FINALS: 'Finals (3rd Place & Final)'
 };
 
-const PHASE_ORDER = ['GROUP_MD1', 'GROUP_MD2', 'GROUP_MD3', 'ROUND_OF_32', 'ROUND_OF_16', 'QUARTERFINALS', 'SEMIFINALS', 'THIRD_PLACE', 'FINAL'];
+const PHASE_ORDER = ['GROUP_MD1', 'GROUP_MD2', 'GROUP_MD3', 'ROUND_OF_32', 'ROUND_OF_16', 'QUARTERFINALS', 'SEMIFINALS', 'FINALS'];
+
+// Sub-phases that are grouped under a single selector entry
+const GROUPED_PHASES = {
+    FINALS: ['THIRD_PLACE', 'FINAL'],
+};
 
 // Knockout phases that always appear in the selector, with their expected slot counts
 const KNOCKOUT_SLOT_COUNT = {
@@ -41,8 +45,7 @@ const KNOCKOUT_SLOT_COUNT = {
     ROUND_OF_16: 8,
     QUARTERFINALS: 4,
     SEMIFINALS: 2,
-    THIRD_PLACE: 1,
-    FINAL: 1,
+    FINALS: 2,
 };
 
 /* ── Google Fonts loader ─────────────────────────────────── */
@@ -318,7 +321,7 @@ function MatchRow({ match, teams, localPrediction, savedPrediction, onUpdate, is
 
 /* ── Main page ───────────────────────────────────────────── */
 export default function ProdePredictions() {
-    const [selectedPhase, setSelectedPhase] = useState('SEMIFINALS');
+    const [selectedPhase, setSelectedPhase] = useState('FINALS');
     const [localEdits, setLocalEdits] = useState({});      // { match_id: { home: N, away: N } }
     const [saving, setSaving] = useState(false);
     const [showPast, setShowPast] = useState(false);
@@ -360,11 +363,16 @@ export default function ProdePredictions() {
     const predictionsMap = Object.fromEntries(predictions.map(p => [p.match_id, p]));
     const resultsMap = Object.fromEntries(finalResults.map(r => [r.match_id, r]));
 
-    // Group matches by phase
+    // Group matches by phase, remapping grouped sub-phases (e.g. THIRD_PLACE + FINAL → FINALS)
+    const SUBPHASE_TO_GROUP = {};
+    for (const [group, subs] of Object.entries(GROUPED_PHASES)) {
+        for (const sub of subs) SUBPHASE_TO_GROUP[sub] = group;
+    }
     const phases = {};
     for (const match of matches) {
-        if (!phases[match.phase]) phases[match.phase] = [];
-        phases[match.phase].push(match);
+        const phaseKey = SUBPHASE_TO_GROUP[match.phase] || match.phase;
+        if (!phases[phaseKey]) phases[phaseKey] = [];
+        phases[phaseKey].push(match);
     }
     for (const phase in phases) {
         phases[phase].sort((a, b) => new Date(a.kickoff_at) - new Date(b.kickoff_at));
@@ -378,7 +386,9 @@ export default function ProdePredictions() {
     // Default to Quarterfinals (now open for predictions) on first load
     useEffect(() => {
         if (availablePhases.length === 0 || selectedPhase) return;
-        if (availablePhases.includes('SEMIFINALS')) {
+        if (availablePhases.includes('FINALS')) {
+            setSelectedPhase('FINALS');
+        } else if (availablePhases.includes('SEMIFINALS')) {
             setSelectedPhase('SEMIFINALS');
         } else {
             setSelectedPhase(availablePhases[0]);
